@@ -1,6 +1,6 @@
+import styles from './LedgerAccountPaymentMethodsCard.module.scss'
 import PaymentMethodList from '@/components/Ledger/Accounts/PaymentMethodList'
 import PaymentMethodModal from '@/components/Ledger/Modals/PaymentMethodModal'
-import Card from '@/components/UI/Card'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { readUserAction } from '@/services/users/actions'
 import BooleanIndicator from '@/components/UI/BooleanIndicator'
@@ -23,19 +23,24 @@ export default async function LedgerAccountPaymentMethods({ userId }: Props) {
     const hasBankCard = savedPaymentMethods.length > 0
     const hasStudentCard = user.studentCard !== null
 
-    return <Card heading="Betalingsalternativer">
-        <h3>Bankkort <BooleanIndicator value={hasBankCard} /></h3>
-        <p>
-            Du kan lagre kortinformasjonen din for senere betalinger.
-            Kortinformasjonen lagres kun hos betalingsleverandøren vår, Stripe, og ikke på våre tjenere.
-        </p>
-        <PaymentMethodList userId={userId} paymentMethods={savedPaymentMethods} />
-        <PaymentMethodModal userId={userId} />
-        <h3>NTNU-kort <BooleanIndicator value={hasStudentCard} /></h3>
-        <p>For å benytte Kiogeskabet på Lophtet må et NTNU-kort være registrert.</p>
-        <p>Kortnummer: <strong>{hasStudentCard ? user.studentCard : 'ikke registrert'}</strong></p>
-        <Link href={`/users/${user.username}/settings`}>
-            Gå til siden for kortregistrering <FontAwesomeIcon icon={faArrowRight} />
-        </Link>
-    </Card>
+    return <div className={styles.wrapper}>
+        <h2>Betalingsalternativer</h2>
+        <div className={styles.section}>
+            <h3>Bankkort <BooleanIndicator value={hasBankCard} /></h3>
+            <p>
+                Du kan lagre kortinformasjonen din for senere betalinger.
+                Kortinformasjonen lagres kun hos betalingsleverandøren vår, Stripe, og ikke på våre tjenere.
+            </p>
+            <PaymentMethodList userId={userId} paymentMethods={savedPaymentMethods} />
+            <PaymentMethodModal userId={userId} />
+        </div>
+        <div className={styles.section}>
+            <h3>NTNU-kort <BooleanIndicator value={hasStudentCard} /></h3>
+            <p>For å benytte Kiogeskabet på Lophtet må et NTNU-kort være registrert.</p>
+            <p>Kortnummer: <strong>{hasStudentCard ? user.studentCard : 'ikke registrert'}</strong></p>
+            <Link href={`/users/${user.username}/settings`} className={styles.iconLink}>
+                Gå til siden for kortregistrering <FontAwesomeIcon icon={faArrowRight} />
+            </Link>
+        </div>
+    </div>
 }

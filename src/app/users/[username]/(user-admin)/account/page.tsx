@@ -1,3 +1,4 @@
+import styles from './page.module.scss'
 import { redirectToErrorPage, unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { readLedgerAccountAction } from '@/services/ledger/accounts/actions'
 import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOverviewCard'
@@ -12,7 +13,7 @@ export default async function Account() {
 
     const ledgerAccount = unwrapActionReturn(await readLedgerAccountAction({ params: { userId: session.user.id } }))
 
-    return <div>
+    return <div className={styles.wrapper}>
         <LedgerAccountOverview
             ledgerAccount={ledgerAccount}
             showPayoutButton

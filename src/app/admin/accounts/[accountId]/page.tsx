@@ -1,3 +1,4 @@
+import styles from './page.module.scss'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOverviewCard'
 import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
@@ -19,7 +20,7 @@ export default async function LedgerAccount({ params }: Props) {
 
     const ledgerAccount = unwrapActionReturn(await readLedgerAccountAction({ params: { ledgerAccountId: accountId } }))
 
-    return <div>
+    return <div className={styles.wrapper}>
         <LedgerAccountOverview
             ledgerAccount={ledgerAccount}
             showDepositButton
