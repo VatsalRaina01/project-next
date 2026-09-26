@@ -15,8 +15,13 @@ type APIHandler<
     serviceOperation: ServiceOperation<boolean, Return, ParamsSchema, DataSchema>,
 } & (ParamsSchema extends undefined ? {
     params?: undefined,
+    query?: undefined,
 } : {
     params: (rawParams: RawParams) => z.input<NonNullable<ParamsSchema>>,
+    query?: undefined,
+} | {
+    params?: undefined,
+    query: (searchParams: URLSearchParams) => z.input<NonNullable<ParamsSchema>>,
 })
 
 async function apiHandlerGeneric<Return>(req: Request, handle: (session: SessionNoUser) => Promise<Return>) {
@@ -41,7 +46,7 @@ export function apiHandler<
     Return,
     ParamsSchema extends z.ZodTypeAny | undefined = undefined,
     DataSchema extends z.ZodTypeAny | undefined = undefined,
->({ serviceOperation, params }: APIHandler<RawParams, Return, ParamsSchema, DataSchema>) {
+>({ serviceOperation, params, query }: APIHandler<RawParams, Return, ParamsSchema, DataSchema>) {
     // TODO: I think I will rewrite this to be easier to read
     return async (req: Request, { params: rawParams }: { params: Promise<RawParams> }) =>
         await apiHandlerGeneric<Return>(req, async session => {
@@ -59,7 +64,9 @@ export function apiHandler<
             }
 
             return serviceOperation<'UNSAFE'>({
-                params: params ? params(await rawParams) : undefined,
+                params: query
+                    ? query(new URL(req.url).searchParams)
+                    : params ? params(await rawParams) : undefined,
                 data,
                 session,
             })
