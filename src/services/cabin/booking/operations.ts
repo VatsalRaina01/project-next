@@ -11,9 +11,12 @@ import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/ope
 import { sendSystemMail } from '@/lib/email/send'
 import { notificationOperations } from '@/services/notifications/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import { BookingType } from '@/prisma-generated-pn-types'
+import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
+import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { BookingType, PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 import type { CabinProductExtended } from '@/services/cabin/product/constants'
+import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import logger from '@/lib/logger'
 
 const mailData = {
@@ -370,5 +373,26 @@ export const cabinBookingOperations = {
                     special: ['CABIN_CONTRACT']
                 },
             })
+    }),
+
+    createPayment: defineOperation({
+        paramsSchema: z.object({
+            provider: z.nativeEnum(PaymentProvider),
+            manualFees: z.coerce.number().nonnegative().default(0),
+            description: z.string().optional(),
+        }),
+        // Placeholder. Real implementation must check booking-type-specific permissions,
+        // like createCabinBooking*/createBedBooking* above, once it gets the payload.
+        authorizer: () => andAuthorizers(
+            cabinBookingAuth.createCabinBookingNoUser.dynamicFields({}),
+            RequirePermission.staticFields({ permission: 'LEDGER_USE' }).dynamicFields({}),
+        ),
+        operation: async (): Promise<{ payment: ExpandedPayment | null }> => {
+            // TODO: Unify with cabinBookingOperations.create* using paymentOperations.create
+            // and ledgerTransactionOperations.create({ purpose: 'CABIN_BOOKING' }) in one
+            // $transaction. Fix the race condition noted above before adding payment.
+            // StateWrapper already collects the full booking payload; just needs wiring here.
+            throw new ServerError('NOT IMPLEMENTED', 'Betaling for hyttebooking er ikke implementert ennå.')
+        },
     })
 }

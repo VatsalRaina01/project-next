@@ -1,5 +1,6 @@
 import { Zpn } from '@/lib/fields/zpn'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
+import { convertAmount } from '@/lib/currency/convert'
 import { EventCanView } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
@@ -15,6 +16,9 @@ const baseSchema = z.object({
     places: z.coerce.number().int().optional(),
     registrationStart: Zpn.date({ label: 'Påmelding start' }).optional(),
     registrationEnd: Zpn.date({ label: 'Påmelding slutt' }).optional(),
+    price: z.coerce.number().min(0).transform(val => convertAmount(val)).optional(),
+    paymentStart: Zpn.date({ label: 'Betaling start' }).optional(),
+    paymentEnd: Zpn.date({ label: 'Betaling slutt' }).optional(),
 
     waitingList: Zpn.checkboxOrBoolean({ label: 'Venteliste' }),
 
@@ -42,6 +46,9 @@ export const eventSchemas = {
         registrationEnd: true,
         tagIds: true,
         waitingList: true,
+        price: true,
+        paymentStart: true,
+        paymentEnd: true,
     }).refine(waitingListRefiner, waitingListMessage),
 
     update: baseSchema.partial().pick({
@@ -57,6 +64,9 @@ export const eventSchemas = {
         registrationEnd: true,
         tagIds: true,
         waitingList: true,
+        price: true,
+        paymentStart: true,
+        paymentEnd: true,
     }).refine(waitingListRefiner, waitingListMessage),
 
     readManyArchivedPage: readPageInputSchemaObject(

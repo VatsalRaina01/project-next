@@ -49,6 +49,7 @@ model LedgerAccount {
 enum LedgerTransactionPurpose {
   SHOP_PURCHASE
   EVENT_PAYMENT
+  CABIN_BOOKING
   DEPOSIT
   PAYOUT
   REFUND

@@ -9,3 +9,4 @@ export const eventRegistrationReadManyDetailedAction = makeAction(eventRegistrat
 export const eventRegistrationUpdateNotesAction = makeAction(eventRegistrationOperations.updateNotes)
 export const eventRegistrationDestroyAction = makeAction(eventRegistrationOperations.destroy)
 export const dotPunishmentOfUserAction = makeAction(eventRegistrationOperations.dotPunishmentOfUser)
+export const createEventRegistrationPaymentAction = makeAction(eventRegistrationOperations.createPayment)

@@ -10,8 +10,12 @@ import { notificationOperations } from '@/services/notifications/operations'
 import { sendSystemMail } from '@/lib/email/send'
 import { userFilterSelection } from '@/services/users/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
+import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 import type { Prisma } from '@/prisma-generated-pn-types'
+import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { DotPunishment, EventRegistrationExpanded } from './types'
 
 /**
@@ -347,7 +351,28 @@ export const eventRegistrationOperations = {
                 )
             }
         }
-    })
+    }),
+
+    createPayment: defineOperation({
+        paramsSchema: z.object({
+            userId: z.number().min(0),
+            eventId: z.number().min(0),
+            provider: z.nativeEnum(PaymentProvider),
+            manualFees: z.coerce.number().nonnegative().default(0),
+            description: z.string().optional(),
+        }),
+        authorizer: ({ params }) => andAuthorizers(
+            eventRegistrationAuth.create.dynamicFields({ userId: params.userId }),
+            RequirePermission.staticFields({ permission: 'LEDGER_USE' }).dynamicFields({}),
+        ),
+        operation: async (): Promise<{ payment: ExpandedPayment | null }> => {
+            // TODO: Pays for a registration created separately via eventRegistrationOperations.create.
+            // Mirror ledgerMovementOperations.createDeposit: paymentOperations.create, then
+            // ledgerTransactionOperations.create({ purpose: 'EVENT_PAYMENT' }) crediting the
+            // event's committee account, then paymentOperations.initiate for STRIPE.
+            throw new Smorekopp('NOT IMPLEMENTED', 'Betaling for arrangementer er ikke implementert ennå.')
+        },
+    }),
 }
 
 async function preValidateRegistration(

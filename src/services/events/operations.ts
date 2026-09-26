@@ -104,6 +104,18 @@ export const eventOperations = {
                 throw new ServerError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
             }
 
+            if (data.paymentStart && data.paymentEnd && data.paymentStart > data.paymentEnd) {
+                throw new ServerError('BAD PARAMETERS', 'Betaling må jo strate før den slutter')
+            }
+
+            if (data.paymentStart && !data.paymentEnd || !data.paymentStart && data.paymentEnd) {
+                throw new ServerError('BAD PARAMETERS', 'Begge betalingsdatoer må være satt eller ingen')
+            }
+
+            if (data.price && (!data.paymentStart || !data.paymentEnd)) {
+                throw new ServerError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet har en pris')
+            }
+
             const event = await prisma.event.create({
                 data: {
                     name: data.name,
@@ -116,6 +128,9 @@ export const eventOperations = {
                     registrationEnd: data.registrationEnd ?? new Date(getOsloTime().getTime() + 1000 * 60 * 60 * 24),
                     canBeViewdBy: data.canBeViewdBy,
                     waitingList: data.waitingList,
+                    price: data.price,
+                    paymentStart: data.paymentStart,
+                    paymentEnd: data.paymentEnd,
 
                     createdBy: session?.user ? {
                         connect: {
@@ -253,6 +268,21 @@ export const eventOperations = {
 
             if (data.registrationStart && !data.registrationEnd || !data.registrationStart && data.registrationEnd) {
                 throw new ServerError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
+            }
+
+            if (data.paymentStart && data.paymentEnd && data.paymentStart > data.paymentEnd) {
+                throw new ServerError('BAD PARAMETERS', 'Betaling må jo strate før den slutter')
+            }
+
+            if (data.paymentStart && !data.paymentEnd || !data.paymentStart && data.paymentEnd) {
+                throw new ServerError('BAD PARAMETERS', 'Begge betalingsdatoer må være satt eller ingen')
+            }
+
+            const effectivePrice = data.price ?? event.price
+            const effectivePaymentStart = data.paymentStart ?? event.paymentStart
+            const effectivePaymentEnd = data.paymentEnd ?? event.paymentEnd
+            if (effectivePrice && (!effectivePaymentStart || !effectivePaymentEnd)) {
+                throw new ServerError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet har en pris')
             }
 
             const eventUpdate = await prisma.event.update({

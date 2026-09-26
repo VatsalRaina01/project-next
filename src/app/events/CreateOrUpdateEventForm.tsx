@@ -98,6 +98,12 @@ export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes)
                         name="places"
                         defaultValue={event?.places}
                     />
+                    <NumberInput
+                        label="Pris (tom for gratis arrangement)"
+                        name="price"
+                        min={0}
+                        defaultValue={event?.price ? event.price / 100 : undefined}
+                    />
                     <DateInput
                         label="Registrering Start"
                         name="registrationStart"
@@ -108,6 +114,18 @@ export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes)
                         label="Registrering Slutt"
                         name="registrationEnd"
                         defaultValue={event?.registrationEnd}
+                        includeTime
+                    />
+                    <DateInput
+                        label="Betaling Start"
+                        name="paymentStart"
+                        defaultValue={event?.paymentStart ?? undefined}
+                        includeTime
+                    />
+                    <DateInput
+                        label="Betaling Slutt"
+                        name="paymentEnd"
+                        defaultValue={event?.paymentEnd ?? undefined}
                         includeTime
                     />
                 </> : <>

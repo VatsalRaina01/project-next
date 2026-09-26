@@ -12,6 +12,7 @@ type Props = {
 const transactionPurposeNames: Record<LedgerTransactionPurpose, string> = {
     SHOP_PURCHASE: 'Kjøp i Kiogeskabet',
     EVENT_PAYMENT: 'Arrangementsbetaling',
+    CABIN_BOOKING: 'Hyttebooking',
     DEPOSIT: 'Innskudd',
     PAYOUT: 'Utbetaling',
     REFUND: 'Refusjon',

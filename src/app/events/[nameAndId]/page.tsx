@@ -20,6 +20,8 @@ import {
     updateEventParagraphContentAction
 } from '@/services/events/actions'
 import { dotPunishmentOfUserAction } from '@/services/events/registration/actions'
+import { calculateLedgerAccountBalanceAction } from '@/services/ledger/accounts/actions'
+import { createStripeCustomerSessionAction } from '@/services/stripeCustomers/actions'
 import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { ServerSession } from '@/auth/session/ServerSession'
@@ -62,6 +64,22 @@ export default async function Event({ params }: PropTypes) {
     const dotPunishment = event.takesRegistration && session.user ? unwrapActionReturn(
         await dotPunishmentOfUserAction({ params: { userId: session.user.id } })
     ) : null
+
+    let eventPaymentBalance: number | undefined
+    let eventPaymentCustomerSessionSecret: string | undefined
+
+    if (event.takesRegistration && event.price && session.user) {
+        eventPaymentBalance = unwrapActionReturn(
+            await calculateLedgerAccountBalanceAction({ params: { userId: session.user.id } })
+        ).amount
+
+        const customerSessionResult = await createStripeCustomerSessionAction({
+            params: { userId: session.user.id }
+        })
+        eventPaymentCustomerSessionSecret = customerSessionResult.success
+            ? customerSessionResult.data.customerSessionClientSecret
+            : undefined
+    }
 
     return (
         <div className={styles.wrapper}>
@@ -140,6 +158,8 @@ export default async function Event({ params }: PropTypes) {
                         registration={ownRegistration}
                         onWaitingList={event.onWaitingList}
                         dotPunishment={dotPunishment}
+                        availableBalance={eventPaymentBalance}
+                        customerSessionClientSecret={eventPaymentCustomerSessionSecret}
                     />
                 </> : <p>
                     <FontAwesomeIcon icon={faExclamation} />

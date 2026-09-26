@@ -4,6 +4,7 @@ import CountDown from '@/components/countDown/CountDown'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import SubmitButton from '@/components/UI/SubmitButton'
+import EventPaymentModal from '@/components/Ledger/Modals/EventPaymentModal'
 import {
     createEventRegistrationAction,
     eventRegistrationDestroyAction,
@@ -33,11 +34,15 @@ export default function RegistrationUI({
     onWaitingList,
     registration,
     dotPunishment,
+    availableBalance,
+    customerSessionClientSecret,
 }: {
     event: EventExpanded,
     onWaitingList: boolean,
     registration?: EventRegistration,
     dotPunishment: DotPunishment | null,
+    availableBalance?: number,
+    customerSessionClientSecret?: string,
 }) {
     if (!event.takesRegistration) {
         throw new Error('Can only show registration button for event that take registration')
@@ -150,6 +155,14 @@ export default function RegistrationUI({
         setBtnKey(btnKey + 1)
     }
 
+    // Payment only applies once registration is confirmed, not while waitlisted.
+    const now = new Date()
+    const paymentOpen = Boolean(event.price && event.paymentStart && event.paymentEnd) &&
+        event.paymentStart! <= now && now <= event.paymentEnd!
+    const paymentNotYetOpen = Boolean(event.price && event.paymentStart) && event.paymentStart! > now
+    const paymentClosed = Boolean(event.price && event.paymentEnd) && event.paymentEnd! < now
+    const showPayment = Boolean(event.price) && btnState === RegistrationButtonState.REGISTERED
+
     return <>
         <SubmitButton
             success={false}
@@ -194,6 +207,23 @@ export default function RegistrationUI({
 
         {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && (
             <p>Påmeldingen åpner om <CountDown referenceDate={registrationStart} /></p>
+        )}
+
+        {showPayment && event.price && paymentOpen && (
+            <EventPaymentModal
+                eventId={event.id}
+                userId={session.data.user.id}
+                price={event.price}
+                availableBalance={availableBalance}
+                customerSessionClientSecret={customerSessionClientSecret}
+                triggerLabel="Betal for arrangementet"
+            />
+        )}
+        {showPayment && paymentNotYetOpen && (
+            <p>Betaling åpner om <CountDown referenceDate={event.paymentStart!} /></p>
+        )}
+        {showPayment && paymentClosed && (
+            <p>Betalingsperioden er over.</p>
         )}
 
         {dotPunishment?.type === 'ban' && (
