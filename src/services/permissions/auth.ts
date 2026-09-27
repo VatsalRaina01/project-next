@@ -3,10 +3,10 @@ import { RequirePermission } from '@/auth/authorizer/RequirePermission'
 
 
 export const permissionsAuth = {
-    readGroupPermissions: RequirePermission.staticFields({ permission: 'PERMISSION_GROUP_READ' }),
-    readPermissionMatrix: RequirePermission.staticFields({ permission: 'PERMISSION_GROUP_READ' }),
-    updateGroupPermission: RequirePermission.staticFields({ permission: 'PERMISSION_GROUP_ADMIN' }),
+    readGroupPermissions: RequirePermission.staticFields({ permission: 'PERMISSION_USE' }),
+    readPermissionMatrix: RequirePermission.staticFields({ permission: 'PERMISSION_USE' }),
+    updateGroupPermission: RequirePermission.staticFields({ permission: 'PERMISSION_ADMIN' }),
 
     readDefaultPermissions: RequireNothing.staticFields({}),
-    updateDefaultPermissions: RequirePermission.staticFields({ permission: 'PERMISSION_DEFAULT_ADMIN' }),
+    updateDefaultPermissions: RequirePermission.staticFields({ permission: 'PERMISSION_ADMIN' }),
 }

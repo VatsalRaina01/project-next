@@ -3,12 +3,12 @@ import { RequireUserIdOrPermission } from '@/auth/authorizer/RequireUserIdOrPerm
 
 export const admissionAuth = {
     createTrial: RequirePermissionAndUser.staticFields({
-        permission: 'ADMISSION_TRIAL_ADMIN',
+        permission: 'ADMISSION_USE',
     }),
     readTrial: RequireUserIdOrPermission.staticFields({
-        permission: 'ADMISSION_TRIAL_ADMIN',
+        permission: 'ADMISSION_USE',
     }),
     userCompletedTrials: RequireUserIdOrPermission.staticFields({
-        permission: 'ADMISSION_TRIAL_ADMIN',
+        permission: 'ADMISSION_USE',
     }),
 } as const

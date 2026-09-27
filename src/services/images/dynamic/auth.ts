@@ -16,7 +16,7 @@ export const dynamicImageAuth = {
         RequireVisibilityFilter.staticFields({ bypassPermission: 'IMAGE_ADMIN' }),
 
     createCollection:
-        RequirePermission.staticFields({ permission: 'IMAGE_COLLECTION_CREATE' }),
+        RequirePermission.staticFields({ permission: 'IMAGE_USE' }),
     destroyCollection:
         RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'IMAGE_ADMIN' }),
     updateCollection:

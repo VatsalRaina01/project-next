@@ -6,11 +6,10 @@ import { RequireVisibilityFilter } from '@/auth/authorizer/RequireVisibilityFilt
 /**
  * The admin level of an event decides who may edit and delete it, the regular level who may
  * register for it - and, for an event not viewable by all, who may see it at all. EVENT_ADMIN
- * bypasses both levels for every event, and EVENT_CREATE is what it takes to make one in the first
- * place.
+ * bypasses both levels for every event, and is also what it takes to make one in the first place.
  */
 export const eventAuth = {
-    create: RequirePermission.staticFields({ permission: 'EVENT_CREATE' }),
+    create: RequirePermission.staticFields({ permission: 'EVENT_ADMIN' }),
 
     readDoubleLevelMatrix:
         RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'REGULAR', bypassPermission: 'EVENT_ADMIN' }),

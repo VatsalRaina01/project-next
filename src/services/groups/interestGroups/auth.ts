@@ -4,10 +4,10 @@ import { requireReadManagedGroupMembers } from '@/services/groups/auth'
 
 export const interestGroupAuth = {
     create: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_ADMIN' }),
-    read: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_READ' }),
-    readMany: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_READ' }),
-    readExpanded: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_READ' }),
-    readMembers: requireReadManagedGroupMembers('INTEREST_GROUP_READ'),
+    read: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_USE' }),
+    readMany: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_USE' }),
+    readExpanded: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_USE' }),
+    readMembers: requireReadManagedGroupMembers('INTEREST_GROUP_USE'),
     addMembers: RequirePermissionOrGroupAdmin.staticFields({ permission: 'INTEREST_GROUP_ADMIN' }),
     removeMembers: RequirePermissionOrGroupAdmin.staticFields({ permission: 'INTEREST_GROUP_ADMIN' }),
     setMemberAdmin: RequirePermissionOrGroupAdmin.staticFields({ permission: 'INTEREST_GROUP_ADMIN' }),
@@ -16,7 +16,7 @@ export const interestGroupAuth = {
     update: RequirePermissionOrGroupAdmin.staticFields({ permission: 'INTEREST_GROUP_ADMIN' }),
     destroy: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_ADMIN' }),
     pension: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_ADMIN' }),
-    readSpecialCmsParagraphGeneralInfo: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_READ' }),
+    readSpecialCmsParagraphGeneralInfo: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_USE' }),
     updateSpecialCmsParagraphContentGeneralInfo: RequirePermission.staticFields({ permission: 'INTEREST_GROUP_ADMIN' }),
     updateArticleSection: RequirePermissionOrGroupAdmin.staticFields({ permission: 'INTEREST_GROUP_ADMIN' }),
 }

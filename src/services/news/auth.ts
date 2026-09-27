@@ -4,7 +4,7 @@ import { RequirePermission } from '@/auth/authorizer/RequirePermission'
 import { RequireVisibilityFilter } from '@/auth/authorizer/RequireVisibilityFilter'
 
 export const newsAuth = {
-    create: RequirePermission.staticFields({ permission: 'NEWS_CREATE' }),
+    create: RequirePermission.staticFields({ permission: 'NEWS_USE' }),
 
     readDoubleLevelMatrix:
         RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'REGULAR', bypassPermission: 'NEWS_ADMIN' }),

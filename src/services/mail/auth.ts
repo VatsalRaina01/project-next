@@ -11,9 +11,9 @@ export const mailAuth = {
     destroyMailingListUserRelation: RequirePermission.staticFields({ permission: 'MAILINGLIST_ADMIN' }),
     destroyMailingListGroupRelation: RequirePermission.staticFields({ permission: 'MAILINGLIST_ADMIN' }),
     readMailFlow: RequireEveryPermission.staticFields({
-        permissions: ['MAILINGLIST_READ', 'MAILALIAS_READ', 'MAILADDRESS_EXTERNAL_READ']
+        permissions: ['MAILINGLIST_USE', 'MAILALIAS_USE', 'MAILADDRESS_EXTERNAL_USE']
     }),
     readMailOptions: RequireEveryPermission.staticFields({
-        permissions: ['MAILINGLIST_READ', 'MAILALIAS_READ', 'MAILADDRESS_EXTERNAL_READ']
+        permissions: ['MAILINGLIST_USE', 'MAILALIAS_USE', 'MAILADDRESS_EXTERNAL_USE']
     }),
 } as const

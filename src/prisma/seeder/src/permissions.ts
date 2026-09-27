@@ -11,11 +11,11 @@ export function checkForPermissionDuplicates(arr: Permission[], failMessage: str
 }
 
 export const COMMITTEE_PERMISSIONS: Permission[] = [
-    'IMAGE_COLLECTION_CREATE',
-    'EVENT_CREATE',
-    'NOTIFICATION_CREATE',
-    'MAILADDRESS_EXTERNAL_READ',
-    'MAILALIAS_READ',
-    'MAILINGLIST_READ',
+    'IMAGE_USE',
+    'EVENT_ADMIN',
+    'NOTIFICATION_ADMIN',
+    'MAILADDRESS_EXTERNAL_USE',
+    'MAILALIAS_USE',
+    'MAILINGLIST_USE',
     'MAILINGLIST_ADMIN',
 ]

@@ -36,7 +36,7 @@ export default async function ManualGroupAdmin({ params }: PropTypes) {
     const manualGroup = unwrapActionReturn(await readManualGroupAction({ params: { id } }))
 
     // The page reads the group's members, so it guards on `readMembers` rather than `read`:
-    // `MANUAL_GROUP_READ` is a default permission, held by a visitor with no session at all.
+    // `MANUAL_GROUP_USE` is a default permission, held by a visitor with no session at all.
     manualGroupAuth.readMembers.dynamicFields({ groupId: manualGroup.groupId }).auth(session)
         .redirectOnUnauthorized({ returnUrl: `/admin/manual-groups/${id}` })
 

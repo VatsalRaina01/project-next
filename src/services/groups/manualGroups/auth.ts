@@ -4,10 +4,10 @@ import { requireReadManagedGroupMembers } from '@/services/groups/auth'
 
 export const manualGroupAuth = {
     create: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
-    read: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_READ' }),
-    readMany: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_READ' }),
-    readExpanded: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_READ' }),
-    readMembers: requireReadManagedGroupMembers('MANUAL_GROUP_READ'),
+    read: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_USE' }),
+    readMany: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_USE' }),
+    readExpanded: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_USE' }),
+    readMembers: requireReadManagedGroupMembers('MANUAL_GROUP_USE'),
     update: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
     destroy: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
     pension: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),

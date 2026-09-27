@@ -14,6 +14,6 @@ export const flairAuth = {
     decreaseRank: RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' }),
     read: RequireNothing.staticFields({}),
     readAll: RequireNothing.staticFields({}),
-    readUserFlairs: RequireUserIdOrPermission.staticFields({ permission: 'USERS_READ' }),
+    readUserFlairs: RequireUserIdOrPermission.staticFields({ permission: 'USERS_USE' }),
     updateImage: RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' }),
 } as const

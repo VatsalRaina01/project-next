@@ -5,21 +5,21 @@ import { RequireUserId } from '@/auth/authorizer/RequireUserId'
 import { RequireUserIdOrPermission } from '@/auth/authorizer/RequireUserIdOrPermission'
 import { RequireUsernameOrPermission } from '@/auth/authorizer/RequireUsernameOrPermission'
 
-export const profileImagesImagePanelAuth = RequirePermission.staticFields({ permission: 'USERS_UPDATE' })
+export const profileImagesImagePanelAuth = RequirePermission.staticFields({ permission: 'USERS_ADMIN' })
 
 export const userAuth = {
-    readProfile: RequireUsernameOrPermission.staticFields({ permission: 'USERS_READ' }),
-    read: RequireUserFieldOrPermission.staticFields({ permission: 'USERS_READ' }),
-    readOrNull: RequireUserFieldOrPermission.staticFields({ permission: 'USERS_READ' }),
-    readPage: RequirePermission.staticFields({ permission: 'USERS_READ' }),
-    search: RequirePermission.staticFields({ permission: 'USERS_READ' }),
-    create: RequirePermission.staticFields({ permission: 'USERS_CREATE' }),
+    readProfile: RequireUsernameOrPermission.staticFields({ permission: 'USERS_USE' }),
+    read: RequireUserFieldOrPermission.staticFields({ permission: 'USERS_USE' }),
+    readOrNull: RequireUserFieldOrPermission.staticFields({ permission: 'USERS_USE' }),
+    readPage: RequirePermission.staticFields({ permission: 'USERS_USE' }),
+    search: RequirePermission.staticFields({ permission: 'USERS_USE' }),
+    create: RequirePermission.staticFields({ permission: 'USERS_ADMIN' }),
     connectStudentCard: RequireUser.staticFields({}),
-    registerNewEmail: RequireUserIdOrPermission.staticFields({ permission: 'USERS_UPDATE' }),
-    updatePassword: RequireUserIdOrPermission.staticFields({ permission: 'USERS_UPDATE' }),
-    update: RequirePermission.staticFields({ permission: 'USERS_UPDATE' }),
-    updateProfile: RequireUsernameOrPermission.staticFields({ permission: 'USERS_UPDATE' }),
-    updateProfileImage: RequireUsernameOrPermission.staticFields({ permission: 'USERS_UPDATE' }),
+    registerNewEmail: RequireUserIdOrPermission.staticFields({ permission: 'USERS_ADMIN' }),
+    updatePassword: RequireUserIdOrPermission.staticFields({ permission: 'USERS_ADMIN' }),
+    update: RequirePermission.staticFields({ permission: 'USERS_ADMIN' }),
+    updateProfile: RequireUsernameOrPermission.staticFields({ permission: 'USERS_ADMIN' }),
+    updateProfileImage: RequireUsernameOrPermission.staticFields({ permission: 'USERS_ADMIN' }),
     register: RequireUserId.staticFields({}),
-    destroy: RequirePermission.staticFields({ permission: 'USERS_DESTROY' }),
+    destroy: RequirePermission.staticFields({ permission: 'USERS_ADMIN' }),
 } as const

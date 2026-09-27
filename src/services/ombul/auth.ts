@@ -1,15 +1,15 @@
 import { RequirePermission } from '@/auth/authorizer/RequirePermission'
 
-export const ombulCoversImagePanelAuth = RequirePermission.staticFields({ permission: 'OMBUL_UPDATE' })
+export const ombulCoversImagePanelAuth = RequirePermission.staticFields({ permission: 'OMBUL_ADMIN' })
 
 export const ombulAuth = {
-    read: RequirePermission.staticFields({ permission: 'OMBUL_READ' }),
-    readAll: RequirePermission.staticFields({ permission: 'OMBUL_READ' }),
-    readLatest: RequirePermission.staticFields({ permission: 'OMBUL_READ' }),
-    updateCoverImage: RequirePermission.staticFields({ permission: 'OMBUL_UPDATE' }),
-    destroy: RequirePermission.staticFields({ permission: 'OMBUL_DESTROY' }),
-    create: RequirePermission.staticFields({ permission: 'OMBUL_CREATE' }),
-    update: RequirePermission.staticFields({ permission: 'OMBUL_UPDATE' }),
-    updateFile: RequirePermission.staticFields({ permission: 'OMBUL_UPDATE' }),
-    updateParagraphContent: RequirePermission.staticFields({ permission: 'OMBUL_UPDATE' }),
+    read: RequirePermission.staticFields({ permission: 'OMBUL_USE' }),
+    readAll: RequirePermission.staticFields({ permission: 'OMBUL_USE' }),
+    readLatest: RequirePermission.staticFields({ permission: 'OMBUL_USE' }),
+    updateCoverImage: RequirePermission.staticFields({ permission: 'OMBUL_ADMIN' }),
+    destroy: RequirePermission.staticFields({ permission: 'OMBUL_ADMIN' }),
+    create: RequirePermission.staticFields({ permission: 'OMBUL_ADMIN' }),
+    update: RequirePermission.staticFields({ permission: 'OMBUL_ADMIN' }),
+    updateFile: RequirePermission.staticFields({ permission: 'OMBUL_ADMIN' }),
+    updateParagraphContent: RequirePermission.staticFields({ permission: 'OMBUL_ADMIN' }),
 } as const
