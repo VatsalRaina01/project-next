@@ -83,7 +83,7 @@ Set `BUILDX_NO_DEFAULT_ATTESTATIONS=1` in the build environment. BuildKit otherw
 
 ### Applying database schema migrations
 
-Production schema changes go through [Prisma Migrate](https://www.prisma.io/docs/orm/prisma-migrate), not `db push` - `db push --force-reset` (what `npm run seed` and DobbelOmega use, see below) drops and recreates every table, which is fine for a throwaway dev database but would destroy production data.
+Production schema changes go through [Prisma Migrate](https://www.prisma.io/docs/orm/prisma-migrate), not `db push` - `db push --force-reset` (what `npm run seed` uses; DobbelOmega resets through `prisma migrate reset`, see below) drops and recreates every table, which is fine for a throwaway dev database but would destroy production data.
 
 Whenever you change a schema file under `src/prisma/schema/`, generate a migration for it locally and commit the result:
 
