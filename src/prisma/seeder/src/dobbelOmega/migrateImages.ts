@@ -8,6 +8,12 @@ import { ombulCoversImagePanelOperations } from '@/services/ombul/ombulCoverColl
 import { profileImagesImagePanelOperations } from '@/services/users/profileImageCollection'
 import { committeeLogosImagePanelOperations } from '@/services/groups/committees/committeeLogoCollection'
 import logger from '@/lib/logger'
+import {
+    PrismaClientInitializationError,
+    PrismaClientKnownRequestError,
+    PrismaClientRustPanicError,
+    PrismaClientUnknownRequestError,
+} from '@prisma/client/runtime/client'
 import { File } from 'node:buffer'
 import type { Limits } from './migrationLimits'
 import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
@@ -196,6 +202,14 @@ export default async function migrateImages(
             // Omegaweb-basic holds files whose bytes do not match their extension at all,
             // which sharp only discovers once it tries to decode them, so this is a
             // certainty on the real dataset rather than a defensive flourish.
+            //
+            // A database or disk that has gone away is the opposite case and must not be
+            // swallowed: skipping leaves the image out of migrateImageIdMap, and every
+            // migration after this one reads that map to rebuild its relations. An outage
+            // would otherwise be reported as a few thousand individually bad files and
+            // produce an import that finishes "successfully" with its images missing.
+            if (isInfrastructureFailure(error)) throw error
+
             logger.error(
                 `Failed to migrate image ${image.originalName} (owId ${image.id}), skipping: `
                 + `${error instanceof Error ? error.message : String(error)}`
@@ -221,4 +235,32 @@ export default async function migrateImages(
     bar.stop()
 
     return migrateImageIdMap
+}
+
+/**
+ * Whether an error says the environment is broken rather than the file. Prisma's error
+ * classes cover the database (a rejected query, a connection that never came up, a panicked
+ * engine), and node's fs errors cover the store volume - a full or unwritable disk fails
+ * every image just as reliably as it fails this one, so there is nothing to be gained by
+ * carrying on.
+ *
+ * Anything else - sharp refusing to decode the bytes, a mime type the store does not
+ * accept - is a property of the one file and is skipped.
+ */
+function isInfrastructureFailure(error: unknown): boolean {
+    if (
+        error instanceof PrismaClientKnownRequestError ||
+        error instanceof PrismaClientUnknownRequestError ||
+        error instanceof PrismaClientInitializationError ||
+        error instanceof PrismaClientRustPanicError
+    ) {
+        return true
+    }
+
+    const fsErrorCodes = ['ENOSPC', 'EACCES', 'EROFS', 'EMFILE', 'ENFILE', 'EDQUOT', 'EIO']
+    return typeof error === 'object'
+        && error !== null
+        && 'code' in error
+        && typeof error.code === 'string'
+        && fsErrorCodes.includes(error.code)
 }

@@ -16,7 +16,11 @@ const INSECURE_PASSWORDS = ['admin', 'password', 'passord', 'changeme', 'secret'
  * environment rather than creating a guessable account on every deployment.
  */
 export default async function seedAdmin(prisma: PrismaClientPn) {
-    const username = process.env.SEED_ADMIN_USERNAME
+    // Lowercased to match the credentials provider, which looks the row up by
+    // `credentials.username.toLowerCase()` - a username seeded with any uppercase in
+    // it would otherwise never match the row it just wrote, and the account could not
+    // be logged in to at all.
+    const username = process.env.SEED_ADMIN_USERNAME?.toLowerCase()
     const email = process.env.SEED_ADMIN_EMAIL
     const password = process.env.SEED_ADMIN_PASSWORD
 

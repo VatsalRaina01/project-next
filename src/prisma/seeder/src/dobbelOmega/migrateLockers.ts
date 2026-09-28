@@ -108,33 +108,44 @@ export default async function migrateLockers(
 
     const bar = createProgressBar('Migrating lockers', lockers.length)
     for (const { locker, floor } of lockers) {
-        await pnPrisma.locker.create({
-            data: {
-                id: pnLockerId(locker),
-                building: locker.building,
-                floor,
-                createdAt: locker.createdAt,
-                updatedAt: locker.updatedAt,
-            }
-        })
-
         const reservation = latestReservation(locker)
-        if (reservation) {
+
+        // Resolved before the transaction opens, not inside it: getPnUserId migrates the
+        // user on demand when it has not seen them yet, and those writes go through the
+        // outer client - issuing them while an interactive transaction is open would put
+        // them outside it and hold the transaction open for the round trip.
+        const reservationData = reservation ? {
+            id: reservation.id,
+            lockerId: pnLockerId(locker),
+            userId: await userMigrator.getPnUserId(reservation.UserId as number),
+            groupId: owIdToPnId(committeeGroupIdMap, reservation.CommitteeId, 'committees'),
             // Omegaweb-basic recorded only when a locker was taken, never when it falls
             // free, so every migrated reservation comes across as open-ended and active -
             // the same thing the old site showed.
-            await pnPrisma.lockerReservation.create({
+            createdAt: reservation.reservedDate ?? undefined,
+            endDate: null,
+            active: true,
+        } : null
+
+        // Both rows land together, so a failure never leaves a locker behind without the
+        // reservation that belongs to it. That matters because alreadyMigrated above
+        // filters on the locker alone: a half-written locker would be skipped on the next
+        // run and its reservation lost for good.
+        await pnPrisma.$transaction(async tx => {
+            await tx.locker.create({
                 data: {
-                    id: reservation.id,
-                    lockerId: pnLockerId(locker),
-                    userId: await userMigrator.getPnUserId(reservation.UserId as number),
-                    groupId: owIdToPnId(committeeGroupIdMap, reservation.CommitteeId, 'committees'),
-                    createdAt: reservation.reservedDate ?? undefined,
-                    endDate: null,
-                    active: true,
+                    id: pnLockerId(locker),
+                    building: locker.building,
+                    floor,
+                    createdAt: locker.createdAt,
+                    updatedAt: locker.updatedAt,
                 }
             })
-        }
+
+            if (reservationData) {
+                await tx.lockerReservation.create({ data: reservationData })
+            }
+        })
 
         bar.increment()
     }

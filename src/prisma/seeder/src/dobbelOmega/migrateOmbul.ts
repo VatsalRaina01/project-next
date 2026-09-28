@@ -132,22 +132,28 @@ export default async function migrateOmbul(
 
         // Writing the id explicitly puts prisma on its unchecked create input, where
         // relations are plain foreign keys rather than nested writes - so the ombul's
-        // (empty) paragraph has to exist before the ombul itself does.
-        const paragraph = await pnPrisma.cmsParagraph.create({ data: {} })
+        // (empty) paragraph has to exist before the ombul itself does. Both go in one
+        // transaction: the ombul insert can still fail on its side (Ombul.coverImageId is
+        // unique while the old relation was not, so two ombuls sharing a cover collide),
+        // and a committed paragraph with no ombul pointing at it is an orphan no later run
+        // ever finds - alreadyMigrated keys off the ombul, so a retry just makes another.
+        await pnPrisma.$transaction(async tx => {
+            const paragraph = await tx.cmsParagraph.create({ data: {} })
 
-        await pnPrisma.ombul.create({
-            data: {
-                id: ombul.id,
-                coverImageId: ombul.coverImageId,
-                paragraphId: paragraph.id,
-                name,
-                description: ombul.lead,
-                createdAt: ombul.createdAt,
-                updatedAt: ombul.updatedAt,
-                year,
-                issueNumber,
-                fsLocation,
-            }
+            await tx.ombul.create({
+                data: {
+                    id: ombul.id,
+                    coverImageId: ombul.coverImageId,
+                    paragraphId: paragraph.id,
+                    name,
+                    description: ombul.lead,
+                    createdAt: ombul.createdAt,
+                    updatedAt: ombul.updatedAt,
+                    year,
+                    issueNumber,
+                    fsLocation,
+                }
+            })
         })
         createBar.increment()
     }
