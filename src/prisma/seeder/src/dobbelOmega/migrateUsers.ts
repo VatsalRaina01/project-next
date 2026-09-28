@@ -119,6 +119,17 @@ export class UserMigrator {
         })
     }
 
+    /**
+     * The group every active member of Omega belongs to. Used by migrations that have to
+     * restrict something to members - visibility on members-only news, for instance.
+     */
+    getMemberGroupId() {
+        if (!this.memberGroup) {
+            throw new Error('Cannot use the UserMigrator, before it is initialized.')
+        }
+        return this.memberGroup.groupId
+    }
+
     yearIdMap(x: number) {
         const year = this.classes.find(cls => cls.year === x)
         if (!year) {

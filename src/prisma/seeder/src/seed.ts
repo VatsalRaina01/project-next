@@ -28,6 +28,7 @@ import { seedImages } from './standardContent/seedImages'
 import { seedSpecialCms } from './standardContent/seedSpecialCms'
 import { seedFlairs } from './standardContent/seedFlairs'
 import { seedNews } from './standardContent/seedNews'
+import { seedCompanies } from './standardContent/seedCompanies'
 import seedInterestGroups from './seedInterestGroups'
 import { createTimedStep } from './timedStep'
 import { withServiceContext } from '@/services/serviceOperation'
@@ -52,6 +53,7 @@ export default async function seed(
         await step('Upserting standard special CMS', () => seedSpecialCms())
         await step('Upserting standard article categories', () => seedArticleCategories())
         await step('Upserting standard news', () => seedNews())
+        await step('Upserting standard companies', () => seedCompanies())
         await step('Upserting standard mail', () => seedMail(prisma))
         await step('Upserting standard notification channels', () => seedNotificationChannels(prisma))
         await step('Upserting standard study programmes', () => seedStudyProgramme(prisma))
