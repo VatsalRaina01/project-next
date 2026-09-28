@@ -18,7 +18,7 @@
     "docker:prod": "docker network create dokploy-network >/dev/null 2>&1 || true; docker compose -f docker-compose.prod.yml --profile localdb up --build",
     "dobbelOmega:pull": "npx prisma db pull --schema ./src/prisma/owSchema/schema.ow.prisma",
     "dobbelOmega:generate": "npx prisma generate --schema ./src/prisma/owSchema/schema.ow.prisma",
-    "dobbelOmega:run": "npx prisma migrate reset --force --skip-seed && MIGRATE_FROM_OW=true npm run seed:data",
+    "dobbelOmega:run": "npx prisma migrate reset --force && MIGRATE_FROM_OW=true npm run seed:data",
     "docker:dobbelOmega:run": "docker compose -f docker-compose.dev.yml exec projectnext /bin/sh -c 'npm run dobbelOmega:run'",
     "docker:seed": "docker compose -f docker-compose.dev.yml exec projectnext /bin/sh -c 'npm run seed'",
     "seed": "npx prisma db push --force-reset && npm run seed:data",
