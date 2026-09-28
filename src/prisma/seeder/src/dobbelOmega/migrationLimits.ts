@@ -31,7 +31,10 @@ export function getLimits() {
     }
 
     const limitsOn = process.env.MIGRATION_WITH_LIMITS !== 'false'
-    logger.info(limitsOn ? `Limits on. Set to: ${limits}` : 'Limits off!!!')
+    // JSON, not interpolation: a template literal renders the object as [object Object],
+    // which is exactly the line an operator reads to check what a production import is
+    // about to skip.
+    logger.info(limitsOn ? `Limits on. Set to: ${JSON.stringify(limits)}` : 'Limits off!!!')
 
     return limitsOn ? limits : nullObj
 }
