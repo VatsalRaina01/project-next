@@ -3,11 +3,13 @@ import migrateImageCollections from './migrateImageCollections'
 import migrateImages from './migrateImages'
 import { getLimits } from './migrationLimits'
 import migrateOmegaquotes from './migrateOmegaquotes'
-import migrateArticles from './migateArticles'
+import migrateNews from './migrateNews'
 import migrateMailAliases from './migrateMailAlias'
 import migrateEvents from './migrateEvents'
 import { UserMigrator } from './migrateUsers'
 import migrateCommittees from './migrateCommittees'
+import migrateLockers from './migrateLockers'
+import migratePrikks from './migratePrikks'
 import seedProdPermissions from './seedProdPermissions'
 import manifest from '@/prisma/seeder/src/dobbelOmega/manifest'
 import { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
@@ -39,12 +41,24 @@ export default async function dobbelOmega(pnPrisma: PrismaClientPn) {
     await userMigrator.initSpecialGroups()
     await userMigrator.migrateUsers(limits)
 
+    // Committees run before the steps that reference them: a committee's group is what
+    // committee-only news is made visible to and what a committee-held locker is
+    // reserved by, so the map has to exist before either of those is written.
+    const committeeGroupIdMap = await migrateCommittees(pnPrisma, owPrisma, userMigrator, imageIdMap)
+
     await migrateOmbul(pnPrisma, owPrisma, imageIdMap, limits)
     await migrateOmegaquotes(pnPrisma, owPrisma, userMigrator, limits)
-    await migrateArticles(pnPrisma, owPrisma, imageIdMap, limits)
+    await migrateNews(
+        pnPrisma,
+        owPrisma,
+        { images: imageIdMap, committeeGroups: committeeGroupIdMap },
+        userMigrator,
+        limits,
+    )
     await migrateMailAliases(pnPrisma, owPrisma, limits)
-    await migrateCommittees(pnPrisma, owPrisma, userMigrator, imageIdMap)
     await migrateEvents(pnPrisma, owPrisma, imageIdMap, userMigrator, limits)
+    await migratePrikks(pnPrisma, owPrisma, userMigrator, limits)
+    await migrateLockers(pnPrisma, owPrisma, userMigrator, committeeGroupIdMap, limits)
 
     await seedProdPermissions(pnPrisma)
 
