@@ -1,35 +1,26 @@
-import { RequireLevelFromDoubleLevelVisibility } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibility'
-import { RequireVisibilityFilter } from '@/auth/authorizer/RequireVisibilityFilter'
 import { Require } from '@/auth/authorizer/Require'
+import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
+
+const regularLevelOrImageAdmin = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
+    Require.anyOf(Require.permission('IMAGE_ADMIN'), Require.visibility(doubleLevelMatrix.regularLevel))
+const adminLevelOrImageAdmin = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
+    Require.anyOf(Require.permission('IMAGE_ADMIN'), Require.visibility(doubleLevelMatrix.adminLevel))
 
 export const dynamicImageAuth = {
-    readDoubleLevelMatrix:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'REGULAR', bypassPermission: 'IMAGE_ADMIN' }),
-    updateRegularLevel:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'IMAGE_ADMIN' }),
-    updateAdminLevel:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'IMAGE_ADMIN' }),
+    readDoubleLevelMatrix: regularLevelOrImageAdmin,
+    updateRegularLevel: adminLevelOrImageAdmin,
+    updateAdminLevel: adminLevelOrImageAdmin,
 
-    readCollection:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'REGULAR', bypassPermission: 'IMAGE_ADMIN' }),
-    readCollectionPage:
-        RequireVisibilityFilter.staticFields({ bypassPermission: 'IMAGE_ADMIN' }),
+    readCollection: regularLevelOrImageAdmin,
+    readCollectionPage: () => Require.visibilityFilter({ bypassPermission: 'IMAGE_ADMIN' }),
 
-    createCollection:
-        Require.permission('IMAGE_USE'),
-    destroyCollection:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'IMAGE_ADMIN' }),
-    updateCollection:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'IMAGE_ADMIN' }),
+    createCollection: Require.permission('IMAGE_USE'),
+    destroyCollection: adminLevelOrImageAdmin,
+    updateCollection: adminLevelOrImageAdmin,
 
-    uploadImage:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'IMAGE_ADMIN' }),
-    uploadManyImages:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'IMAGE_ADMIN' }),
-    readPageOfImagesInCollection:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'REGULAR', bypassPermission: 'IMAGE_ADMIN' }),
-    updateImageMeta:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'IMAGE_ADMIN' }),
-    destroyImage:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'IMAGE_ADMIN' }),
+    uploadImage: adminLevelOrImageAdmin,
+    uploadManyImages: adminLevelOrImageAdmin,
+    readPageOfImagesInCollection: regularLevelOrImageAdmin,
+    updateImageMeta: adminLevelOrImageAdmin,
+    destroyImage: adminLevelOrImageAdmin,
 } as const

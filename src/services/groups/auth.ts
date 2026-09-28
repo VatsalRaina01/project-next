@@ -1,4 +1,4 @@
-import { RequireEveryPermissionOrGroupAdmin } from '@/auth/authorizer/RequireEveryPermissionOrGroupAdmin'
+import { requireEveryPermissionOrGroupAdmin } from '@/auth/authorizer/RequireEveryPermissionOrGroupAdmin'
 import { Require } from '@/auth/authorizer/Require'
 import type { Permission } from '@/prisma-generated-pn-types'
 
@@ -36,7 +36,5 @@ export function requireReadGroupMembers(groupTypeReadPermission: Permission) {
  * default read permission still cannot hand out a roster to a visitor.
  */
 export function requireReadManagedGroupMembers(groupTypeReadPermission: Permission) {
-    return RequireEveryPermissionOrGroupAdmin.staticFields({
-        permissions: [groupTypeReadPermission, 'USERS_USE'],
-    })
+    return (groupId: number) => requireEveryPermissionOrGroupAdmin([groupTypeReadPermission, 'USERS_USE'], groupId)
 }

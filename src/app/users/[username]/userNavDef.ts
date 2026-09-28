@@ -17,7 +17,7 @@ import {
     faSwatchbook,
     faUser,
 } from '@fortawesome/free-solid-svg-icons'
-import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
+import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 
 /** The user a page is about - everything a page's authorizers are allowed to key off. */
@@ -39,7 +39,7 @@ export type UserNavItem = {
      * The same list is what `getProfileForUserPage` guards the page with, so a link is never shown
      * to a page that would turn the viewer away.
      */
-    authorizers: (subject: UserNavSubject) => AuthorizerDynamicFieldsBound[],
+    authorizers: (subject: UserNavSubject) => Authorizer[],
 }
 
 /**
@@ -118,7 +118,7 @@ export const userNavDef: UserNavItem[] = [
  */
 export function visibleUserNavItems(
     subject: UserNavSubject,
-    authorize: (authorizer: AuthorizerDynamicFieldsBound) => boolean,
+    authorize: (authorizer: Authorizer) => boolean,
 ): UserNavItem[] {
     return userNavDef.filter(item => item.authorizers(subject).some(authorize))
 }

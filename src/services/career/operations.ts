@@ -5,7 +5,7 @@ import { cmsLinkOperations } from '@/cms/links/operations'
 
 export const careerOperations = {
     readSpecialCmsParagraphCareerInfo: cmsParagraphOperations.readSpecial.implement({
-        authorizer: () => careerAuth.readSpecialCmsParagraphCareerInfo.dynamicFields({}),
+        authorizer: () => careerAuth.readSpecialCmsParagraphCareerInfo,
         ownershipCheck: ({ params }) => params.special === 'CAREER_INFO'
     }),
 
@@ -18,7 +18,7 @@ export const careerOperations = {
     }),
 
     readSpecialCmsLink: cmsLinkOperations.readSpecial.implement({
-        authorizer: () => careerAuth.readSpecialCmsLink.dynamicFields({}),
+        authorizer: () => careerAuth.readSpecialCmsLink,
         ownershipCheck: ({ params }) => params.special === 'CAREER_LINK_TO_CONTACTOR'
     }),
 

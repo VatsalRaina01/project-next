@@ -4,6 +4,6 @@ import { implementSpecialArticle } from '@/cms/articles/implement'
 
 export const cabinArticleOperations = implementSpecialArticle({
     special: 'CABIN_PAGE',
-    readAuthorizer: cabinArticleAuth.read.dynamicFields({}),
+    readAuthorizer: cabinArticleAuth.read,
     updateAuthorizer: cabinArticleAuth.update,
 })

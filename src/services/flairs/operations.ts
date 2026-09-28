@@ -86,7 +86,7 @@ export const flairOperations = {
         }
     }),
     read: defineOperation({
-        authorizer: () => flairAuth.read.dynamicFields({}),
+        authorizer: () => flairAuth.read,
         paramsSchema: z.object({
             flairId: z.number(),
         }),
@@ -101,7 +101,7 @@ export const flairOperations = {
             })
     }),
     readAll: defineOperation({
-        authorizer: () => flairAuth.readAll.dynamicFields({}),
+        authorizer: () => flairAuth.readAll,
         operation: async ({ prisma }) => {
             const flairs = (await prisma.flair.findMany({
                 include: {

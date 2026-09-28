@@ -1,4 +1,3 @@
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
 import { Require } from '@/auth/authorizer/Require'
 
 export const flairImagesImagePanelAuth = Require.permission('FLAIR_ADMIN')
@@ -11,8 +10,8 @@ export const flairAuth = {
     unAssignToUser: Require.permission('FLAIR_ADMIN'),
     increaseRank: Require.permission('FLAIR_ADMIN'),
     decreaseRank: Require.permission('FLAIR_ADMIN'),
-    read: RequireNothing.staticFields({}),
-    readAll: RequireNothing.staticFields({}),
+    read: Require.nothing(),
+    readAll: Require.nothing(),
     readUserFlairs: (userId: number) => Require.anyOf(Require.permission('USERS_USE'), Require.userId(userId)),
     updateImage: Require.permission('FLAIR_ADMIN'),
 } as const

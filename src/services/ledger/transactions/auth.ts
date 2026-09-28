@@ -14,11 +14,14 @@ export const ledgerTransactionAuth = {
     // safety net for any other caller.
     advance: Require.permission('LEDGER_ADMIN'),
 
-    // Additionally requires ownership of every account the transaction debits.
-    create: {
-        ledgerUse: Require.permission('LEDGER_USE'),
-        accountAccess: (accounts: LedgerAccountOwnership[]) => ledgerAccountAccess('LEDGER_ADMIN', accounts),
-    },
+    // Additionally requires ownership of every account the transaction debits. A transaction with
+    // no debit entries at all (e.g. a deposit, where the debit side is an external payment, not a
+    // ledger entry) has nothing to check ownership of, so LEDGER_USE alone is sufficient for it.
+    create: (debitAccounts: LedgerAccountOwnership[]) => (
+        debitAccounts.length === 0
+            ? Require.permission('LEDGER_USE')
+            : Require.permission('LEDGER_USE').allOf(ledgerAccountAccess('LEDGER_ADMIN', debitAccounts))
+    ),
 
     // mode: 'ANY' since being party to one side of the transaction is enough to cancel a stale
     // attempt on it - same bar as read.

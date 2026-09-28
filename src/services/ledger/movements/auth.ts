@@ -9,8 +9,6 @@ export const ledgerMovementAuth = {
     createDeposit: Require.permission('LEDGER_USE'),
 
     // A payout debits the account, so ownership is required in addition to LEDGER_USE.
-    createPayout: {
-        ledgerUse: Require.permission('LEDGER_USE'),
-        accountAccess: (accounts: LedgerAccountOwnership[]) => ledgerAccountAccess('LEDGER_ADMIN', accounts),
-    },
+    createPayout: (accounts: LedgerAccountOwnership[]) =>
+        Require.permission('LEDGER_USE').allOf(ledgerAccountAccess('LEDGER_ADMIN', accounts)),
 } as const

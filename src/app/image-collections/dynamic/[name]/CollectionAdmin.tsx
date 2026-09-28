@@ -39,22 +39,22 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
 
     const canUploadOne = useEditMode({
-        authorizer: dynamicImageAuth.uploadImage.dynamicFields({ doubleLevelMatrix })
+        authorizer: dynamicImageAuth.uploadImage(doubleLevelMatrix)
     })
     const canUploadMany = useEditMode({
-        authorizer: dynamicImageAuth.uploadManyImages.dynamicFields({ doubleLevelMatrix })
+        authorizer: dynamicImageAuth.uploadManyImages(doubleLevelMatrix)
     })
     const canUpdateCollection = useEditMode({
-        authorizer: dynamicImageAuth.updateCollection.dynamicFields({ doubleLevelMatrix })
+        authorizer: dynamicImageAuth.updateCollection(doubleLevelMatrix)
     })
     const canDestroyCollection = useEditMode({
-        authorizer: dynamicImageAuth.destroyCollection.dynamicFields({ doubleLevelMatrix })
+        authorizer: dynamicImageAuth.destroyCollection(doubleLevelMatrix)
     })
     const canUpdateRegularVisibility = useEditMode({
-        authorizer: dynamicImageAuth.updateRegularLevel.dynamicFields({ doubleLevelMatrix })
+        authorizer: dynamicImageAuth.updateRegularLevel(doubleLevelMatrix)
     })
     const canUpdateAdminVisibility = useEditMode({
-        authorizer: dynamicImageAuth.updateAdminLevel.dynamicFields({ doubleLevelMatrix })
+        authorizer: dynamicImageAuth.updateAdminLevel(doubleLevelMatrix)
     })
 
     const [uploadOption, setUploadOption] = useState<'MANY' | 'ONE'>(canUploadMany ? 'MANY' : 'ONE')

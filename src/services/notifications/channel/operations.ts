@@ -105,14 +105,14 @@ export const notificationChannelOperations = {
     }),
 
     readMany: defineOperation({
-        authorizer: () => notificationChannelAuth.readMany.dynamicFields({}),
+        authorizer: () => notificationChannelAuth.readMany,
         operation: async ({ prisma }) => await prisma.notificationChannel.findMany({
             include: availableNotificationMethodIncluder,
         })
     }),
 
     readDefault: defineOperation({
-        authorizer: () => notificationChannelAuth.readDefault.dynamicFields({}),
+        authorizer: () => notificationChannelAuth.readDefault,
         operation: async ({ prisma }) => await prisma.notificationChannel.findMany({
             where: {
                 defaultMethods: {

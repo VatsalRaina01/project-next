@@ -27,15 +27,9 @@ import type { EventExpanded } from './types'
 const visibility = implementDoubleLevelVisibilityOperations({
     implementationParamsSchema: eventSchemas.params,
     authorizers: {
-        readDoubleLevelMatrix: ({ doubleLevelMatrix }) => eventAuth.readDoubleLevelMatrix.dynamicFields({
-            doubleLevelMatrix,
-        }),
-        updateRegularLevel: ({ doubleLevelMatrix }) => eventAuth.updateRegularLevel.dynamicFields({
-            doubleLevelMatrix,
-        }),
-        updateAdminLevel: ({ doubleLevelMatrix }) => eventAuth.updateAdminLevel.dynamicFields({
-            doubleLevelMatrix,
-        })
+        readDoubleLevelMatrix: ({ doubleLevelMatrix }) => eventAuth.readDoubleLevelMatrix(doubleLevelMatrix),
+        updateRegularLevel: ({ doubleLevelMatrix }) => eventAuth.updateRegularLevel(doubleLevelMatrix),
+        updateAdminLevel: ({ doubleLevelMatrix }) => eventAuth.updateAdminLevel(doubleLevelMatrix)
     },
     readDoubleLevel: async ({ prisma, implementationParams, include }) => {
         const event = await prisma.event.findUniqueOrThrow({
@@ -95,7 +89,7 @@ const read = defineOperation({
                 visibilityAdmin: { include: visibilityIncluder }
             }
         })
-        return eventAuth.read.dynamicFields({
+        return eventAuth.read({
             level: readLevelOfEvent(event),
             doubleLevelMatrix: {
                 regularLevel: toMatrix(event.visibilityRegular),
@@ -258,7 +252,7 @@ export const eventOperations = {
         paramsSchema: z.object({
             tags: z.array(z.string()).nullable(),
         }),
-        authorizer: () => eventAuth.readManyCurrent.dynamicFields({}),
+        authorizer: () => eventAuth.readManyCurrent,
         operation: async ({ prisma, params }, visibilityWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
                 select: {
@@ -293,7 +287,7 @@ export const eventOperations = {
     }),
     readManyArchivedPage: defineOperation({
         paramsSchema: eventSchemas.readManyArchivedPage,
-        authorizer: () => eventAuth.readManyArchivedPage.dynamicFields({}),
+        authorizer: () => eventAuth.readManyArchivedPage,
         operation: async ({ prisma, params }, visibilityWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
                 ...cursorPageingSelection(params.paging.page),
@@ -361,9 +355,9 @@ export const eventOperations = {
     update: defineOperation({
         paramsSchema: eventSchemas.params,
         dataSchema: eventSchemas.update,
-        authorizer: async ({ params, prisma }) => eventAuth.update.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) => eventAuth.update(
+            await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+        ),
         operation: async ({ prisma, params, data: { tagIds, locationMap, ...data } }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
@@ -441,11 +435,11 @@ export const eventOperations = {
         implementationParamsSchema: z.object({
             eventId: z.number()
         }),
-        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateCmsCoverImage.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({
+        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateCmsCoverImage(
+            await visibility.readDoubleLevelMatrixInternal({
                 params: { id: implementationParams.eventId }, prisma
             })
-        }),
+        ),
         ownershipCheck: async ({ implementationParams, params }) =>
             (await read({
                 params: { id: implementationParams.eventId },
@@ -461,9 +455,9 @@ export const eventOperations = {
     setPublished: defineOperation({
         paramsSchema: eventSchemas.params,
         dataSchema: eventSchemas.setPublished,
-        authorizer: async ({ params, prisma }) => eventAuth.setPublished.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) => eventAuth.setPublished(
+            await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+        ),
         operation: async ({ prisma, params, data }) => prisma.event.update({
             where: { id: params.id },
             data: { published: data.published },
@@ -472,9 +466,9 @@ export const eventOperations = {
 
     destroy: defineOperation({
         paramsSchema: eventSchemas.params,
-        authorizer: async ({ params, prisma }) => eventAuth.destroy.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) => eventAuth.destroy(
+            await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+        ),
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
             const event = await prisma.event.findUniqueOrThrow({
@@ -504,11 +498,11 @@ export const eventOperations = {
         implementationParamsSchema: z.object({
             eventId: z.number()
         }),
-        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateParagraphContent.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({
+        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateParagraphContent(
+            await visibility.readDoubleLevelMatrixInternal({
                 params: { id: implementationParams.eventId }, prisma
             })
-        }),
+        ),
         ownershipCheck: async ({ implementationParams, params }) =>
             (await read({
                 params: { id: implementationParams.eventId },

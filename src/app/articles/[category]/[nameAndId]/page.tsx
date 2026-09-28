@@ -47,7 +47,7 @@ export default async function ArticleCategoryPage({ params }: PropTypes) {
         })
     )
 
-    const canEdit = articleCategoryAuth.updateArticle.dynamicFields({}).authorize(
+    const canEdit = articleCategoryAuth.updateArticle.authorize(
         await ServerSession.fromNextAuth()
     ).toJsObject()
 

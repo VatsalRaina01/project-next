@@ -109,7 +109,7 @@ export const promoOperations = {
     // The banner currently live on the frontpage: whichever promo's period covers now, preferring
     // the most recently created one if several periods overlap.
     readActive: defineOperation({
-        authorizer: () => promoAuth.readActive.dynamicFields({}),
+        authorizer: () => promoAuth.readActive,
         operation: async ({ prisma }) => {
             const now = new Date()
             return await prisma.promo.findFirst({

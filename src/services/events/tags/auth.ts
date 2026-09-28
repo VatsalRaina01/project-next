@@ -1,11 +1,10 @@
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
 import { Require } from '@/auth/authorizer/Require'
 
 export const eventTagAuth = {
     create: Require.permission('EVENT_ADMIN'),
-    readSpecial: RequireNothing.staticFields({}),
-    read: RequireNothing.staticFields({}),
-    readAll: RequireNothing.staticFields({}),
+    readSpecial: Require.nothing(),
+    read: Require.nothing(),
+    readAll: Require.nothing(),
     update: Require.permission('EVENT_ADMIN'),
     destroy: Require.permission('EVENT_ADMIN'),
 }

@@ -1,4 +1,4 @@
-import { RequireBookingAccess } from '@/auth/authorizer/RequireBookingAccess'
+import { requireBookingAccess } from '@/auth/authorizer/RequireBookingAccess'
 import { Require } from '@/auth/authorizer/Require'
 
 export const cabinBookingAuth = {
@@ -27,10 +27,6 @@ export const cabinBookingAuth = {
     createPayment: (
         booking: { userId: number | null, secret: string },
         providedSecret: string,
-    ) => RequireBookingAccess.staticFields({ permission: 'CABIN_ADMIN' }).dynamicFields({
-        userId: booking.userId,
-        secret: booking.secret,
-        providedSecret,
-    }),
+    ) => requireBookingAccess('CABIN_ADMIN', booking, providedSecret),
 } as const
 

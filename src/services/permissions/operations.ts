@@ -11,7 +11,7 @@ import { z } from 'zod'
 
 export const permissionOperations = {
     readDefaultPermissions: defineOperation({
-        authorizer: () => permissionsAuth.readDefaultPermissions.dynamicFields({}),
+        authorizer: () => permissionsAuth.readDefaultPermissions,
         operation: async ({ prisma }) =>
             (await prisma.defaultPermission.findMany()).map(perm => perm.permission)
     }),

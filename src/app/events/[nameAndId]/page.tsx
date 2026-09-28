@@ -63,13 +63,13 @@ export default async function Event({ params }: PropTypes) {
     const doubleLevelVisibility = readDoubleLevelVisibility.success ? readDoubleLevelVisibility.data : null
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
 
-    const canEditCmsCoverImage = eventAuth.updateCmsCoverImage.dynamicFields({ doubleLevelMatrix }).authorize(
+    const canEditCmsCoverImage = eventAuth.updateCmsCoverImage(doubleLevelMatrix).authorize(
         session
     ).toJsObject()
-    const canEditCmsParagraph = eventAuth.updateParagraphContent.dynamicFields({ doubleLevelMatrix }).authorize(
+    const canEditCmsParagraph = eventAuth.updateParagraphContent(doubleLevelMatrix).authorize(
         session
     ).toJsObject()
-    const canDestroy = eventAuth.destroy.dynamicFields({ doubleLevelMatrix }).authorize(
+    const canDestroy = eventAuth.destroy(doubleLevelMatrix).authorize(
         session
     ).toJsObject()
 

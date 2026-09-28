@@ -20,15 +20,9 @@ import { z } from 'zod'
 const visibility = implementDoubleLevelVisibilityOperations({
     implementationParamsSchema: newsSchemas.params,
     authorizers: {
-        readDoubleLevelMatrix: ({ doubleLevelMatrix }) => newsAuth.readDoubleLevelMatrix.dynamicFields({
-            doubleLevelMatrix,
-        }),
-        updateRegularLevel: ({ doubleLevelMatrix }) => newsAuth.updateRegularLevel.dynamicFields({
-            doubleLevelMatrix,
-        }),
-        updateAdminLevel: ({ doubleLevelMatrix }) => newsAuth.updateAdminLevel.dynamicFields({
-            doubleLevelMatrix,
-        })
+        readDoubleLevelMatrix: ({ doubleLevelMatrix }) => newsAuth.readDoubleLevelMatrix(doubleLevelMatrix),
+        updateRegularLevel: ({ doubleLevelMatrix }) => newsAuth.updateRegularLevel(doubleLevelMatrix),
+        updateAdminLevel: ({ doubleLevelMatrix }) => newsAuth.updateAdminLevel(doubleLevelMatrix)
     },
     readDoubleLevel: async ({ prisma, implementationParams, include }) => {
         const news = await prisma.newsArticle.findUniqueOrThrow({
@@ -54,13 +48,7 @@ const read = defineOperation({
                 visibilityAdmin: { include: visibilityIncluder }
             }
         })
-        return newsAuth.read.dynamicFields({
-            level: news.published ? 'REGULAR' : 'ADMIN',
-            doubleLevelMatrix: {
-                regularLevel: toMatrix(news.visibilityRegular),
-                adminLevel: toMatrix(news.visibilityAdmin)
-            }
-        })
+        return newsAuth.read(news.published ? toMatrix(news.visibilityRegular) : toMatrix(news.visibilityAdmin))
     },
     paramsSchema: newsSchemas.params,
     operation: async ({ prisma, params }) => {
@@ -130,9 +118,8 @@ export const newsOperations = {
         }
     }),
     destroy: defineOperation({
-        authorizer: async ({ params, prisma }) => newsAuth.destroy.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) =>
+            newsAuth.destroy(await visibility.readDoubleLevelMatrixInternal({ params, prisma })),
         paramsSchema: newsSchemas.params,
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
@@ -155,7 +142,7 @@ export const newsOperations = {
         }
     }),
     readCurrent: defineOperation({
-        authorizer: () => newsAuth.readCurrent.dynamicFields({}),
+        authorizer: () => newsAuth.readCurrent(),
         operation: async ({ prisma }, prismaWhereFilter) => {
             const news = await prisma.newsArticle.findMany({
                 where: {
@@ -184,7 +171,7 @@ export const newsOperations = {
     }),
     readOldPage: defineOperation({
         paramsSchema: newsSchemas.readOldPage,
-        authorizer: () => newsAuth.readOldPage.dynamicFields({}),
+        authorizer: () => newsAuth.readOldPage(),
         operation: async ({ prisma, params }, prismaWhereFilter) => {
             const news = await prisma.newsArticle.findMany({
                 where: {
@@ -214,9 +201,8 @@ export const newsOperations = {
     }),
     read,
     update: defineOperation({
-        authorizer: async ({ params, prisma }) => newsAuth.update.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) =>
+            newsAuth.update(await visibility.readDoubleLevelMatrixInternal({ params, prisma })),
         paramsSchema: newsSchemas.params,
         dataSchema: newsSchemas.update,
         operation: async ({ prisma, params, data }) =>
@@ -239,9 +225,8 @@ export const newsOperations = {
      * those who can administrate it again.
      */
     setPublished: defineOperation({
-        authorizer: async ({ params, prisma }) => newsAuth.setPublished.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) =>
+            newsAuth.setPublished(await visibility.readDoubleLevelMatrixInternal({ params, prisma })),
         paramsSchema: newsSchemas.params,
         dataSchema: newsSchemas.setPublished,
         operation: async ({ prisma, params, data }) => {
@@ -277,12 +262,11 @@ export const newsOperations = {
         implementationParamsSchema: z.object({
             newsId: z.number(),
         }),
-        authorizer: async ({ implementationParams, prisma }) => newsAuth.updateArticle.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({
+        authorizer: async ({ implementationParams, prisma }) =>
+            newsAuth.updateArticle(await visibility.readDoubleLevelMatrixInternal({
                 params: { id: implementationParams.newsId },
                 prisma
-            })
-        }),
+            })),
         ownedArticles: async ({ implementationParams }) => {
             const news = await read({ params: { id: implementationParams.newsId }, bypassAuth: true })
             return [news.article]

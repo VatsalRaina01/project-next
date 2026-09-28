@@ -15,7 +15,7 @@ const commonGroupOperations = implementGroupType({
     type: GroupType.STUDY_PROGRAMME,
     auth: {
         readExpanded: studyProgrammeAuth.readExpanded,
-        readMembers: ({ groupId }) => studyProgrammeAuth.readMembers.dynamicFields({ groupId }),
+        readMembers: ({ groupId }) => studyProgrammeAuth.readMembers(groupId),
     },
 })
 

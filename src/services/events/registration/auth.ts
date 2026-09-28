@@ -1,4 +1,3 @@
-import { RequireLevelFromDoubleLevelVisibility } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibility'
 import { Require } from '@/auth/authorizer/Require'
 import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 
@@ -6,18 +5,10 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
  * The regular level of an event is what it takes to register for it, and its admin level is what it
  * takes to act on the registrations of everyone else. EVENT_ADMIN bypasses both for every event.
  */
-const registerLevelAuthorizer = RequireLevelFromDoubleLevelVisibility.staticFields({
-    level: 'REGULAR', bypassPermission: 'EVENT_ADMIN'
-})
-const eventAdminLevelAuthorizer = RequireLevelFromDoubleLevelVisibility.staticFields({
-    level: 'ADMIN', bypassPermission: 'EVENT_ADMIN'
-})
-const registerLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) => Require.custom(session => (
-    registerLevelAuthorizer.dynamicFields({ doubleLevelMatrix }).authorize(session).authorized
-))
-const eventAdminLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) => Require.custom(session => (
-    eventAdminLevelAuthorizer.dynamicFields({ doubleLevelMatrix }).authorize(session).authorized
-))
+const registerLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
+    Require.anyOf(Require.permission('EVENT_ADMIN'), Require.visibility(doubleLevelMatrix.regularLevel))
+const eventAdminLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
+    Require.anyOf(Require.permission('EVENT_ADMIN'), Require.visibility(doubleLevelMatrix.adminLevel))
 const ownUserOrEventAdmin = (userId: number) => Require.anyOf(Require.permission('EVENT_ADMIN'), Require.userId(userId))
 
 /**

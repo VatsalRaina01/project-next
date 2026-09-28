@@ -27,7 +27,7 @@ export const lockerLocationOperations = {
      * @returns All locker location objects.
      */
     readAll: defineOperation({
-        authorizer: () => lockerLocationAuth.readAll.dynamicFields({}),
+        authorizer: () => lockerLocationAuth.readAll,
         operation: async ({ prisma }) => prisma.lockerLocation.findMany()
     }),
 }

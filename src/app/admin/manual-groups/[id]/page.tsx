@@ -37,7 +37,7 @@ export default async function ManualGroupAdmin({ params }: PropTypes) {
 
     // The page reads the group's members, so it guards on `readMembers` rather than `read`:
     // `MANUAL_GROUP_USE` is a default permission, held by a visitor with no session at all.
-    manualGroupAuth.readMembers.dynamicFields({ groupId: manualGroup.groupId }).auth(session)
+    manualGroupAuth.readMembers(manualGroup.groupId).authorize(session)
         .redirectOnUnauthorized({ returnUrl: `/admin/manual-groups/${id}` })
 
     const [expandedGroups, members, currentOrder] = await Promise.all([
@@ -50,22 +50,12 @@ export default async function ManualGroupAdmin({ params }: PropTypes) {
     const expanded = expandedGroups.find(group => group.id === manualGroup.groupId)
     if (!expanded) notFound()
 
-    const canMigrate = manualGroupAuth.migrateGroup.dynamicFields({
-        groupId: manualGroup.groupId,
-    }).auth(session).authorized
-    const canAddMembers = manualGroupAuth.addMembers.dynamicFields({
-        groupId: manualGroup.groupId,
-    }).auth(session).authorized
-    const canSetMemberAdmin = manualGroupAuth.setMemberAdmin.dynamicFields({
-        groupId: manualGroup.groupId,
-    }).auth(session).authorized
-    const canSetMemberTitle = manualGroupAuth.setMemberTitle.dynamicFields({
-        groupId: manualGroup.groupId,
-    }).auth(session).authorized
-    const canPension = manualGroupAuth.pension.dynamicFields({}).auth(session).authorized
-    const canRemoveMembers = manualGroupAuth.removeMembers.dynamicFields({
-        groupId: manualGroup.groupId,
-    }).auth(session).authorized
+    const canMigrate = manualGroupAuth.migrateGroup(manualGroup.groupId).authorize(session).authorized
+    const canAddMembers = manualGroupAuth.addMembers(manualGroup.groupId).authorize(session).authorized
+    const canSetMemberAdmin = manualGroupAuth.setMemberAdmin(manualGroup.groupId).authorize(session).authorized
+    const canSetMemberTitle = manualGroupAuth.setMemberTitle(manualGroup.groupId).authorize(session).authorized
+    const canPension = manualGroupAuth.pension.authorize(session).authorized
+    const canRemoveMembers = manualGroupAuth.removeMembers(manualGroup.groupId).authorize(session).authorized
 
     // Only the active members of the group's own order can be carried into the next one.
     const membersOfGroupOrder = members.filter(

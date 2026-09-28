@@ -326,23 +326,14 @@ export const ledgerTransactionOperations = {
      * The lifecycle of the transaction is automatically handled by the system.
      */
     create: defineOperation({
-        // A transaction with no debit entries at all (e.g. a deposit, where the debit side is an
-        // external payment, not a ledger entry) has nothing for rule 1 to check, so LEDGER_USE
-        // alone is sufficient for it.
         authorizer: async ({ params, prisma }) => {
-            const ledgerUse = ledgerTransactionAuth.create.ledgerUse
-
             const debitLedgerAccountIds = params.ledgerEntries
                 .filter(entry => entry.funds < 0)
                 .map(entry => entry.ledgerAccountId)
 
-            if (debitLedgerAccountIds.length === 0) {
-                return ledgerUse
-            }
-
-            const accounts = await resolveAccountsOwnership(prisma, { ledgerAccountIds: debitLedgerAccountIds })
-
-            return ledgerUse.allOf(ledgerTransactionAuth.create.accountAccess(accounts))
+            return ledgerTransactionAuth.create(
+                await resolveAccountsOwnership(prisma, { ledgerAccountIds: debitLedgerAccountIds })
+            )
         },
         paramsSchema: z.object({
             purpose: z.nativeEnum(LedgerTransactionPurpose),

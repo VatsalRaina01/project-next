@@ -39,7 +39,7 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string(),
         }),
-        authorizer: ({ params }) => authAuth.verifyEmail.dynamicFields(params),
+        authorizer: ({ params }) => authAuth.verifyEmail(params.token),
         operation: async ({ prisma, params }) => {
             // INFO: Safe to parse unsafe since the authorizer has verified the token.
             const payload = readJWTPayload(params.token)
@@ -81,7 +81,7 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string()
         }),
-        authorizer: ({ params }) => authAuth.resetPassword.dynamicFields(params),
+        authorizer: ({ params }) => authAuth.resetPassword(params.token),
         operation: async ({ prisma, params }) => {
             // INFO: Safe to parse unsafe since the authorizer has verified the token.
             const payload = readJWTPayload(params.token)
@@ -114,7 +114,7 @@ export const authOperations = {
             token: z.string()
         }),
         dataSchema: userSchemas.updatePassword,
-        authorizer: ({ params }) => authAuth.resetPassword.dynamicFields(params),
+        authorizer: ({ params }) => authAuth.resetPassword(params.token),
         operation: async ({ params, data }) => {
             const userId = await authOperations.verifyResetPasswordToken({ params })
 
@@ -130,7 +130,7 @@ export const authOperations = {
 
     sendLinkFeideAccountEmail: defineOperation({
         dataSchema: authSchemas.sendLinkFeideAccountEmail,
-        authorizer: () => authAuth.sendLinkFeideAccountEmail.dynamicFields({}),
+        authorizer: () => authAuth.sendLinkFeideAccountEmail,
         operation: async ({ prisma, data, session }) => {
             if (!session.user) {
                 throw new ServerError('DISSALLOWED', 'This endpoint requires a user connected to the session.')
@@ -201,7 +201,7 @@ export const authOperations = {
      * Returns null if the session user has no Feide account.
      */
     readFeideLoginMatch: defineOperation({
-        authorizer: () => authAuth.readFeideLoginMatch.dynamicFields({}),
+        authorizer: () => authAuth.readFeideLoginMatch,
         operation: async ({ prisma, session }) => {
             if (!session.user) {
                 throw new ServerError('DISSALLOWED', 'This endpoint requires a user connected to the session.')
@@ -228,7 +228,7 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string(),
         }),
-        authorizer: ({ params }) => authAuth.verifyLinkFeideAccountToken.dynamicFields(params),
+        authorizer: ({ params }) => authAuth.verifyLinkFeideAccountToken(params.token),
         operation: async ({ prisma, params }) => {
             const claims = readLinkFeideAccountClaims(params.token)
 
@@ -251,7 +251,7 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string(),
         }),
-        authorizer: ({ params }) => authAuth.linkFeideAccount.dynamicFields(params),
+        authorizer: ({ params }) => authAuth.linkFeideAccount(params.token),
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
             const claims = readLinkFeideAccountClaims(params.token)
@@ -266,7 +266,7 @@ export const authOperations = {
 
     adminLinkFeideAccount: defineOperation({
         dataSchema: authSchemas.adminLinkFeideAccount,
-        authorizer: () => authAuth.adminLinkFeideAccount.dynamicFields({}),
+        authorizer: () => authAuth.adminLinkFeideAccount,
         opensTransaction: true,
         operation: async ({ prisma, data }) => {
             const fromUser = await prisma.user.findUniqueOrThrow({
@@ -287,7 +287,7 @@ export const authOperations = {
 
     sendResetPasswordEmail: defineOperation({
         dataSchema: authSchemas.sendResetPasswordEmail,
-        authorizer: () => authAuth.sendResetPasswordEmail.dynamicFields({}),
+        authorizer: () => authAuth.sendResetPasswordEmail,
         operation: async ({ data }) => {
             try {
                 const user = await userOperations.read({

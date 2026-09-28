@@ -1,10 +1,9 @@
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
 import { Require } from '@/auth/authorizer/Require'
 
 
 export const frontpageAuth = {
-    readSpecialCmsParagraphSection: RequireNothing.staticFields({}),
+    readSpecialCmsParagraphSection: Require.nothing(),
     updateSpecialCmsParagraphContentSection: Require.permission('FRONTPAGE_ADMIN'),
-    readSpecialCmsImage: RequireNothing.staticFields({}),
+    readSpecialCmsImage: Require.nothing(),
     updateSpecialCmsImage: Require.permission('FRONTPAGE_ADMIN')
 }
