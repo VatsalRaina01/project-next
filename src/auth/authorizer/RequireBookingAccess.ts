@@ -1,5 +1,16 @@
 import { AuthorizerFactory } from './Authorizer'
+import { createHash, timingSafeEqual } from 'crypto'
 import type { Permission } from '@/prisma-generated-pn-types'
+
+/**
+ * Constant-time string comparison, via fixed-length digests so timingSafeEqual (which throws on
+ * a length mismatch) never sees differing lengths and no length is leaked either.
+ */
+function secretsMatch(a: string, b: string): boolean {
+    const digestA = createHash('sha256').update(a).digest()
+    const digestB = createHash('sha256').update(b).digest()
+    return timingSafeEqual(digestA, digestB)
+}
 
 /**
  * Authorized if the session holds `permission`, the session user owns the booking, or the
@@ -19,7 +30,7 @@ export const RequireBookingAccess = AuthorizerFactory<
         return { success: true, session }
     }
 
-    if (dynamicFields.providedSecret !== undefined && dynamicFields.providedSecret === dynamicFields.secret) {
+    if (dynamicFields.providedSecret !== undefined && secretsMatch(dynamicFields.providedSecret, dynamicFields.secret)) {
         return { success: true, session }
     }
 

@@ -12,6 +12,7 @@ import { userFilterSelection } from '@/services/users/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
@@ -370,7 +371,7 @@ export const eventRegistrationOperations = {
             manualFees: z.coerce.number().nonnegative().default(0),
             description: z.string().optional(),
         }),
-        authorizer: ({ params }) => eventRegistrationAuth.createPayment(params.provider, params.userId),
+        authorizer: ({ params }) => eventRegistrationAuth.createPayment.dynamicFields({ userId: params.userId }),
         opensTransaction: true,
         operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
             const registration = await prisma.eventRegistration.findUnique({
@@ -410,8 +411,22 @@ export const eventRegistrationOperations = {
                     state: { in: ['PENDING', 'SUCCEEDED'] },
                 },
             })
+            if (existingAttempt?.state === 'SUCCEEDED') {
+                throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
+            }
             if (existingAttempt) {
-                throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt eller under betaling.')
+                const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
+                if (!isStale) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.')
+                }
+                // Stale (likely abandoned) attempt - cancel it (also cancels any Stripe payment
+                // intent, so a late webhook for it can never complete) and let this one proceed.
+                // Bypassed: the outer authorizer already established this caller may pay for
+                // this registration, which is the right bar for canceling a stale attempt on it.
+                await ledgerTransactionOperations.cancel({
+                    params: { id: existingAttempt.id },
+                    bypassAuth: true,
+                })
             }
 
             if (!event.hostedByCommitee) {

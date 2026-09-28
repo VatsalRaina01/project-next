@@ -2,7 +2,7 @@ import 'server-only'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from './cabinPriceCalculator'
 import { cabinBookingSchemas } from './schemas'
 import { cabinBookingAuth } from './auth'
-import { CABIN_RESERVATION_WINDOW_MS, cabinBookingFilerSelection, cabinBookingIncluder } from './constants'
+import { cabinReservationWindowMs, cabinBookingFilerSelection, cabinBookingIncluder } from './constants'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
 import { cabinProductPriceIncluder } from '@/services/cabin/product/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
@@ -11,6 +11,7 @@ import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/ope
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { BookingType, PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
@@ -152,7 +153,7 @@ const create = defineSubOperation({
                 secret: crypto.randomBytes(24).toString('hex'),
                 // The reservation must be paid within this window, or it stops blocking the
                 // calendar for others (see cabinAvailable). Cleared once payment succeeds.
-                transactionTimeout: new Date(Date.now() + CABIN_RESERVATION_WINDOW_MS),
+                transactionTimeout: new Date(Date.now() + cabinReservationWindowMs),
                 BookingProduct: {
                     create: params.bookingProducts.map(product => ({
                         cabinProductId: product.cabinProductId,
@@ -407,7 +408,6 @@ export const cabinBookingOperations = {
             })
 
             return cabinBookingAuth.createPayment(
-                params.provider,
                 booking ?? { userId: null, secret: '' },
                 params.secret,
             )
@@ -433,8 +433,22 @@ export const cabinBookingOperations = {
                     state: { in: ['PENDING', 'SUCCEEDED'] },
                 },
             })
+            if (existingAttempt?.state === 'SUCCEEDED') {
+                throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen er allerede betalt.')
+            }
             if (existingAttempt) {
-                throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen er allerede betalt eller under betaling.')
+                const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
+                if (!isStale) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen har allerede en betaling under behandling.')
+                }
+                // Stale (likely abandoned) attempt - cancel it (also cancels any Stripe payment
+                // intent, so a late webhook for it can never complete) and let this one proceed.
+                // Bypassed: the outer authorizer already established this caller may pay for
+                // this booking, which is the right bar for canceling a stale attempt on it.
+                await ledgerTransactionOperations.cancel({
+                    params: { id: existingAttempt.id },
+                    bypassAuth: true,
+                })
             }
 
             const cabinSettings = await prisma.cabinSettings.findFirst()

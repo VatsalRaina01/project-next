@@ -20,5 +20,5 @@ export const cabinBookingIncluder = {
 }
 
 // How long a reserved booking blocks the calendar before payment must be started.
-export const CABIN_RESERVATION_WINDOW_MS = 10 * 60 * 1000
+export const cabinReservationWindowMs = 10 * 60 * 1000
 

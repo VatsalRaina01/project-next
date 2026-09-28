@@ -3,10 +3,11 @@ import { determineTransactionState } from './determineTransactionState'
 import { runPaymentCompletionHook } from './paymentCompletionHooks'
 import { ledgerTransactionAuth } from './auth'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { paymentOperations } from '@/services/ledger/payments/operations'
 import { resolveAccountOwnership, resolveAccountsOwnership } from '@/services/ledger/accounts/ownership'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
-import { ServerError } from '@/services/error'
+import { Smorekopp, ServerError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
 import logger from '@/lib/logger'
@@ -16,6 +17,30 @@ import { z } from 'zod'
 import type { ExpandedLedgerTransaction } from './types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
+/**
+ * Resolves the owning users/groups of every account a transaction's ledger entries touch, for
+ * authorizers that need to know whether the caller is a party to it (see read/cancel below).
+ */
+async function resolveTransactionAccounts(prisma: Prisma.TransactionClient, transactionId: number) {
+    const transaction = await prisma.ledgerTransaction.findUnique({
+        where: { id: transactionId },
+        select: {
+            ledgerEntries: {
+                select: {
+                    ledgerAccount: {
+                        select: { userId: true, groups: { select: { groupId: true } } },
+                    },
+                },
+            },
+        },
+    })
+
+    return (transaction?.ledgerEntries ?? []).map(entry => ({
+        userId: entry.ledgerAccount?.userId ?? null,
+        groupIds: entry.ledgerAccount?.groups.map(group => group.groupId) ?? [],
+    }))
+}
+
 // Nested calls to other operations are not bypassed unless noted: the checks involved are cheap,
 // so it is worth checking access again rather than assuming the outer check already covered it.
 export const ledgerTransactionOperations = {
@@ -23,27 +48,9 @@ export const ledgerTransactionOperations = {
      * Reads a single transaction including its ledger entries, payment and manual transfer (if any).
      */
     read: defineOperation({
-        authorizer: async ({ params, prisma }) => {
-            const transaction = await prisma.ledgerTransaction.findUnique({
-                where: { id: params.id },
-                select: {
-                    ledgerEntries: {
-                        select: {
-                            ledgerAccount: {
-                                select: { userId: true, groups: { select: { groupId: true } } },
-                            },
-                        },
-                    },
-                },
-            })
-
-            const accounts = (transaction?.ledgerEntries ?? []).map(entry => ({
-                userId: entry.ledgerAccount?.userId ?? null,
-                groupIds: entry.ledgerAccount?.groups.map(group => group.groupId) ?? [],
-            }))
-
-            return ledgerTransactionAuth.read.dynamicFields({ accounts })
-        },
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.read.dynamicFields({
+            accounts: await resolveTransactionAccounts(prisma, params.id),
+        }),
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -65,6 +72,58 @@ export const ledgerTransactionOperations = {
 
             return transaction
         }
+    }),
+
+    /**
+     * Cancels a transaction that is still PENDING (e.g. a stale/abandoned Stripe attempt).
+     * Cancels its payment too (see paymentOperations.cancel), so a webhook that arrives late can
+     * never later mark it SUCCEEDED. Refuses to touch a transaction that already reached a
+     * terminal state.
+     */
+    cancel: defineOperation({
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.dynamicFields({
+            accounts: await resolveTransactionAccounts(prisma, params.id),
+        }),
+        paramsSchema: z.object({
+            id: z.number(),
+        }),
+        operation: async ({ prisma, params }) => {
+            const transaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
+                params: { id: params.id },
+                bypassAuth: true,
+            })
+
+            if (transaction.state !== 'PENDING') {
+                throw new Smorekopp('BAD PARAMETERS', 'Bare en ventende transaksjon kan kanselleres.')
+            }
+
+            if (transaction.payment) {
+                // Bypassed: the authorizer above already established the caller may cancel this
+                // transaction (a party to it, or LEDGER_ADMIN) - that's the right bar for
+                // canceling its payment too, not paymentAuth.cancel's own generic LEDGER_USE.
+                await paymentOperations.cancel({
+                    params: { paymentId: transaction.payment.id },
+                    bypassAuth: true,
+                })
+            }
+
+            await prisma.ledgerTransaction.updateMany({
+                where: {
+                    id: params.id,
+                    state: 'PENDING', // Protect against canceling a transaction that just resolved.
+                },
+                data: {
+                    state: 'CANCELED',
+                    reason: 'Kansellert.',
+                },
+            })
+
+            const canceled: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
+                params: { id: params.id },
+                bypassAuth: true,
+            })
+            return canceled
+        },
     }),
 
     /**
