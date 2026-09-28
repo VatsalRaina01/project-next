@@ -54,12 +54,19 @@ async function createCommitteArticleSection(
     }
 }
 
+/**
+ * Migrates Omegaweb-basic committees into PN committees with their own group, members and
+ * member history.
+ * @returns an IdMapper from Omegaweb-basic committee id to the PN group id of the migrated
+ * committee, so later steps can hang committee-owned data (news visibility, locker
+ * reservations) off the right group.
+ */
 export default async function migrateCommittees(
     pnPrisma: PrismaClientPn,
     owPrisma: PrismaClientOw,
     userMigrator: UserMigrator,
     imageIdMap: IdMapper,
-) {
+): Promise<IdMapper> {
     const committees = await owPrisma.committees.findMany({
         include: {
             CommitteeMembers: true,
@@ -68,6 +75,7 @@ export default async function migrateCommittees(
     })
 
     const bar = createProgressBar('Migrating committees', committees.length)
+    const committeeGroupIdMap: IdMapper = []
     await Promise.all(committees.map(async committee => {
         const committeeParagraph = await createCmsParagraph(
             pnPrisma, await readCommitteMarkdown(`${committee.shortname}_p.md`)
@@ -144,7 +152,11 @@ export default async function migrateCommittees(
             })
         }))
 
+        committeeGroupIdMap.push({ owId: committee.id, pnId: newCommittee.groupId })
+
         bar.increment()
     }))
     bar.stop()
+
+    return committeeGroupIdMap
 }

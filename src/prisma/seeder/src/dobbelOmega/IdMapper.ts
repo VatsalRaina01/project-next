@@ -1,5 +1,7 @@
 import logger from '@/lib/logger'
 
+export type MappedResource = 'images' | 'image collections' | 'committees'
+
 export type IdMapper = {
     owId: number
     pnId: number
@@ -15,7 +17,11 @@ export type IdMapper = {
  * - that isn't a bug, so it gets called out separately from other resources.
  * @returns - number | null - The id of the resource on PN
  */
-export function owIdToPnId(mapper: IdMapper, owId: number | null, resource: 'images' | 'image collections'): number | null {
+export function owIdToPnId(
+    mapper: IdMapper,
+    owId: number | null,
+    resource: MappedResource,
+): number | null {
     if (!owId) return null
     const id = mapper.find(_id => _id.owId === owId)?.pnId
     if (!id) {
