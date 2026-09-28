@@ -9,7 +9,7 @@ import { ServerError } from '@/services/error'
 
 export const omegaIdOperations = {
     generate: defineOperation({
-        authorizer: ({ params }) => omegaIdAuth.generate.dynamicFields({ userId: params.userId }),
+        authorizer: ({ params }) => omegaIdAuth.generate(params.userId),
         paramsSchema: omegaIdSchemas.generate,
         operation: ({ params }) =>
             generateJWT('omegaid', { sub: params.userId }, OmegaIdExpiryTime, true),

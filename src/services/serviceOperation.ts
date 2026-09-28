@@ -481,7 +481,7 @@ export function defineSubOperation<
                             const authorizer = await prismaErrorWrapper(
                                 () => implementationArgs.authorizer({ ...args, prisma })
                             )
-                            const authResult = authorizer.auth(session)
+                            const authResult = authorizer.authorize(session)
 
                             if (!authResult.authorized) {
                                 throw new Smorekopp(authResult.status, authResult.getErrorMessage)

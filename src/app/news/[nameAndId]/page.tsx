@@ -41,7 +41,7 @@ export default async function NewsArticle({ params }: PropTypes) {
 
     const canEdit = newsAuth.updateArticle.dynamicFields({
         doubleLevelMatrix: doubleLevelVisibility ?? EMPTY_VISIBILITY
-    }).auth(
+    }).authorize(
         await ServerSession.fromNextAuth()
     ).toJsObject()
     return (

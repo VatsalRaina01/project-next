@@ -35,9 +35,7 @@ export const purchaseOperations = {
                 },
             })
 
-            return purchaseAuth.createByStudentCard.dynamicFields({
-                permissions,
-            })
+            return purchaseAuth.createByStudentCard(permissions)
         },
         dataSchema: purchaseSchemas.createFromStudentCard,
         opensTransaction: true,

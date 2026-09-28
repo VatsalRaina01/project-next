@@ -1,13 +1,10 @@
 import { RequireNothing } from '@/auth/authorizer/RequireNothing'
-import { RequireOneOfPermission } from '@/auth/authorizer/RequireOneOfPermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const careerAuth = {
     readSpecialCmsParagraphCareerInfo: RequireNothing.staticFields({}),
-    updateSpecialCmsParagraphContentCareerInfo: RequireOneOfPermission.staticFields({
-        permissions: ['JOBAD_ADMIN', 'COMMITTEE_ADMIN']
-    }),
+    updateSpecialCmsParagraphContentCareerInfo:
+        Require.anyOf(Require.permission('JOBAD_ADMIN'), Require.permission('COMMITTEE_ADMIN')),
     readSpecialCmsLink: RequireNothing.staticFields({}),
-    updateSpecialCmsLink: RequireOneOfPermission.staticFields({
-        permissions: ['JOBAD_ADMIN', 'COMMITTEE_ADMIN']
-    })
+    updateSpecialCmsLink: Require.anyOf(Require.permission('JOBAD_ADMIN'), Require.permission('COMMITTEE_ADMIN'))
 } as const

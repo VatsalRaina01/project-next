@@ -29,7 +29,7 @@ async function readDefaultCommitteeLogo() {
 }
 
 const readAll = defineOperation({
-    authorizer: () => committeeAuth.readAll.dynamicFields({}),
+    authorizer: () => committeeAuth.readAll,
     operation: async ({ prisma }) => {
         const defaultCommitteeLogo = await readDefaultCommitteeLogo()
 
@@ -45,7 +45,7 @@ const readAll = defineOperation({
 })
 
 const read = defineOperation({
-    authorizer: () => committeeAuth.read.dynamicFields({}),
+    authorizer: () => committeeAuth.read,
     paramsSchema: z.union([
         z.object({ id: z.number() }),
         z.object({ shortName: z.string() })
@@ -80,7 +80,7 @@ const read = defineOperation({
 })
 
 const readArticle = defineOperation({
-    authorizer: () => committeeAuth.readArticle.dynamicFields({}),
+    authorizer: () => committeeAuth.readArticle,
     paramsSchema: z.object({
         shortName: z.string(),
     }),
@@ -95,7 +95,7 @@ const readArticle = defineOperation({
 })
 
 const readParagraph = defineOperation({
-    authorizer: () => committeeAuth.readParagraph.dynamicFields({}),
+    authorizer: () => committeeAuth.readParagraph,
     paramsSchema: z.object({
         shortName: z.string(),
     }),
@@ -133,12 +133,10 @@ const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
         shortName: z.string(),
     }),
     authorizer: async ({ implementationParams }) =>
-        committeeAuth.updateParagraphContent.dynamicFields({
-            groupId: (await read({
-                params: { shortName: implementationParams.shortName },
-                bypassAuth: true
-            })).groupId
-        }),
+        committeeAuth.updateParagraphContent((await read({
+            params: { shortName: implementationParams.shortName },
+            bypassAuth: true
+        })).groupId),
     ownershipCheck: async ({ implementationParams, params }) =>
         (await readParagraph({
             params: { shortName: implementationParams.shortName },
@@ -150,12 +148,10 @@ const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
 
 const updateLogo = defineOperation({
     authorizer: async ({ params }) =>
-        committeeAuth.updateLogo.dynamicFields({
-            groupId: (await read({
-                params: { shortName: params.shortName },
-                bypassAuth: true
-            })).groupId
-        }),
+        committeeAuth.updateLogo((await read({
+            params: { shortName: params.shortName },
+            bypassAuth: true
+        })).groupId),
     paramsSchema: z.object({
         shortName: z.string(),
     }),
@@ -198,7 +194,7 @@ const updateLogo = defineOperation({
 })
 
 const destroy = defineOperation({
-    authorizer: () => committeeAuth.destroy.dynamicFields({}),
+    authorizer: () => committeeAuth.destroy,
     paramsSchema: z.object({
         id: z.number()
     }),
@@ -223,7 +219,7 @@ const destroy = defineOperation({
 })
 
 const create = defineOperation({
-    authorizer: () => committeeAuth.create.dynamicFields({}),
+    authorizer: () => committeeAuth.create,
     dataSchema: committeeSchemas.create,
     opensTransaction: true,
     operation: ({ prisma, data }) =>
@@ -300,7 +296,7 @@ const create = defineOperation({
 })
 
 const update = defineOperation({
-    authorizer: () => committeeAuth.update.dynamicFields({}),
+    authorizer: () => committeeAuth.update,
     paramsSchema: z.object({
         id: z.number()
     }),
@@ -327,12 +323,10 @@ const update = defineOperation({
 })
 
 const updateArticle = implementUpdateArticleOperations({
-    authorizer: async ({ implementationParams }) => committeeAuth.updateArticle.dynamicFields({
-        groupId: (await read({
-            params: { shortName: implementationParams.shortName },
-            bypassAuth: true
-        })).groupId
-    }),
+    authorizer: async ({ implementationParams }) => committeeAuth.updateArticle((await read({
+        params: { shortName: implementationParams.shortName },
+        bypassAuth: true
+    })).groupId),
     implementationParamsSchema: z.object({
         shortName: z.string(),
     }),
@@ -347,7 +341,7 @@ const updateArticle = implementUpdateArticleOperations({
 const commonGroupOperations = implementGroupType({
     type: GroupType.COMMITTEE,
     auth: {
-        readExpanded: committeeAuth.readExpanded.dynamicFields({}),
+        readExpanded: committeeAuth.readExpanded,
         readMembers: ({ groupId }) => committeeAuth.readMembers.dynamicFields({ groupId }),
     },
 })
@@ -355,18 +349,18 @@ const commonGroupOperations = implementGroupType({
 const memberManagement = implementSimpleAddRemoveMembersOperation({
     type: GroupType.COMMITTEE,
     auth: {
-        addMembers: ({ groupId }) => committeeAuth.addMembers.dynamicFields({ groupId }),
-        removeMembers: ({ groupId }) => committeeAuth.removeMembers.dynamicFields({ groupId }),
-        setMemberAdmin: ({ groupId }) => committeeAuth.setMemberAdmin.dynamicFields({ groupId }),
-        setMemberTitle: ({ groupId }) => committeeAuth.setMemberTitle.dynamicFields({ groupId }),
+        addMembers: ({ groupId }) => committeeAuth.addMembers(groupId),
+        removeMembers: ({ groupId }) => committeeAuth.removeMembers(groupId),
+        setMemberAdmin: ({ groupId }) => committeeAuth.setMemberAdmin(groupId),
+        setMemberTitle: ({ groupId }) => committeeAuth.setMemberTitle(groupId),
     },
 })
 
 const migration = implementManualMigrationPerGroup({
     type: GroupType.COMMITTEE,
     auth: {
-        migrateGroup: ({ groupId }) => committeeAuth.migrateGroup.dynamicFields({ groupId }),
-        pension: () => committeeAuth.pension.dynamicFields({}),
+        migrateGroup: ({ groupId }) => committeeAuth.migrateGroup(groupId),
+        pension: () => committeeAuth.pension,
     },
     setPensioned: (prisma, groupId, pensioned) => prisma.committee.update({
         where: { groupId },

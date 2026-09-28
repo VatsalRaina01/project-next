@@ -1,5 +1,5 @@
-import { RequireEveryPermission } from '@/auth/authorizer/RequireEveryPermission'
 import { RequireEveryPermissionOrGroupAdmin } from '@/auth/authorizer/RequireEveryPermissionOrGroupAdmin'
+import { Require } from '@/auth/authorizer/Require'
 import type { Permission } from '@/prisma-generated-pn-types'
 
 /**
@@ -17,9 +17,7 @@ import type { Permission } from '@/prisma-generated-pn-types'
  * default later cannot start handing out member data by doing so.
  */
 export function requireReadGroupMembers(groupTypeReadPermission: Permission) {
-    return RequireEveryPermission.staticFields({
-        permissions: [groupTypeReadPermission, 'USERS_USE'],
-    })
+    return Require.permission(groupTypeReadPermission).permission('USERS_USE')
 }
 
 /**

@@ -30,9 +30,9 @@ export default async function EventArchive({
 
     const session = await ServerSession.fromNextAuth()
 
-    const canUpdate = eventTagAuth.update.dynamicFields({}).auth(session)
-    const canCreate = eventTagAuth.create.dynamicFields({}).auth(session)
-    const canDestroy = eventTagAuth.destroy.dynamicFields({}).auth(session)
+    const canUpdate = eventTagAuth.update.authorize(session)
+    const canCreate = eventTagAuth.create.authorize(session)
+    const canDestroy = eventTagAuth.destroy.authorize(session)
 
     return (
         <PageWrapper title="Hvad der har hendt" headerItem={

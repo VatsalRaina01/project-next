@@ -10,8 +10,8 @@ export const committeeParticipationOperations = {
         paramsSchema: z.object({
             participationId: z.number(),
         }),
-        authorizer: async ({ prisma, params }) => committeeParticipationAuth.read.dynamicFields({
-            groupId: await prisma.committeeParticipationInApplicationPeriod.findUniqueOrThrow({
+        authorizer: async ({ prisma, params }) => committeeParticipationAuth.read(
+            await prisma.committeeParticipationInApplicationPeriod.findUniqueOrThrow({
                 where: {
                     id: params.participationId
                 },
@@ -27,7 +27,7 @@ export const committeeParticipationOperations = {
                     }
                 }
             }).then((participation) => participation.committee.group.id)
-        }),
+        ),
         operation: async ({ prisma, params }) => {
             const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
                 params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
@@ -67,8 +67,8 @@ export const committeeParticipationOperations = {
         paramsSchema: z.object({
             committeeId: z.number(),
         }),
-        authorizer: async ({ prisma, params }) => committeeParticipationAuth.read.dynamicFields({
-            groupId: await prisma.committee.findUniqueOrThrow({
+        authorizer: async ({ prisma, params }) => committeeParticipationAuth.read(
+            await prisma.committee.findUniqueOrThrow({
                 where: {
                     id: params.committeeId
                 },
@@ -76,7 +76,7 @@ export const committeeParticipationOperations = {
                     groupId: true
                 }
             }).then((committee) => committee.groupId)
-        }),
+        ),
         operation: async ({ prisma, params }) => (
             await prisma.committeeParticipationInApplicationPeriod.findMany({
                 where: {

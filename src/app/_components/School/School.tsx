@@ -23,9 +23,9 @@ export default function School({ school, session }: PropTypes) {
         { implementationParams: { shortName: school.shortName } }
     )
 
-    const canEditCmsImage = schoolAuth.updateCmsImage.dynamicFields({}).auth(session).toJsObject()
-    const canEditCmsParagraph = schoolAuth.updateCmsParagraphContent.dynamicFields({}).auth(session).toJsObject()
-    const canEditCmsLink = schoolAuth.updateCmsLink.dynamicFields({}).auth(session).toJsObject()
+    const canEditCmsImage = schoolAuth.updateCmsImage.authorize(session).toJsObject()
+    const canEditCmsParagraph = schoolAuth.updateCmsParagraphContent.authorize(session).toJsObject()
+    const canEditCmsLink = schoolAuth.updateCmsLink.authorize(session).toJsObject()
 
     return (
         <div className={styles.School}>

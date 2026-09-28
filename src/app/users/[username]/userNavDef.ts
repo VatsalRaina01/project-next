@@ -6,7 +6,7 @@ import { omegaMembershipGroupAuth } from '@/services/groups/omegaMembershipGroup
 import { notificationSubscriptionAuth } from '@/services/notifications/subscription/auth'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
-import { RequireUsername } from '@/auth/authorizer/RequireUsername'
+import { Require } from '@/auth/authorizer/Require'
 import {
     faCircleDot,
     faCog,
@@ -49,7 +49,7 @@ export const userNavDef: UserNavItem[] = [
     {
         name: 'Profil',
         icon: faUser,
-        authorizers: ({ username }) => [userAuth.readProfile.dynamicFields({ username })],
+        authorizers: ({ username }) => [userAuth.readProfile(username)],
     },
     {
         // Reading the trials is the floor: the level itself is on the profile anyway, so it is the
@@ -58,10 +58,10 @@ export const userNavDef: UserNavItem[] = [
         icon: faIdCard,
         path: 'membership-status',
         authorizers: ({ userId }) => [
-            admissionAuth.readTrial.dynamicFields({ userId }),
-            admissionAuth.createTrial.dynamicFields({}),
-            omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}),
-            omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}),
+            admissionAuth.readTrial(userId),
+            admissionAuth.createTrial,
+            omegaMembershipGroupAuth.updateUserLevel,
+            omegaMembershipGroupAuth.updateUserOrder,
         ],
     },
     {
@@ -69,8 +69,8 @@ export const userNavDef: UserNavItem[] = [
         icon: faCircleDot,
         path: 'dots',
         authorizers: ({ userId }) => [
-            dotAuth.readForUser.dynamicFields({ userId }),
-            dotAuth.create.dynamicFields({ userId }),
+            dotAuth.readForUser(userId),
+            dotAuth.create(userId),
         ],
     },
     {
@@ -78,37 +78,37 @@ export const userNavDef: UserNavItem[] = [
         icon: faPaperPlane,
         path: 'notifications',
         authorizers: ({ userId }) => [
-            notificationSubscriptionAuth.read.dynamicFields({ userId }),
-            notificationSubscriptionAuth.update.dynamicFields({ userId }),
+            notificationSubscriptionAuth.read(userId),
+            notificationSubscriptionAuth.update(userId),
         ],
     },
     {
         name: 'Tilganger',
         icon: faKey,
         path: 'permissions',
-        authorizers: ({ username }) => [userAuth.updateProfile.dynamicFields({ username })],
+        authorizers: ({ username }) => [userAuth.updateProfile(username)],
     },
     {
         name: 'Kapper',
         icon: faHatWizard,
         path: 'flairs',
-        authorizers: () => [flairAuth.assignToUser.dynamicFields({})],
+        authorizers: () => [flairAuth.assignToUser],
     },
     {
         name: 'Tema',
         icon: faSwatchbook,
         path: 'theme',
-        authorizers: ({ username }) => [RequireUsername.staticFields({}).dynamicFields({ username })],
+        authorizers: ({ username }) => [Require.userField({ username })],
     },
     {
         name: 'Innstillinger',
         icon: faCog,
         path: 'settings',
         authorizers: ({ username }) => [
-            userAuth.updateProfile.dynamicFields({ username }),
-            userAuth.updateProfileImage.dynamicFields({ username }),
-            classAuth.changeClassOfUser.dynamicFields({}),
-            studyProgrammeAuth.update.dynamicFields({}),
+            userAuth.updateProfile(username),
+            userAuth.updateProfileImage(username),
+            classAuth.changeClassOfUser,
+            studyProgrammeAuth.update,
         ],
     },
 ]

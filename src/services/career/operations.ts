@@ -10,7 +10,7 @@ export const careerOperations = {
     }),
 
     updateSpecialCmsParagraphContentCareerInfo: cmsParagraphOperations.updateContent.implement({
-        authorizer: () => careerAuth.updateSpecialCmsParagraphContentCareerInfo.dynamicFields({}),
+        authorizer: () => careerAuth.updateSpecialCmsParagraphContentCareerInfo,
         ownershipCheck: async ({ params }) =>
             await cmsParagraphOperations.isSpecial.internalCall({
                 params: { paragraphId: params.paragraphId, special: ['CAREER_INFO'] },
@@ -23,7 +23,7 @@ export const careerOperations = {
     }),
 
     updateSpecialCmsLink: cmsLinkOperations.update.implement({
-        authorizer: () => careerAuth.updateSpecialCmsLink.dynamicFields({}),
+        authorizer: () => careerAuth.updateSpecialCmsLink,
         ownershipCheck: ({ params }) =>
             cmsLinkOperations.isSpecial.internalCall({
                 params: {

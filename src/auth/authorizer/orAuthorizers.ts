@@ -9,9 +9,9 @@ export function orAuthorizers<UserRequieredOut extends UserRequieredOutOpt>(
     second: AuthorizerDynamicFieldsBound<UserRequieredOut>,
 ): AuthorizerDynamicFieldsBound<UserRequieredOut> {
     return {
-        auth: (session) => {
-            const firstResult = first.auth(session)
-            return firstResult.authorized ? firstResult : second.auth(session)
+        authorize: (session) => {
+            const firstResult = first.authorize(session)
+            return firstResult.authorized ? firstResult : second.authorize(session)
         },
     }
 }

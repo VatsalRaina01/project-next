@@ -38,9 +38,9 @@ export default function Company({
     logoWidth = 300,
     squareLogo = true,
 }: PropTypes) {
-    const canUpdate = companyAuth.update.dynamicFields({}).auth(session)
-    const canDestroy = companyAuth.destroy.dynamicFields({}).auth(session)
-    const canEditCmsImageLogo = companyAuth.updateCmsImageLogo.dynamicFields({}).auth(session).toJsObject()
+    const canUpdate = companyAuth.update.authorize(session)
+    const canDestroy = companyAuth.destroy.authorize(session)
+    const canEditCmsImageLogo = companyAuth.updateCmsImageLogo.authorize(session).toJsObject()
     const updateCmsImageAction = configureAction(
         updateCompanyCmsLogoAction,
         { implementationParams: { companyId: company.id } }

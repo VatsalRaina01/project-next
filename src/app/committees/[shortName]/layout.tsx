@@ -25,15 +25,12 @@ export default async function Committee({ params, children }: PropTypes) {
     // controls are not offered on any of its pages either.
     const canEditCoverImage = (committee.pensioned
         ? new AuthResult(await ServerSession.fromNextAuth(), false, undefined, 'Komiteen er pensjonert')
-        : committeeAuth.updateArticle.dynamicFields({ groupId: committee.groupId }).auth(
+        : committeeAuth.updateArticle(committee.groupId).authorize(
             await ServerSession.fromNextAuth()
         )
     ).toJsObject()
 
-    const canReadCommitteeApplication = committeeParticipationAuth.readAll.dynamicFields(
-        {
-            groupId: committee.groupId,
-        }).auth(
+    const canReadCommitteeApplication = committeeParticipationAuth.readAll(committee.groupId).authorize(
         await ServerSession.fromNextAuth()
     ).toJsObject()
 

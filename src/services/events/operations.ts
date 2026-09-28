@@ -141,7 +141,7 @@ export const eventOperations = {
 
     create: defineOperation({
         dataSchema: eventSchemas.create,
-        authorizer: () => eventAuth.create.dynamicFields({}),
+        authorizer: () => eventAuth.create,
         operation: async ({ prisma, data, session }) => {
             assertAdminLevelIsSubOfRegularLevel({
                 regularLevel: { requirements: data.visibilityRegularRequirements },

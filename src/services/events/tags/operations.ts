@@ -49,7 +49,7 @@ export const eventTagOperations = {
     }),
     create: defineOperation({
         dataSchema: eventTagSchemas.create,
-        authorizer: () => eventTagAuth.create.dynamicFields({}),
+        authorizer: () => eventTagAuth.create,
         operation: async ({ prisma, data: { color, ...data } }) =>
             await prisma.eventTag.create({
                 data: {

@@ -1,11 +1,11 @@
 import { RequireNothing } from '@/auth/authorizer/RequireNothing'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
 import '@pn-server-only'
+import { Require } from '@/auth/authorizer/Require'
 
 export const notificationChannelAuth = {
-    create: RequirePermission.staticFields({ permission: 'NOTIFICATION_ADMIN' }),
+    create: Require.permission('NOTIFICATION_ADMIN'),
     readMany: RequireNothing.staticFields({}),
     readDefault: RequireNothing.staticFields({}),
-    update: RequirePermission.staticFields({ permission: 'NOTIFICATION_ADMIN' }),
-    destroy: RequirePermission.staticFields({ permission: 'NOTIFICATION_ADMIN' }),
+    update: Require.permission('NOTIFICATION_ADMIN'),
+    destroy: Require.permission('NOTIFICATION_ADMIN'),
 }

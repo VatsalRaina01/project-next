@@ -53,7 +53,7 @@ export default async function JobAd({ params }: PropTypes) {
     }
     const jobAd = jobAdRes.data
 
-    const canEdit = jobAdAuth.updateArticle.dynamicFields({}).auth(
+    const canEdit = jobAdAuth.updateArticle.authorize(
         session
     ).toJsObject()
 

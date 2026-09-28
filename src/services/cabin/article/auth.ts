@@ -1,7 +1,7 @@
 import { RequireNothing } from '@/auth/authorizer/RequireNothing'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const cabinArticleAuth = {
     read: RequireNothing.staticFields({}),
-    update: RequirePermission.staticFields({ permission: 'CABIN_ADMIN' })
+    update: Require.permission('CABIN_ADMIN')
 } as const

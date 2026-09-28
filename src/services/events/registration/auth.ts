@@ -1,20 +1,24 @@
 import { RequireLevelFromDoubleLevelVisibility } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibility'
-import { RequireUserIdOrPermission } from '@/auth/authorizer/RequireUserIdOrPermission'
-import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
-import { orAuthorizers } from '@/auth/authorizer/orAuthorizers'
+import { Require } from '@/auth/authorizer/Require'
 import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 
 /**
  * The regular level of an event is what it takes to register for it, and its admin level is what it
  * takes to act on the registrations of everyone else. EVENT_ADMIN bypasses both for every event.
  */
-const registerLevel = RequireLevelFromDoubleLevelVisibility.staticFields({
+const registerLevelAuthorizer = RequireLevelFromDoubleLevelVisibility.staticFields({
     level: 'REGULAR', bypassPermission: 'EVENT_ADMIN'
 })
-const eventAdminLevel = RequireLevelFromDoubleLevelVisibility.staticFields({
+const eventAdminLevelAuthorizer = RequireLevelFromDoubleLevelVisibility.staticFields({
     level: 'ADMIN', bypassPermission: 'EVENT_ADMIN'
 })
-const ownUserOrEventAdmin = RequireUserIdOrPermission.staticFields({ permission: 'EVENT_ADMIN' })
+const registerLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) => Require.custom(session => (
+    registerLevelAuthorizer.dynamicFields({ doubleLevelMatrix }).authorize(session).authorized
+))
+const eventAdminLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) => Require.custom(session => (
+    eventAdminLevelAuthorizer.dynamicFields({ doubleLevelMatrix }).authorize(session).authorized
+))
+const ownUserOrEventAdmin = (userId: number) => Require.anyOf(Require.permission('EVENT_ADMIN'), Require.userId(userId))
 
 /**
  * Acting on the registration of a given user: their own, or anyone's for those who administrate the
@@ -23,9 +27,9 @@ const ownUserOrEventAdmin = RequireUserIdOrPermission.staticFields({ permission:
 const registrationOfUser = ({ userId, doubleLevelMatrix }: {
     userId: number | null,
     doubleLevelMatrix: DoubleLevelVisibilityMatrix,
-}) => (userId === null ? eventAdminLevel.dynamicFields({ doubleLevelMatrix }) : orAuthorizers(
-    ownUserOrEventAdmin.dynamicFields({ userId }),
-    eventAdminLevel.dynamicFields({ doubleLevelMatrix }),
+}) => (userId === null ? eventAdminLevel(doubleLevelMatrix) : Require.anyOf(
+    ownUserOrEventAdmin(userId),
+    eventAdminLevel(doubleLevelMatrix),
 ))
 
 export const eventRegistrationAuth = {
@@ -33,24 +37,22 @@ export const eventRegistrationAuth = {
      * Registering takes the regular level of the event, and registering anyone but yourself takes
      * its admin level on top of that.
      */
-    create: {
-        dynamicFields: (fields: {
-            userId: number,
-            doubleLevelMatrix: DoubleLevelVisibilityMatrix,
-        }) => andAuthorizers(
-            registerLevel.dynamicFields({ doubleLevelMatrix: fields.doubleLevelMatrix }),
-            registrationOfUser(fields),
-        ),
-    },
-    createGuest: eventAdminLevel,
+    create: (fields: {
+        userId: number,
+        doubleLevelMatrix: DoubleLevelVisibilityMatrix,
+    }) => Require.allOf(
+        registerLevel(fields.doubleLevelMatrix),
+        registrationOfUser(fields),
+    ),
+    createGuest: (doubleLevelMatrix: DoubleLevelVisibilityMatrix) => eventAdminLevel(doubleLevelMatrix),
 
-    readDotPunishmentOfUser: RequireUserIdOrPermission.staticFields({ permission: 'EVENT_ADMIN' }),
-    readOfUser: { dynamicFields: registrationOfUser },
-    readPage: registerLevel,
-    readPageDetailed: eventAdminLevel,
+    readDotPunishmentOfUser: (userId: number) => ownUserOrEventAdmin(userId),
+    readOfUser: registrationOfUser,
+    readPage: (doubleLevelMatrix: DoubleLevelVisibilityMatrix) => registerLevel(doubleLevelMatrix),
+    readPageDetailed: (doubleLevelMatrix: DoubleLevelVisibilityMatrix) => eventAdminLevel(doubleLevelMatrix),
 
-    updateNotes: { dynamicFields: registrationOfUser },
-    destroy: { dynamicFields: registrationOfUser },
+    updateNotes: registrationOfUser,
+    destroy: registrationOfUser,
 
     // Domain access only: may this session pay for *this* registration - the registrant
     // themselves, or a genuine event admin. Deliberately not eventRegistrationAuth.create
@@ -59,5 +61,5 @@ export const eventRegistrationAuth = {
     // "spend someone else's ledger balance"). Provider/account-ownership rules are not this
     // operation's business - paymentOperations.create and ledgerTransactionOperations.create
     // already own those.
-    createPayment: ownUserOrEventAdmin,
+    createPayment: (userId: number) => ownUserOrEventAdmin(userId),
 } as const

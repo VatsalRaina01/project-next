@@ -1,0 +1,169 @@
+import { AuthResult } from './AuthResult'
+import type { SessionMaybeUser } from '@/auth/session/Session'
+import type { Permission } from '@/prisma-generated-pn-types'
+
+type RequireCheckResult = { success: true } | { success: false, errorMessage?: string }
+type RequireCheck = (session: SessionMaybeUser) => RequireCheckResult
+
+const defaultMessages = {
+    user: 'Du må være innlogget for å få tilgang',
+    generic: 'Du har ikke tilgang til denne ressursen',
+    noRulesConfigured: 'Ingen regler er konfigurert for denne autorisasjonen',
+    permission: (permission: Permission) => `Du trenger tillatelse '${permission}' for å få tilgang`,
+    groupAdmin: (groupId: number) => `Du må være gruppeleder for gruppe ${groupId} for å få tilgang`,
+}
+
+export class RequireBuilder {
+    private constructor(private readonly check: RequireCheck) {}
+
+    // The bare entry point, with no rules chained onto it yet, must never authorize anything on
+    // its own — otherwise forgetting to add a condition would silently fail open. Every other
+    // condition method special-cases starting from this exact instance (see `and` below) so that
+    // chaining a real rule onto it isn't itself blocked by this default-deny check.
+    static readonly identity = new RequireBuilder(() => (
+        { success: false, errorMessage: defaultMessages.noRulesConfigured }
+    ))
+
+    private and(nextCheck: RequireCheck): RequireBuilder {
+        if (this === RequireBuilder.identity) {
+            return new RequireBuilder(nextCheck)
+        }
+        return new RequireBuilder((session) => {
+            const result = this.check(session)
+            return result.success ? nextCheck(session) : result
+        })
+    }
+
+    /**
+     * No requirement: always authorized. The permissive counterpart to the bare `Require` entry
+     * point (which always denies) — use this where an operation genuinely has no access rule,
+     * matching what the legacy `RequireNothing` authorizer meant.
+     */
+    nothing(): RequireBuilder {
+        return this.and(() => ({ success: true }))
+    }
+
+    user(opts?: { errorMessage?: string }): RequireBuilder {
+        return this.and((session) => (
+            session.user
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.user }
+        ))
+    }
+
+    permission(permission: Permission, opts?: { errorMessage?: string }): RequireBuilder {
+        return this.and((session) => (
+            session.permissions.includes(permission)
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.permission(permission) }
+        ))
+    }
+
+    userId(userId: number, opts?: { errorMessage?: string }): RequireBuilder {
+        return this.and((session) => {
+            if (!session.user) {
+                return { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.user }
+            }
+            return session.user.id === userId
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.generic }
+        })
+    }
+
+    userField(
+        fields: { username?: string, id?: number, email?: string },
+        opts?: { errorMessage?: string }
+    ): RequireBuilder {
+        return this.and((session) => {
+            const { user } = session
+            const matches = user !== null && (
+                (fields.id !== undefined && user.id === fields.id) ||
+                (fields.username !== undefined && user.username === fields.username) ||
+                (fields.email !== undefined && user.email === fields.email)
+            )
+            return matches
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.generic }
+        })
+    }
+
+    groupAdmin(groupId: number, opts?: { errorMessage?: string }): RequireBuilder {
+        return this.and((session) => (
+            session.memberships.some(membership => membership.groupId === groupId && membership.active && membership.admin)
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.groupAdmin(groupId) }
+        ))
+    }
+
+    ownership<T>(
+        entity: T,
+        check: (session: SessionMaybeUser, entity: T) => boolean,
+        opts?: { errorMessage?: string }
+    ): RequireBuilder {
+        return this.and((session) => (
+            check(session, entity)
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.generic }
+        ))
+    }
+
+    /**
+     * Escape hatch for checks that don't fit the other methods. `check` must be synchronous —
+     * resolve any async data (e.g. a Prisma lookup) before calling this, same as every other
+     * condition method.
+     */
+    custom(
+        check: (session: SessionMaybeUser) => boolean | RequireCheckResult,
+        opts?: { errorMessage?: string }
+    ): RequireBuilder {
+        return this.and((session) => {
+            const result = check(session)
+            if (typeof result === 'boolean') {
+                return result
+                    ? { success: true }
+                    : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.generic }
+            }
+            return result
+        })
+    }
+
+    /** OR: authorized if any of `builders` passes. Every branch is evaluated (an OR can't
+     * short-circuit on failure), and on total failure the branches' messages are joined. */
+    anyOf(first: RequireBuilder, ...rest: RequireBuilder[]): RequireBuilder {
+        const builders = [first, ...rest]
+        return this.and((session) => {
+            const results = builders.map(builder => builder.check(session))
+            if (results.some(result => result.success)) {
+                return { success: true }
+            }
+            const errorMessage = results
+                .map(result => (result.success ? undefined : result.errorMessage))
+                .filter((message): message is string => Boolean(message))
+                .join(' eller ')
+            return { success: false, errorMessage: errorMessage || undefined }
+        })
+    }
+
+    /** AND: authorized only if all of `builders` pass. Short-circuits on the first failure. */
+    allOf(first: RequireBuilder, ...rest: RequireBuilder[]): RequireBuilder {
+        const builders = [first, ...rest]
+        return this.and((session) => {
+            for (const builder of builders) {
+                const result = builder.check(session)
+                if (!result.success) return result
+            }
+            return { success: true }
+        })
+    }
+
+    authorize(session: SessionMaybeUser):
+        AuthResult<'HAS_USER' | 'NO_USER', true> | AuthResult<'HAS_USER' | 'NO_USER', false> {
+        const result = this.check(session)
+        if (result.success) {
+            return new AuthResult(session, true, undefined)
+        }
+        return new AuthResult(session, false, undefined, result.errorMessage)
+    }
+}
+
+export const Require = RequireBuilder.identity

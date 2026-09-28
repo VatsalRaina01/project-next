@@ -7,7 +7,7 @@ export type AuthorizerDynamicFieldsBound<
     UserRequieredOut extends UserRequieredOutOpt = 'USER_NOT_REQUIERED_FOR_AUTHORIZED' | 'USER_REQUIERED_FOR_AUTHORIZED',
     PrismaWhereFilter extends object | undefined = undefined
 > = {
-    auth: (session: SessionMaybeUser) => UserRequieredOut extends 'USER_REQUIERED_FOR_AUTHORIZED'
+    authorize: (session: SessionMaybeUser) => UserRequieredOut extends 'USER_REQUIERED_FOR_AUTHORIZED'
     ? (AuthResult<'HAS_USER', true, PrismaWhereFilter> | AuthResult<'HAS_USER' | 'NO_USER', false, undefined>)
     : (AuthResult<'HAS_USER' | 'NO_USER', true, PrismaWhereFilter> | AuthResult<'HAS_USER' | 'NO_USER', false, undefined>)
 }
@@ -73,7 +73,7 @@ export function AuthorizerFactory<
             {
                 dynamicFields: (dynamicFields) => (
                     {
-                        auth: (session) => {
+                        authorize: (session) => {
                             const results = authCheck({
                                 session, staticFields, dynamicFields
                             })

@@ -15,8 +15,8 @@ export default async function StudyProgrammes() {
     const studyprogrammes = unwrapActionReturn(await readStudyProgrammesAction())
 
     const session = await authorizeAdminPage('study-programmes')
-    const showCreateButton = studyProgrammeAuth.create.dynamicFields({}).auth(session)
-    const canEdit = studyProgrammeAuth.update.dynamicFields({}).auth(session)
+    const showCreateButton = studyProgrammeAuth.create.authorize(session)
+    const canEdit = studyProgrammeAuth.update.authorize(session)
 
 
     return <PageWrapper

@@ -11,7 +11,7 @@ export const lockerLocationOperations = {
      * @returns The newly created locker location object.
      */
     create: defineOperation({
-        authorizer: () => lockerLocationAuth.create.dynamicFields({}),
+        authorizer: () => lockerLocationAuth.create,
         dataSchema: lockersSchemas.createLocation,
         operation: async ({ prisma, data }) => prisma.lockerLocation.create({
             data: {

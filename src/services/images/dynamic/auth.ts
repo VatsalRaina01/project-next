@@ -1,6 +1,6 @@
 import { RequireLevelFromDoubleLevelVisibility } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibility'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
 import { RequireVisibilityFilter } from '@/auth/authorizer/RequireVisibilityFilter'
+import { Require } from '@/auth/authorizer/Require'
 
 export const dynamicImageAuth = {
     readDoubleLevelMatrix:
@@ -16,7 +16,7 @@ export const dynamicImageAuth = {
         RequireVisibilityFilter.staticFields({ bypassPermission: 'IMAGE_ADMIN' }),
 
     createCollection:
-        RequirePermission.staticFields({ permission: 'IMAGE_USE' }),
+        Require.permission('IMAGE_USE'),
     destroyCollection:
         RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'IMAGE_ADMIN' }),
     updateCollection:

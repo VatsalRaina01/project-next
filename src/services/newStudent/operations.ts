@@ -5,5 +5,5 @@ import { implementSpecialArticle } from '@/cms/articles/implement'
 export const newStudentOperations = implementSpecialArticle({
     special: 'NEW_STUDENT_PAGE',
     readAuthorizer: newStudentAuth.read.dynamicFields({}),
-    updateAuthorizer: newStudentAuth.update.dynamicFields({}),
+    updateAuthorizer: newStudentAuth.update,
 })

@@ -28,23 +28,13 @@ export default async function ComitteeAdmin({ params }: PropTypes) {
     const committee = await getCommittee(params)
 
     const session = await ServerSession.fromNextAuth()
-    const canEditLogo = committeeAuth.updateLogo.dynamicFields({ groupId: committee.groupId }).auth(session)
-    const canMigrate = committeeAuth.migrateGroup.dynamicFields({
-        groupId: committee.groupId,
-    }).auth(session).authorized
-    const canAddMembers = committeeAuth.addMembers.dynamicFields({
-        groupId: committee.groupId,
-    }).auth(session).authorized
-    const canSetMemberAdmin = committeeAuth.setMemberAdmin.dynamicFields({
-        groupId: committee.groupId,
-    }).auth(session).authorized
-    const canSetMemberTitle = committeeAuth.setMemberTitle.dynamicFields({
-        groupId: committee.groupId,
-    }).auth(session).authorized
-    const canRemoveMembers = committeeAuth.removeMembers.dynamicFields({
-        groupId: committee.groupId,
-    }).auth(session).authorized
-    const canPension = committeeAuth.pension.dynamicFields({}).auth(session).authorized
+    const canEditLogo = committeeAuth.updateLogo(committee.groupId).authorize(session)
+    const canMigrate = committeeAuth.migrateGroup(committee.groupId).authorize(session).authorized
+    const canAddMembers = committeeAuth.addMembers(committee.groupId).authorize(session).authorized
+    const canSetMemberAdmin = committeeAuth.setMemberAdmin(committee.groupId).authorize(session).authorized
+    const canSetMemberTitle = committeeAuth.setMemberTitle(committee.groupId).authorize(session).authorized
+    const canRemoveMembers = committeeAuth.removeMembers(committee.groupId).authorize(session).authorized
+    const canPension = committeeAuth.pension.authorize(session).authorized
 
     // Every membership, not just the active ones of the current order: the management UI can
     // address any order the committee has memberships in.

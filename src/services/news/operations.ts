@@ -78,7 +78,7 @@ const read = defineOperation({
 export const newsOperations = {
     visibility,
     create: defineOperation({
-        authorizer: () => newsAuth.create.dynamicFields({}),
+        authorizer: () => newsAuth.create,
         dataSchema: newsSchemas.create,
         operation: async ({ prisma, data }) => {
             const { name, description, endDateTime } = data

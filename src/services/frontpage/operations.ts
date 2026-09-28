@@ -28,7 +28,7 @@ export const frontpageOperations = {
     }),
 
     updateSpecialCmsParagraphContentSection: cmsParagraphOperations.updateContent.implement({
-        authorizer: () => frontpageAuth.updateSpecialCmsParagraphContentSection.dynamicFields({}),
+        authorizer: () => frontpageAuth.updateSpecialCmsParagraphContentSection,
         ownershipCheck: async ({ params }) =>
             await cmsParagraphOperations.isSpecial.internalCall({
                 params: {
@@ -44,7 +44,7 @@ export const frontpageOperations = {
     }),
 
     updateSpecialCmsImage: cmsImageOperations.update.implement({
-        authorizer: () => frontpageAuth.updateSpecialCmsImage.dynamicFields({}),
+        authorizer: () => frontpageAuth.updateSpecialCmsImage,
         ownershipCheck: async ({ params }) =>
             await cmsImageOperations.isSpecial.internalCall({
                 params: {

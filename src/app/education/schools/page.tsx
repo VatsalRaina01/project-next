@@ -11,7 +11,7 @@ import type { PageSizeSchool } from '@/contexts/paging/SchoolPaging'
 
 export default async function Schools() {
     const session = await ServerSession.fromNextAuth()
-    const isSchoolAdmin = schoolAuth.create.dynamicFields({}).auth(session).authorized
+    const isSchoolAdmin = schoolAuth.create.authorize(session).authorized
 
     const pageSizeSchool: PageSizeSchool = 8
     const res = await readExpandedSchoolsPageAction({

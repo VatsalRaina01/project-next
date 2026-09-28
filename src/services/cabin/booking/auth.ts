@@ -1,43 +1,24 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequirePermissionAndUserId } from '@/auth/authorizer/RequirePermissionAndUserId'
 import { RequireBookingAccess } from '@/auth/authorizer/RequireBookingAccess'
+import { Require } from '@/auth/authorizer/Require'
 
 export const cabinBookingAuth = {
-    createCabinBookingUserAttached: RequirePermissionAndUserId.staticFields({
-        permission: 'CABIN_USE'
-    }),
+    createCabinBookingUserAttached: (userId: number) => Require.userId(userId).permission('CABIN_USE'),
 
-    createCabinBookingNoUser: RequirePermission.staticFields({
-        permission: 'CABIN_USE'
-    }),
+    createCabinBookingNoUser: Require.permission('CABIN_USE'),
 
-    createBedBookingUserAttached: RequirePermissionAndUserId.staticFields({
-        permission: 'CABIN_USE'
-    }),
+    createBedBookingUserAttached: (userId: number) => Require.userId(userId).permission('CABIN_USE'),
 
-    createBedBookingNoUser: RequirePermission.staticFields({
-        permission: 'CABIN_USE'
-    }),
+    createBedBookingNoUser: Require.permission('CABIN_USE'),
 
-    readAvailability: RequirePermission.staticFields({
-        permission: 'CABIN_USE'
-    }),
+    readAvailability: Require.permission('CABIN_USE'),
 
-    readMany: RequirePermission.staticFields({
-        permission: 'CABIN_ADMIN'
-    }),
+    readMany: Require.permission('CABIN_ADMIN'),
 
-    read: RequirePermission.staticFields({
-        permission: 'CABIN_ADMIN'
-    }),
+    read: Require.permission('CABIN_ADMIN'),
 
-    readSpecialCmsParagraphCabinContract: RequirePermission.staticFields({
-        permission: 'CABIN_USE'
-    }),
+    readSpecialCmsParagraphCabinContract: Require.permission('CABIN_USE'),
 
-    updateSpecialCmsParagraphContentCabinContract: RequirePermission.staticFields({
-        permission: 'CABIN_ADMIN'
-    }),
+    updateSpecialCmsParagraphContentCabinContract: Require.permission('CABIN_ADMIN'),
 
     // Domain access only: may this session pay for *this* booking - owns it (session, or the
     // matching secret for a guest booking with no session to check ownership against) or holds

@@ -1,10 +1,10 @@
 import { RequireLevelFromDoubleLevelVisibility } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibility'
 import { RequireLevelFromDoubleLevelVisibilityDynamic } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibilityDynamic'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
 import { RequireVisibilityFilter } from '@/auth/authorizer/RequireVisibilityFilter'
+import { Require } from '@/auth/authorizer/Require'
 
 export const newsAuth = {
-    create: RequirePermission.staticFields({ permission: 'NEWS_USE' }),
+    create: Require.permission('NEWS_USE'),
 
     readDoubleLevelMatrix:
         RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'REGULAR', bypassPermission: 'NEWS_ADMIN' }),

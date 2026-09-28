@@ -1,25 +1,23 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequireUser } from '@/auth/authorizer/RequireUser'
-import { RequireUserFieldOrPermission } from '@/auth/authorizer/RequireUserFieldOrPermission'
-import { RequireUserId } from '@/auth/authorizer/RequireUserId'
-import { RequireUserIdOrPermission } from '@/auth/authorizer/RequireUserIdOrPermission'
-import { RequireUsernameOrPermission } from '@/auth/authorizer/RequireUsernameOrPermission'
+import { Require } from '@/auth/authorizer/Require'
 
-export const profileImagesImagePanelAuth = RequirePermission.staticFields({ permission: 'USERS_ADMIN' })
+export const profileImagesImagePanelAuth = Require.permission('USERS_ADMIN')
+
+type UserFieldMatch = { username?: string, id?: number, email?: string }
 
 export const userAuth = {
-    readProfile: RequireUsernameOrPermission.staticFields({ permission: 'USERS_USE' }),
-    read: RequireUserFieldOrPermission.staticFields({ permission: 'USERS_USE' }),
-    readOrNull: RequireUserFieldOrPermission.staticFields({ permission: 'USERS_USE' }),
-    readPage: RequirePermission.staticFields({ permission: 'USERS_USE' }),
-    search: RequirePermission.staticFields({ permission: 'USERS_USE' }),
-    create: RequirePermission.staticFields({ permission: 'USERS_ADMIN' }),
-    connectStudentCard: RequireUser.staticFields({}),
-    registerNewEmail: RequireUserIdOrPermission.staticFields({ permission: 'USERS_ADMIN' }),
-    updatePassword: RequireUserIdOrPermission.staticFields({ permission: 'USERS_ADMIN' }),
-    update: RequirePermission.staticFields({ permission: 'USERS_ADMIN' }),
-    updateProfile: RequireUsernameOrPermission.staticFields({ permission: 'USERS_ADMIN' }),
-    updateProfileImage: RequireUsernameOrPermission.staticFields({ permission: 'USERS_ADMIN' }),
-    register: RequireUserId.staticFields({}),
-    destroy: RequirePermission.staticFields({ permission: 'USERS_ADMIN' }),
+    readProfile: (username: string) => Require.anyOf(Require.permission('USERS_USE'), Require.userField({ username })),
+    read: (fields: UserFieldMatch) => Require.anyOf(Require.permission('USERS_USE'), Require.userField(fields)),
+    readOrNull: (fields: UserFieldMatch) => Require.anyOf(Require.permission('USERS_USE'), Require.userField(fields)),
+    readPage: Require.permission('USERS_USE'),
+    search: Require.permission('USERS_USE'),
+    create: Require.permission('USERS_ADMIN'),
+    connectStudentCard: Require.user(),
+    registerNewEmail: (userId: number) => Require.anyOf(Require.permission('USERS_ADMIN'), Require.userId(userId)),
+    updatePassword: (userId: number) => Require.anyOf(Require.permission('USERS_ADMIN'), Require.userId(userId)),
+    update: Require.permission('USERS_ADMIN'),
+    updateProfile: (username: string) => Require.anyOf(Require.permission('USERS_ADMIN'), Require.userField({ username })),
+    updateProfileImage: (username: string) =>
+        Require.anyOf(Require.permission('USERS_ADMIN'), Require.userField({ username })),
+    register: (userId: number) => Require.userId(userId),
+    destroy: Require.permission('USERS_ADMIN'),
 } as const

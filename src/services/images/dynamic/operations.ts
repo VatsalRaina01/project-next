@@ -108,7 +108,7 @@ export const dynamicImageOperations = {
 
     createCollection: defineOperation({
         dataSchema: dynamicImageSchemas.createCollection,
-        authorizer: () => dynamicImageAuth.createCollection.dynamicFields({}),
+        authorizer: () => dynamicImageAuth.createCollection,
         opensTransaction: true,
         operation: async ({ prisma, data }) => prisma.$transaction(async tx => {
             const visibilityRegular = await visibilityOperations.create.internalCall({ prisma: tx })
