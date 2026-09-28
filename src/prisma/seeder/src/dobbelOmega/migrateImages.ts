@@ -189,6 +189,17 @@ export default async function migrateImages(
             })
 
             migrateImageIdMap.push({ owId: image.id, pnId: pnImage.id })
+        } catch (error) {
+            // One bad file must not take the whole import with it. These run inside a
+            // Promise.all over every image on the old site, so an uncaught rejection here
+            // aborts DobbelOmega entirely - hours in, with the database already reset.
+            // Omegaweb-basic holds files whose bytes do not match their extension at all,
+            // which sharp only discovers once it tries to decode them, so this is a
+            // certainty on the real dataset rather than a defensive flourish.
+            logger.error(
+                `Failed to migrate image ${image.originalName} (owId ${image.id}), skipping: `
+                + `${error instanceof Error ? error.message : String(error)}`
+            )
         } finally {
             bar.increment()
         }
