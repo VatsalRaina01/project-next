@@ -1,5 +1,6 @@
 import { calculateCreditFees, calculateDebitFees } from './calculateFees'
 import { determineTransactionState } from './determineTransactionState'
+import { runPaymentCompletionHook } from './paymentCompletionHooks'
 import { ledgerTransactionAuth } from './auth'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { resolveAccountOwnership, resolveAccountsOwnership } from '@/services/ledger/accounts/ownership'
@@ -196,7 +197,7 @@ export const ledgerTransactionOperations = {
 
             // We use `updateMany` in stead of just `update` here because
             // we don't want to throw in case the record is not found.
-            await prisma.ledgerTransaction.updateMany({
+            const { count } = await prisma.ledgerTransaction.updateMany({
                 where: {
                     id: params.id,
                     state: 'PENDING', // Protect against changing final state.
@@ -208,6 +209,14 @@ export const ledgerTransactionOperations = {
                 params: { id: params.id },
                 bypassAuth: true,
             })
+
+            // count > 0 means this call is the one that actually performed the PENDING ->
+            // SUCCEEDED transition (updateMany matches 0 rows once it's already terminal), so
+            // the hook fires exactly once no matter how many times/where advance is called from
+            // (synchronously from create, or later from the Stripe webhook).
+            if (count > 0 && transaction.state === 'SUCCEEDED') {
+                await runPaymentCompletionHook(transaction, { prisma })
+            }
 
             return transaction
         }

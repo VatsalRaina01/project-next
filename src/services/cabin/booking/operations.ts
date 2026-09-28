@@ -8,8 +8,6 @@ import { cabinProductPriceIncluder } from '@/services/cabin/product/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { Smorekopp, ServerError } from '@/services/error'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
-import { sendSystemMail } from '@/lib/email/send'
-import { notificationOperations } from '@/services/notifications/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
@@ -21,12 +19,6 @@ import type { CabinProductExtended } from '@/services/cabin/product/constants'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import logger from '@/lib/logger'
-
-const mailData = {
-    title: 'Bekreftelse på hyttebooking',
-    message: `Takk for din hyttebooking.
-Dette skal være en bookingbekreftelse, så det bør nok komme noe nyttig info her snart.`,
-}
 
 const cabinAvailable = defineSubOperation({
     paramsSchema: () => z.object({
@@ -171,30 +163,6 @@ const create = defineSubOperation({
         })
     }
 })
-
-// Sent once payment succeeds, not at reservation time - a reservation may still expire unpaid.
-async function sendBookingConfirmation(booking: { userId: number | null, guestUser: { email: string } | null }) {
-    if (booking.userId !== null) {
-        await notificationOperations.createSpecial.internalCall({
-            params: {
-                special: 'CABIN_BOOKING_CONFIRMATION',
-            },
-            data: {
-                ...mailData,
-                userIdList: [booking.userId],
-            },
-        })
-        return
-    }
-
-    if (booking.guestUser) {
-        await sendSystemMail(
-            booking.guestUser.email,
-            mailData.title,
-            mailData.message
-        )
-    }
-}
 
 const createBookingWithUser = defineSubOperation({
     paramsSchema: () => z.object({
@@ -540,18 +508,11 @@ export const cabinBookingOperations = {
                 })
             }
 
-            if (transaction.state === 'SUCCEEDED') {
-                // Clears the reservation window so the booking blocks the calendar
-                // unconditionally, and sends the confirmation. Only reached synchronously here
-                // for MANUAL/balance-only payments - a STRIPE payment resolves later via the
-                // webhook (stripeWebhookCallback -> ledgerTransactionOperations.advance), which
-                // has no domain-specific hook (yet) to clear this or send this confirmation.
-                await prisma.booking.update({
-                    where: { id: booking.id },
-                    data: { transactionTimeout: null },
-                })
-                await sendBookingConfirmation(booking)
-            }
+            // Clearing the reservation window and sending the confirmation once the transaction
+            // actually reaches SUCCEEDED is handled by cabinBookingPaymentCompletionHook (see
+            // ledger/transactions/paymentCompletionHooks.ts), dispatched from
+            // ledgerTransactionOperations.advance - called synchronously above via .create() for
+            // MANUAL/balance-only payments, or later from the Stripe webhook for STRIPE ones.
 
             return { payment }
         },
