@@ -1,11 +1,12 @@
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
-// The first few companies get a sponsor tier so the ordering of the career listings - and the
-// badges that explain it - are visible in development without having to promote anyone by hand.
-const SPONSOR_TIER_BY_INDEX = {
-    0: 'MAIN',
-    1: 'SPONSOR',
-    2: 'SPONSOR',
+// The first few companies get a sponsor tier and a website so the ordering of the career listings,
+// the badges that explain it, and the footer's sponsor strip are all visible in development without
+// having to promote anyone by hand.
+const SPONSORS_BY_INDEX = {
+    0: { sponsorTier: 'MAIN', website: 'https://www.nordicsemi.com' },
+    1: { sponsorTier: 'SPONSOR', website: 'https://www.kongsberg.com' },
+    2: { sponsorTier: 'SPONSOR', website: null },
 } as const
 
 export default async function seedDevCompanies(prisma: PrismaClient) {
@@ -13,7 +14,7 @@ export default async function seedDevCompanies(prisma: PrismaClient) {
         data: {
             name: `Company ${index + 1}`,
             description: `Company ${index + 1} description`,
-            sponsorTier: SPONSOR_TIER_BY_INDEX[index as keyof typeof SPONSOR_TIER_BY_INDEX] ?? 'NONE',
+            ...(SPONSORS_BY_INDEX[index as keyof typeof SPONSORS_BY_INDEX] ?? { sponsorTier: 'NONE' }),
             logo: {
                 create: {
                     name: `Company ${index + 1} logo`,
