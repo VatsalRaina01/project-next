@@ -9,9 +9,13 @@ import { ServerSession } from '@/auth/session/ServerSession'
 import TextInput from '@/components/UI/TextInput'
 
 export default async function SchoolsAdmin() {
-    schoolAuth.create.dynamicFields({}).auth(
-        await ServerSession.fromNextAuth()
-    ).redirectOnUnauthorized({ returnUrl: '/admin/schools' })
+    const session = await ServerSession.fromNextAuth()
+
+    // Both lists below are SCHOOLS_READ reads; SCHOOLS_ADMIN is what the create form in the
+    // header needs, and that is now gated on its own rather than by turning the page away.
+    schoolAuth.read.dynamicFields({}).auth(session)
+        .redirectOnUnauthorized({ returnUrl: '/admin/schools' })
+    const canCreate = schoolAuth.create.dynamicFields({}).auth(session).authorized
 
     const standardSchoolsRes = await readStandardSchoolsAction()
     if (!standardSchoolsRes.success) {
@@ -25,7 +29,7 @@ export default async function SchoolsAdmin() {
 
     return (
         <PageWrapper title="Skoler" headerItem={
-            <AddHeaderItemPopUp popUpKey="CreateSchool">
+            canCreate && <AddHeaderItemPopUp popUpKey="CreateSchool">
                 <Form
                     action={createSchoolAction}
                     refreshOnSuccess

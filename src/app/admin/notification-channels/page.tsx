@@ -47,9 +47,14 @@ function orderByHierarchy(channels: ExpandedNotificationChannel[]): ChannelRow[]
 }
 
 export default async function NotificationChannels() {
-    notificationChannelAuth.create.dynamicFields({}).auth(
-        await ServerSession.fromNextAuth()
-    ).redirectOnUnauthorized({ returnUrl: '/admin/notification-channels' })
+    const session = await ServerSession.fromNextAuth()
+
+    // readMany is what the listing below needs. Gating the page on create locked out the
+    // users who may edit a channel but not add one, and they have no other way in - the
+    // per-channel pages are only reachable from this table.
+    notificationChannelAuth.readMany.dynamicFields({}).auth(session)
+        .redirectOnUnauthorized({ returnUrl: '/admin/notification-channels' })
+    const canCreate = notificationChannelAuth.create.dynamicFields({}).auth(session).authorized
 
     const channels = unwrapActionReturn(await readNotificationChannelsAction())
     const rows = orderByHierarchy(channels)
@@ -57,7 +62,7 @@ export default async function NotificationChannels() {
     return <PageWrapper
         title="Varslingskanaler"
         headerItem={
-            <AddHeaderItemPopUp popUpKey="createNewsPop">
+            canCreate && <AddHeaderItemPopUp popUpKey="createNewsPop">
                 <AddNotificationChannel channels={channels}/>
             </AddHeaderItemPopUp>
         }

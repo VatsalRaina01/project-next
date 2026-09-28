@@ -10,7 +10,11 @@ import { notFound } from 'next/navigation'
  * A page that displays memberships in all groups for admins
  */
 export default async function GroupsAdmin() {
-    groupAuth.admin.dynamicFields({}).auth(
+    // GROUP_READ, which is what readGroupsStructuredAction below requires - GROUP_ADMIN
+    // turned away everyone the listing was written for. Nothing here mutates: GroupSelector
+    // only links onwards, and the membership editing on the other side of that link goes
+    // through groupAuth.manageMembership, which also lets a group's own leader through.
+    groupAuth.read.dynamicFields({}).auth(
         await ServerSession.fromNextAuth()
     ).redirectOnUnauthorized({ returnUrl: '/admin/groups' })
 

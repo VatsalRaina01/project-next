@@ -127,6 +127,10 @@ export default function RegistrationsList({
 }) {
     const isAdmin = useAuthorizer({ authorizer: eventRegistrationAuth.readManyDetailed.dynamicFields({}) })
         .authorized
+    // Paired with isAdmin everywhere it is read, not only on the slider below: a session that
+    // loses EVENT_REGISTRATION_READ mid-visit hides the toggle but leaves detailedView true,
+    // and the paging provider still holds the rows it fetched - so the detailed table would
+    // go on showing names, e-mails, allergies and notes it is no longer allowed to.
     const [detailedView, setDetailedView] = useState(false)
 
     return <>
@@ -137,7 +141,7 @@ export default function RegistrationsList({
             onChange={e => setDetailedView(e.target.checked)}
             checked={detailedView}
         />}
-        {detailedView ? <DetailedTable
+        {isAdmin && detailedView ? <DetailedTable
             event={event}
             type={REGISTRATION_READER_TYPE.REGISTRATIONS}
         /> : <DefaultList
@@ -147,7 +151,7 @@ export default function RegistrationsList({
 
         {event.waitingList && <>
             <h4>Venteliste</h4>
-            {detailedView ? <DetailedTable
+            {isAdmin && detailedView ? <DetailedTable
                 event={event}
                 type={REGISTRATION_READER_TYPE.WAITING_LIST}
             /> : <DefaultList

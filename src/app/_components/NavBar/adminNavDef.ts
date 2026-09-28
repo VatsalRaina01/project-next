@@ -41,16 +41,29 @@ import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
 import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 
+/**
+ * An all-of requirement, for a page that is unusable without every one of these - typically
+ * one that reads several services up front and errors outright if any single read is refused.
+ * Plain lists are any-of, so such a page cannot be expressed as one.
+ */
+type AllOfAuthorizers = { all: AuthorizerDynamicFieldsBound[] }
+
+function requireAll(authorizers: AuthorizerDynamicFieldsBound[]): AllOfAuthorizers {
+    return { all: authorizers }
+}
+
 type AdminLink = {
     title: string
     href: string
     /**
      * The permission(s) required to actually use this admin page - i.e. whether it's worth
-     * showing the link at all. When it's a list, the link is visible if ANY of them authorize.
+     * showing the link at all. When it's a list, the link is visible if ANY of them authorize;
+     * wrap the list in `requireAll` when the page needs every one of them instead.
      * `undefined` means the page has no backing permission yet (e.g. it's a stub/placeholder),
-     * so the link is always shown.
+     * so the link is always shown - to anyone already in the admin area. Such a link never
+     * counts towards hasAnyAdminAccess, which is what decides who gets there in the first place.
      */
-    requiredAuthorizer?: AuthorizerDynamicFieldsBound | AuthorizerDynamicFieldsBound[]
+    requiredAuthorizer?: AuthorizerDynamicFieldsBound | AuthorizerDynamicFieldsBound[] | AllOfAuthorizers
 }
 
 /**
@@ -137,7 +150,10 @@ export const adminNavigations = [
             {
                 title: 'Studieprogrammer',
                 href: '/admin/study-programmes',
-                requiredAuthorizer: studyProgrammeAuth.create.dynamicFields({}),
+                requiredAuthorizer: [
+                    studyProgrammeAuth.create.dynamicFields({}),
+                    studyProgrammeAuth.update.dynamicFields({}),
+                ],
             }
         ],
     },
@@ -178,16 +194,23 @@ export const adminNavigations = [
             {
                 title: 'Varslingkanaler',
                 href: '/admin/notification-channels',
-                requiredAuthorizer: notificationChannelAuth.create.dynamicFields({}),
+                requiredAuthorizer: [
+                    notificationChannelAuth.create.dynamicFields({}),
+                    notificationChannelAuth.update.dynamicFields({}),
+                ],
             },
             {
                 title: 'Mailing lister',
                 href: '/admin/mail',
-                requiredAuthorizer: [
-                    mailAliasAuth.create.dynamicFields({}),
-                    mailingListAuth.create.dynamicFields({}),
-                    mailAddressExternalAuth.create.dynamicFields({}),
-                ],
+                // The three reads, all of them, rather than the three creates, any of them.
+                // /admin/mail makes all three reads up front and unwraps each, so one refused
+                // read redirects the whole page to the error page - while the creates it does
+                // hold are each already gated on their own inside the page.
+                requiredAuthorizer: requireAll([
+                    mailAliasAuth.readMany.dynamicFields({}),
+                    mailingListAuth.readMany.dynamicFields({}),
+                    mailAddressExternalAuth.readMany.dynamicFields({}),
+                ]),
             },
             {
                 title: 'Send e-post',
@@ -317,8 +340,13 @@ export const adminNavigations = [
 
 function linkIsAuthorized(link: AdminLink, session: SessionMaybeUser): boolean {
     if (!link.requiredAuthorizer) return true
-    const authorizers = Array.isArray(link.requiredAuthorizer) ? link.requiredAuthorizer : [link.requiredAuthorizer]
-    return authorizers.some(authorizer => authorizer.auth(session).authorized)
+    if (Array.isArray(link.requiredAuthorizer)) {
+        return link.requiredAuthorizer.some(authorizer => authorizer.auth(session).authorized)
+    }
+    if ('all' in link.requiredAuthorizer) {
+        return link.requiredAuthorizer.all.every(authorizer => authorizer.auth(session).authorized)
+    }
+    return link.requiredAuthorizer.auth(session).authorized
 }
 
 export function adminLinksAuthorizedFor(session: SessionMaybeUser) {
@@ -333,7 +361,13 @@ export function adminLinksAuthorizedFor(session: SessionMaybeUser) {
 /**
  * Whether the user has access to at least one admin page - i.e. whether it's worth showing an
  * "Admin" entry point in the site-wide nav at all.
+ *
+ * Only links that gate on something are asked. A link without a requiredAuthorizer authorizes
+ * everyone by definition, so letting those answer this would hand an admin entry point to every
+ * anonymous visitor on the strength of a placeholder page.
  */
 export function hasAnyAdminAccess(session: SessionMaybeUser): boolean {
-    return adminNavigations.some(navigation => navigation.links.some(link => linkIsAuthorized(link, session)))
+    return adminNavigations.some(navigation => navigation.links.some(
+        link => Boolean(link.requiredAuthorizer) && linkIsAuthorized(link, session)
+    ))
 }

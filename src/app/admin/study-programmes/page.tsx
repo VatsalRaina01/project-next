@@ -14,7 +14,11 @@ import { ServerSession } from '@/auth/session/ServerSession'
 export default async function StudyProgrammes() {
     const session = await ServerSession.fromNextAuth()
     const showCreateButton = studyProgrammeAuth.create.dynamicFields({}).auth(session)
-    showCreateButton.redirectOnUnauthorized({ returnUrl: '/admin/study-programmes' })
+    // Read, not create. Redirecting on the create check made the conditional header item
+    // and the canEdit column below unreachable: the only sessions that got this far were
+    // the ones that would have been shown everything anyway.
+    studyProgrammeAuth.read.dynamicFields({}).auth(session)
+        .redirectOnUnauthorized({ returnUrl: '/admin/study-programmes' })
     const canEdit = studyProgrammeAuth.update.dynamicFields({}).auth(session)
 
     const studyprogrammes = unwrapActionReturn(await readStudyProgrammesAction())
