@@ -1,10 +1,14 @@
 model Shop {
-  id          Int           @id @default(autoincrement())
-  name        String        @unique
-  description String?
-  createdAt   DateTime      @default(now())
-  purchase    Purchase[]
-  ShopProduct ShopProduct[]
+  id              Int            @id @default(autoincrement())
+  name            String         @unique
+  description     String?
+  createdAt       DateTime       @default(now())
+  purchase        Purchase[]
+  ShopProduct     ShopProduct[]
+  // Ledger account credited when a purchase is made in this shop. Purchases fail with a
+  // clear error until an admin configures this.
+  ledgerAccount   LedgerAccount? @relation(fields: [ledgerAccountId], references: [id])
+  ledgerAccountId Int?           @unique
 }
 
 model Product {
@@ -37,13 +41,13 @@ enum PurchaseMethod {
 }
 
 model Purchase {
-  id              Int               @id @default(autoincrement())
-  timestamp       DateTime          @default(now())
-  method          PurchaseMethod
-  shop            Shop              @relation(fields: [shopId], references: [id])
-  shopId          Int
-  // transaction Transaction @relation(field: [acountId], references: [id])
-  PurchaseProduct PurchaseProduct[]
+  id                 Int                 @id @default(autoincrement())
+  timestamp          DateTime            @default(now())
+  method             PurchaseMethod
+  shop               Shop                @relation(fields: [shopId], references: [id])
+  shopId             Int
+  PurchaseProduct    PurchaseProduct[]
+  ledgerTransactions LedgerTransaction[]
 }
 
 model PurchaseProduct {

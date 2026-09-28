@@ -10,12 +10,14 @@ import { notificationOperations } from '@/services/notifications/operations'
 import { sendSystemMail } from '@/lib/email/send'
 import { userFilterSelection } from '@/services/users/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
-import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { paymentOperations } from '@/services/ledger/payments/operations'
+import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
+import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { DotPunishment, EventRegistrationExpanded } from './types'
 
 /**
@@ -353,24 +355,142 @@ export const eventRegistrationOperations = {
         }
     }),
 
+    /**
+     * Pays for a registration created separately via `create`/`createGuest`. Never creates a
+     * registration itself. Supports paying part of the price from the payer's own ledger
+     * balance (`amountFromBalance`) and the rest (`shortfall`) via `provider`; `provider` is
+     * only required when the balance doesn't cover the full price.
+     */
     createPayment: defineOperation({
         paramsSchema: z.object({
             userId: z.number().min(0),
             eventId: z.number().min(0),
-            provider: z.nativeEnum(PaymentProvider),
+            provider: z.nativeEnum(PaymentProvider).optional(),
+            amountFromBalance: z.coerce.number().nonnegative().default(0),
             manualFees: z.coerce.number().nonnegative().default(0),
             description: z.string().optional(),
         }),
-        authorizer: ({ params }) => andAuthorizers(
-            eventRegistrationAuth.create.dynamicFields({ userId: params.userId }),
-            RequirePermission.staticFields({ permission: 'LEDGER_USE' }).dynamicFields({}),
-        ),
-        operation: async (): Promise<{ payment: ExpandedPayment | null }> => {
-            // TODO: Pays for a registration created separately via eventRegistrationOperations.create.
-            // Mirror ledgerMovementOperations.createDeposit: paymentOperations.create, then
-            // ledgerTransactionOperations.create({ purpose: 'EVENT_PAYMENT' }) crediting the
-            // event's committee account, then paymentOperations.initiate for STRIPE.
-            throw new Smorekopp('NOT IMPLEMENTED', 'Betaling for arrangementer er ikke implementert ennå.')
+        authorizer: ({ params }) => eventRegistrationAuth.createPayment(params.provider, params.userId),
+        opensTransaction: true,
+        operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
+            const registration = await prisma.eventRegistration.findUnique({
+                where: {
+                    eventId_userId: {
+                        eventId: params.eventId,
+                        userId: params.userId,
+                    },
+                },
+                include: {
+                    event: {
+                        include: {
+                            hostedByCommitee: true,
+                        },
+                    },
+                },
+            })
+
+            if (!registration) {
+                throw new Smorekopp('NOT FOUND', 'Fant ingen påmelding å betale for.')
+            }
+
+            const { event } = registration
+
+            if (!event.price) {
+                throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet krever ikke betaling.')
+            }
+
+            const now = new Date()
+            if (!event.paymentStart || !event.paymentEnd || now < event.paymentStart || now > event.paymentEnd) {
+                throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
+            }
+
+            const existingAttempt = await prisma.ledgerTransaction.findFirst({
+                where: {
+                    eventRegistrationId: registration.id,
+                    state: { in: ['PENDING', 'SUCCEEDED'] },
+                },
+            })
+            if (existingAttempt) {
+                throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt eller under betaling.')
+            }
+
+            if (!event.hostedByCommitee) {
+                throw new Smorekopp('SERVER ERROR', 'Arrangementet har ingen tilknyttet komité å betale til.')
+            }
+
+            // Crediting the destination account needs no ownership over it, only reading it -
+            // bypassed since the payer (our caller) is neither its owner nor LEDGER_ADMIN.
+            const [destinationAccount] = await ledgerAccountOperations.readMany({
+                params: { groupIds: [event.hostedByCommitee.groupId] },
+                bypassAuth: true,
+            })
+            if (!destinationAccount) {
+                throw new Smorekopp('SERVER ERROR', 'Komiteen som arrangerer har ingen tilknyttet konto.')
+            }
+
+            const funds = event.price
+            if (params.amountFromBalance > funds) {
+                throw new Smorekopp('BAD PARAMETERS', 'Beløpet fra kontosaldo kan ikke overstige prisen.')
+            }
+            const shortfall = funds - params.amountFromBalance
+
+            if (shortfall > 0 && !params.provider) {
+                throw new Smorekopp('BAD PARAMETERS', 'Betalingsmetode må oppgis.')
+            }
+
+            const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
+                let paymentId: number | undefined
+
+                if (shortfall > 0) {
+                    const payment = await paymentOperations.create({
+                        params: {
+                            provider: params.provider!,
+                            funds: shortfall,
+                            manualFees: params.manualFees,
+                            descriptionLong: `Betaling for påmelding til ${event.name}`,
+                            descriptionShort: 'Arrangement',
+                        },
+                        prisma: tx,
+                    })
+                    paymentId = payment.id
+                }
+
+                // Outer authorizer (eventRegistrationAuth.createPayment) already covers
+                // whether this caller may pay for params.userId's registration, which
+                // readOrCreate's own ownership check would otherwise re-reject an admin for.
+                const payerAccount = params.amountFromBalance > 0
+                    ? await ledgerAccountOperations.readOrCreate({
+                        params: { userId: params.userId },
+                        bypassAuth: true,
+                        prisma: tx,
+                    })
+                    : undefined
+
+                return await ledgerTransactionOperations.create({
+                    params: {
+                        purpose: 'EVENT_PAYMENT',
+                        ledgerEntries: [
+                            { ledgerAccountId: destinationAccount.id, funds },
+                            ...(payerAccount
+                                ? [{ ledgerAccountId: payerAccount.id, funds: -params.amountFromBalance }]
+                                : []),
+                        ],
+                        paymentId,
+                        eventRegistrationId: registration.id,
+                        description: params.provider === 'MANUAL' ? params.description : undefined,
+                    },
+                    prisma: tx,
+                })
+            })
+
+            let payment = transaction.payment
+            if (payment?.state === 'PENDING') {
+                payment = await paymentOperations.initiate({
+                    params: { paymentId: payment.id },
+                })
+            }
+
+            return { payment }
         },
     }),
 }

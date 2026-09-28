@@ -35,15 +35,17 @@ export default function EventPaymentModal({
         availablePaymentMethods={availablePaymentMethods ?? ['STRIPE', 'MANUAL']}
         customerSessionClientSecret={customerSessionClientSecret}
         refreshOnSuccess
-        onSubmitAction={({ paymentMethod, manualFees, description }) => createEventRegistrationPaymentAction({
-            params: {
-                userId,
-                eventId,
-                provider: paymentMethod!,
-                manualFees: manualFees ?? 0,
-                description,
-            }
-        })}
+        onSubmitAction={({ paymentMethod, amountFromBalance, manualFees, description }) =>
+            createEventRegistrationPaymentAction({
+                params: {
+                    userId,
+                    eventId,
+                    provider: paymentMethod,
+                    amountFromBalance,
+                    manualFees: manualFees ?? 0,
+                    description,
+                }
+            })}
     >
         <p>Dette arrangementet koster {displayAmount(price)}.</p>
     </LedgerTransactionModal>

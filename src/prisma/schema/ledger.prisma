@@ -39,6 +39,8 @@ model LedgerAccount {
   payoutAccountNumber String? // For display only, only used for group accounts
 
   ledgerEntries LedgerEntry[]
+  shop          Shop?
+  cabinSettings CabinSettings?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -81,11 +83,17 @@ model LedgerTransaction {
   payment       Payment?      @relation(fields: [paymentId], references: [id])
   paymentId     Int?          @unique
 
-  // Relevant relations to other tables based un purpose
-  // purchase Purchase
+  // Relevant relations to other tables based on purpose. Not unique: a failed payment attempt
+  // can be retried, leaving a new transaction referencing the same registration/booking/purchase.
+  eventRegistration   EventRegistration? @relation(fields: [eventRegistrationId], references: [id])
+  eventRegistrationId Int?
+  booking             Booking?           @relation(fields: [bookingId], references: [id])
+  bookingId           Int?
+  purchase            Purchase?          @relation(fields: [purchaseId], references: [id])
+  purchaseId          Int?
   // deposit Deposit
   // payout Payout
-  // refund 
+  // refund
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

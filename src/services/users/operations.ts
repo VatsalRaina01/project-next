@@ -23,6 +23,7 @@ import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { permissionOperations } from '@/services/permissions/operations'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { z } from 'zod'
 import type { UserPagingReturn } from './types'
 
@@ -548,8 +549,16 @@ export const userOperations = {
                 })
             }
 
+            // bypassAuth: reading this user's own balance is already covered by userAuth.read
+            // above; ledgerAccountAuth.calculateBalance's own ownership check would otherwise
+            // reject an API-key caller (no session user) looking up someone else's balance.
+            const balance = await ledgerAccountOperations.calculateBalance({
+                params: { userId: user.id },
+                bypassAuth: true,
+            })
+
             return {
-                balance: 191900,
+                balance: balance.amount,
                 user,
             }
         }

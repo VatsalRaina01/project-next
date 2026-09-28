@@ -6,14 +6,65 @@ import RadioLarge from '@/components/UI/RadioLarge'
 import TextInput from '@/components/UI/TextInput'
 import NumberInput from '@/components/UI/NumberInput'
 import Checkbox from '@/components/UI/Checkbox'
+import Button from '@/components/UI/Button'
+import CountDown from '@/components/countDown/CountDown'
 import CabinBookingPaymentModal from '@/components/Ledger/Modals/CabinBookingPaymentModal'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from '@/services/cabin/booking/cabinPriceCalculator'
 import { useSession } from '@/auth/session/useSession'
-import { useMemo, useState } from 'react'
+import { createActionError } from '@/services/actionError'
+import {
+    createBedBookingNoUserAction,
+    createBedBookingUserAttachedAction,
+    createCabinBookingNoUserAction,
+    createCabinBookingUserAttachedAction,
+} from '@/services/cabin/actions'
+import { useEffect, useMemo, useState } from 'react'
+import type { CabinBookingReservation } from '@/components/Ledger/Modals/CabinBookingPaymentModal'
 import type { CabinProductExtended } from '@/services/cabin/product/constants'
 import type { BookingFiltered } from '@/services/cabin/booking/types'
 import type { DateRange } from './CabinCalendar'
 import type { BookingType, PricePeriod } from '@/prisma-generated-pn-types'
+import type { ActionReturn } from '@/services/actionTypes'
+
+// Persists a reservation across page refreshes (e.g. mid-Stripe-confirmation), including for
+// guest bookings which have no session to resume from. Never stores anything but this booking's
+// own id/secret/price - the secret is what proves ownership without a login.
+const RESERVATION_STORAGE_KEY = 'cabinBookingReservation'
+
+function readStoredReservation(): CabinBookingReservation | null {
+    try {
+        const raw = window.localStorage.getItem(RESERVATION_STORAGE_KEY)
+        if (!raw) return null
+
+        const stored = JSON.parse(raw) as CabinBookingReservation & { expiresAt: string }
+        const expiresAt = new Date(stored.expiresAt)
+        if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+            window.localStorage.removeItem(RESERVATION_STORAGE_KEY)
+            return null
+        }
+
+        return { ...stored, expiresAt }
+    } catch {
+        return null
+    }
+}
+
+function storeReservation(reservation: CabinBookingReservation) {
+    try {
+        window.localStorage.setItem(RESERVATION_STORAGE_KEY, JSON.stringify(reservation))
+    } catch {
+        // Best-effort: if storage is unavailable the payment can still complete now, it just
+        // won't be resumable after a refresh.
+    }
+}
+
+function clearStoredReservation() {
+    try {
+        window.localStorage.removeItem(RESERVATION_STORAGE_KEY)
+    } catch {
+        // Ignore.
+    }
+}
 
 export default function StateWrapper({
     cabinAvailability,
@@ -58,7 +109,21 @@ export default function StateWrapper({
     const [email, setEmail] = useState('')
     const [mobile, setMobile] = useState('')
 
+    // checked stays false until the effect below runs, so we don't briefly flash the booking
+    // form before knowing (from localStorage, unavailable during SSR) whether a pending
+    // reservation should be resumed instead.
+    const [reservationState, setReservationState] = useState<{
+        checked: boolean,
+        reservation: CabinBookingReservation | null,
+    }>({ checked: false, reservation: null })
+
     const session = useSession()
+
+    useEffect(() => {
+        // Syncs React state with localStorage, which cannot be read during render/SSR.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setReservationState({ checked: true, reservation: readStoredReservation() })
+    }, [])
 
     const calendar = useMemo(() => (
         <CabinCalendar
@@ -104,20 +169,92 @@ export default function StateWrapper({
         return <>Du kan ikke booke hytta.</>
     }
 
-    if (session.loading) {
+    if (session.loading || !reservationState.checked) {
         return <>Laster session...</>
     }
+
+    const { reservation } = reservationState
 
     const canChangeBookingType = canBookCabin && canBookBed
 
     const user = session.session.user
 
-    // TODO: Thread tenantNotes, contact fields, dateRange, bookingType and products into
-    // cabinBookingOperations.createPayment once implemented.
     const contactFirstname = user?.firstname ?? firstname
     const contactLastname = user?.lastname ?? lastname
     const contactEmail = user?.email ?? email
     const contactMobile = user?.mobile ?? mobile
+
+    const startOver = () => {
+        clearStoredReservation()
+        setReservationState({ checked: true, reservation: null })
+    }
+
+    // Reserves the booking (first step of the reserve-then-pay flow) right before payment is
+    // submitted. cabinBookingOperations.createPayment (called next, inside
+    // CabinBookingPaymentModal) never creates a booking itself - it only pays for one created
+    // here.
+    const getReservation = async (): Promise<ActionReturn<CabinBookingReservation>> => {
+        if (!dateRange.start || !dateRange.end) {
+            return createActionError('BAD PARAMETERS', 'Velg en periode.')
+        }
+
+        const bookingProducts = bookingType === 'BED'
+            ? bedProducts
+                .map((product, index) => ({ cabinProductId: product.id, quantity: bedAmounts[index] }))
+                .filter(product => product.quantity > 0)
+            : [{ cabinProductId: cabinProduct.id, quantity: 1 }]
+
+        const baseData = {
+            start: dateRange.start,
+            end: dateRange.end,
+            tenantNotes,
+            // Only reachable once the required "acceptedTerms" checkbox below has actually been
+            // checked - the browser's own HTML5 validation blocks submission otherwise, the same
+            // way LedgerTransactionModal's "iUseThisWithCare" checkbox already works elsewhere.
+            acceptedTerms: true,
+        }
+
+        const bookingResult = user
+            ? await (bookingType === 'CABIN' ? createCabinBookingUserAttachedAction : createBedBookingUserAttachedAction)(
+                { params: { userId: user.id, bookingProducts } },
+                { data: { ...baseData, numberOfMembers, numberOfNonMembers } },
+            )
+            : await (bookingType === 'CABIN' ? createCabinBookingNoUserAction : createBedBookingNoUserAction)(
+                { params: { bookingProducts } },
+                { data: { ...baseData, firstname, lastname, email, mobile } },
+            )
+        if (!bookingResult.success) return bookingResult
+
+        return {
+            success: true,
+            data: {
+                bookingId: bookingResult.data.id,
+                secret: bookingResult.data.secret,
+                totalPrice: bookingResult.data.totalPrice,
+                expiresAt: bookingResult.data.transactionTimeout!,
+            },
+        }
+    }
+
+    if (reservation) {
+        return <>
+            <p>
+                Du har en reservasjon som venter på betaling. Den utløper om{' '}
+                <CountDown referenceDate={reservation.expiresAt} />.
+            </p>
+            <CabinBookingPaymentModal
+                funds={reservation.totalPrice}
+                availablePaymentMethods={user ? ['STRIPE', 'MANUAL'] : ['STRIPE']}
+                availableBalance={user ? availableBalance : undefined}
+                customerSessionClientSecret={user ? customerSessionClientSecret : undefined}
+                getReservation={async () => ({ success: true, data: reservation })}
+                triggerLabel="Fullfør betaling"
+            >
+                <p>Reservasjon #{reservation.bookingId}</p>
+            </CabinBookingPaymentModal>
+            <Button onClick={startOver} color="red">Avbryt og start på nytt</Button>
+        </>
+    }
 
     return <>
         {calendar}
@@ -187,6 +324,8 @@ export default function StateWrapper({
             availablePaymentMethods={user ? ['STRIPE', 'MANUAL'] : ['STRIPE']}
             availableBalance={user ? availableBalance : undefined}
             customerSessionClientSecret={user ? customerSessionClientSecret : undefined}
+            getReservation={getReservation}
+            onReservationCreated={storeReservation}
         >
             <TextInput
                 name="firstname"

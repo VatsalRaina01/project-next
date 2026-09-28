@@ -89,5 +89,7 @@ model EventRegistration {
   company           Boolean @default(false) // This is if a registrations has a plus one.
   extraFieldChoices Json?   @db.Json
 
+  ledgerTransactions LedgerTransaction[]
+
   @@unique([eventId, userId])
 }

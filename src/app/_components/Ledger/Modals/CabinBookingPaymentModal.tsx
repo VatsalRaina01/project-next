@@ -4,7 +4,15 @@ import LedgerTransactionModal from './LedgerTransactionModal'
 import { displayAmount } from '@/lib/currency/convert'
 import { createCabinBookingPaymentAction } from '@/services/cabin/actions'
 import type { LedgerTransactionPaymentMethod } from './LedgerTransactionModal'
+import type { ActionReturn } from '@/services/actionTypes'
 import type { ReactNode } from 'react'
+
+export type CabinBookingReservation = {
+    bookingId: number,
+    secret: string,
+    totalPrice: number,
+    expiresAt: Date,
+}
 
 type Props = {
     funds: number,
@@ -12,6 +20,12 @@ type Props = {
     availableBalance?: number,
     availablePaymentMethods?: LedgerTransactionPaymentMethod[],
     customerSessionClientSecret?: string,
+    triggerLabel?: ReactNode,
+    // Creates (or, when resuming an already-reserved booking, simply returns) the booking to pay
+    // for. Which of the create*/createBed* actions this calls - and whether one is even needed -
+    // varies per caller, so it stays a callback rather than logic owned by this component.
+    getReservation: () => Promise<ActionReturn<CabinBookingReservation>>,
+    onReservationCreated?: (reservation: CabinBookingReservation) => void,
 }
 
 export default function CabinBookingPaymentModal({
@@ -20,10 +34,13 @@ export default function CabinBookingPaymentModal({
     availableBalance,
     availablePaymentMethods,
     customerSessionClientSecret,
+    triggerLabel = 'Betal og book',
+    getReservation,
+    onReservationCreated,
 }: Props) {
     return <LedgerTransactionModal
         popUpKey="cabinBookingPaymentModal"
-        triggerLabel="Betal og book"
+        triggerLabel={triggerLabel}
         title="Betal for hyttebooking"
         submitText="Betal og book"
         funds={funds}
@@ -31,13 +48,24 @@ export default function CabinBookingPaymentModal({
         availablePaymentMethods={availablePaymentMethods ?? ['STRIPE', 'MANUAL']}
         customerSessionClientSecret={customerSessionClientSecret}
         refreshOnSuccess
-        onSubmitAction={({ paymentMethod, manualFees, description }) => createCabinBookingPaymentAction({
-            params: {
-                provider: paymentMethod!,
-                manualFees: manualFees ?? 0,
-                description,
-            }
-        })}
+        onSubmitAction={async ({ paymentMethod, amountFromBalance, manualFees, description }) => {
+            const reservationResult = await getReservation()
+            if (!reservationResult.success) return reservationResult
+
+            const reservation = reservationResult.data
+            onReservationCreated?.(reservation)
+
+            return createCabinBookingPaymentAction({
+                params: {
+                    bookingId: reservation.bookingId,
+                    secret: reservation.secret,
+                    provider: paymentMethod,
+                    amountFromBalance,
+                    manualFees: manualFees ?? 0,
+                    description,
+                }
+            })
+        }}
     >
         {children}
         <p>Totalt for oppholdet: {displayAmount(funds)}</p>

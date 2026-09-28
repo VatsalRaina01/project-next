@@ -39,7 +39,7 @@ export default function RegistrationUI({
 }: {
     event: EventExpanded,
     onWaitingList: boolean,
-    registration?: EventRegistration,
+    registration?: EventRegistration & { ledgerTransactions: { id: number }[] },
     dotPunishment: DotPunishment | null,
     availableBalance?: number,
     customerSessionClientSecret?: string,
@@ -80,7 +80,7 @@ export default function RegistrationUI({
     }
 
     const [errorText, setErrorText] = useState('')
-    const [registrationState, setRegistrationState] = useState(registration)
+    const [registrationState, setRegistrationState] = useState<EventRegistration | undefined>(registration)
 
     const [btnState, setBtnState] = useState(getInitialBtnState(onWaitingList, registration))
     const [btnPending, setBtnPending] = useState(false)
@@ -161,7 +161,11 @@ export default function RegistrationUI({
         event.paymentStart! <= now && now <= event.paymentEnd!
     const paymentNotYetOpen = Boolean(event.price && event.paymentStart) && event.paymentStart! > now
     const paymentClosed = Boolean(event.price && event.paymentEnd) && event.paymentEnd! < now
-    const showPayment = Boolean(event.price) && btnState === RegistrationButtonState.REGISTERED
+    // registration (not registrationState) is used here since it reflects payment status as of
+    // the last full page load - any payment action refreshes the page (see refreshOnSuccess on
+    // EventPaymentModal), which re-fetches this from the server.
+    const alreadyPaid = Boolean(registration?.ledgerTransactions.length)
+    const showPayment = Boolean(event.price) && btnState === RegistrationButtonState.REGISTERED && !alreadyPaid
 
     return <>
         <SubmitButton

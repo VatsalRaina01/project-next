@@ -251,6 +251,11 @@ export const ledgerTransactionOperations = {
             }).array(),
             paymentId: z.number().optional(),
             description: z.string().optional(),
+            // Traceability back to what the transaction paid for. At most one is ever set,
+            // depending on `purpose`.
+            eventRegistrationId: z.number().optional(),
+            bookingId: z.number().optional(),
+            purchaseId: z.number().optional(),
         }),
         operation: async ({ prisma, params }) => {
             // Calculate the balance for all accounts which are going to be deducted.
@@ -289,6 +294,9 @@ export const ledgerTransactionOperations = {
                     },
                     paymentId: params.paymentId,
                     description: params.description,
+                    eventRegistrationId: params.eventRegistrationId,
+                    bookingId: params.bookingId,
+                    purchaseId: params.purchaseId,
                 },
                 select: {
                     id: true,

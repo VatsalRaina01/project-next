@@ -45,7 +45,16 @@ const read = defineOperation({
                         eventRegistrations: true,
                     },
                 },
-                eventRegistrations: true,
+                eventRegistrations: {
+                    include: {
+                        // Only need to know whether a successful payment exists, to gate the
+                        // "pay for registration" UI once it's already been paid for.
+                        ledgerTransactions: {
+                            where: { state: 'SUCCEEDED' },
+                            select: { id: true },
+                        },
+                    },
+                },
             }
         })
 
