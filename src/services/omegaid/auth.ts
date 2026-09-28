@@ -1,6 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 
 export const omegaIdAuth = {
-    generate: (userId: number) => Require.userId(userId),
+    generate: Require.userId(),
     readPublicKey: Require.nothing(),
 } as const

@@ -19,7 +19,7 @@ export const ledgerAccountAuth = {
 
     // Its only caller, paymentOperations.initiate, already requires LEDGER_USE, so the account
     // creation this performs stays gated even though this authorizer alone doesn't check it.
-    readOrCreate: (userId: number) => Require.anyOf(Require.permission('LEDGER_ADMIN'), Require.userId(userId)),
+    readOrCreate: Require.anyOf(Require.permission('LEDGER_ADMIN'), Require.userId()),
 
     // Browses every account with no owner filter, so this is LEDGER_ADMIN only, not exempt.
     readPage: Require.permission('LEDGER_ADMIN'),

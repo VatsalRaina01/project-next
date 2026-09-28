@@ -128,7 +128,7 @@ export const flairOperations = {
         }
     }),
     readUserFlairs: defineOperation({
-        authorizer: ({ params }) => flairAuth.readUserFlairs(params.userId),
+        authorizer: ({ params }) => flairAuth.readUserFlairs.data({ userId: params.userId }),
         paramsSchema: z.object({
             userId: z.number(),
         }),

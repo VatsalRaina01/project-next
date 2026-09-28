@@ -36,5 +36,5 @@ export function requireReadGroupMembers(groupTypeReadPermission: Permission) {
  * default read permission still cannot hand out a roster to a visitor.
  */
 export function requireReadManagedGroupMembers(groupTypeReadPermission: Permission) {
-    return (groupId: number) => requireEveryPermissionOrGroupAdmin([groupTypeReadPermission, 'USERS_USE'], groupId)
+    return requireEveryPermissionOrGroupAdmin([groupTypeReadPermission, 'USERS_USE'])
 }

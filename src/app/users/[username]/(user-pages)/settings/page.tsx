@@ -22,7 +22,8 @@ export default async function UserSettings({ params }: PropTypes) {
     if (!profileRes.success) return notFound()
     const userDataFull = profileRes.data.user
 
-    const canUpdateImage = userAuth.updateProfileImage(profile.user.username).authorize(session).toJsObject()
+    const canUpdateImage = userAuth.updateProfileImage.data({ userField: { username: profile.user.username } })
+        .authorize(session).toJsObject()
     const canChangeClass = classAuth.changeClassOfUser.authorize(session).authorized
     // Study programme membership normally comes from Feide. Putting someone on one by hand is an
     // administrator's job, so the form only shows for one - the actions check per programme anyway.

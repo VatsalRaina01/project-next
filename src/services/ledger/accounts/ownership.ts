@@ -27,7 +27,11 @@ export function ledgerAccountAccess(
     opts?: { mode?: 'ALL' | 'ANY' },
 ) {
     if (accounts.length === 0) return Require.permission(permission)
-    const [firstCheck, ...restChecks] = accounts.map(account => Require.ownership(account, ownsOrIsMemberOf))
+    const [firstCheck, ...restChecks] = accounts.map(account => (
+        Require.ownership<{ account: LedgerAccountOwnership }>(
+            ({ session, account: theAccount }) => ownsOrIsMemberOf(session, theAccount)
+        ).data({ account })
+    ))
     const ownership = opts?.mode === 'ANY'
         ? Require.anyOf(firstCheck, ...restChecks)
         : Require.allOf(firstCheck, ...restChecks)

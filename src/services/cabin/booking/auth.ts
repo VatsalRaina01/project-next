@@ -2,11 +2,11 @@ import { requireBookingAccess } from '@/auth/authorizer/RequireBookingAccess'
 import { Require } from '@/auth/authorizer/Require'
 
 export const cabinBookingAuth = {
-    createCabinBookingUserAttached: (userId: number) => Require.userId(userId).permission('CABIN_USE'),
+    createCabinBookingUserAttached: Require.userId().permission('CABIN_USE'),
 
     createCabinBookingNoUser: Require.permission('CABIN_USE'),
 
-    createBedBookingUserAttached: (userId: number) => Require.userId(userId).permission('CABIN_USE'),
+    createBedBookingUserAttached: Require.userId().permission('CABIN_USE'),
 
     createBedBookingNoUser: Require.permission('CABIN_USE'),
 

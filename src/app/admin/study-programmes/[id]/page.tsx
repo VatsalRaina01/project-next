@@ -47,8 +47,10 @@ export default async function StudyProgrammeAdmin({ params }: PropTypes) {
     const expanded = expandedGroups.find(group => group.id === studyProgramme.groupId)
     if (!expanded) notFound()
 
-    const canAddMembers = studyProgrammeAuth.addMembers(studyProgramme.groupId).authorize(session).authorized
-    const canRemoveMembers = studyProgrammeAuth.removeMembers(studyProgramme.groupId).authorize(session).authorized
+    const canAddMembers = studyProgrammeAuth.addMembers.data({ groupId: studyProgramme.groupId })
+        .authorize(session).authorized
+    const canRemoveMembers = studyProgrammeAuth.removeMembers.data({ groupId: studyProgramme.groupId })
+        .authorize(session).authorized
 
     return (
         <PageWrapper title={studyProgramme.name}>

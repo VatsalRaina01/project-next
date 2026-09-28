@@ -133,10 +133,12 @@ const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
         shortName: z.string(),
     }),
     authorizer: async ({ implementationParams }) =>
-        committeeAuth.updateParagraphContent((await read({
-            params: { shortName: implementationParams.shortName },
-            bypassAuth: true
-        })).groupId),
+        committeeAuth.updateParagraphContent.data({
+            groupId: (await read({
+                params: { shortName: implementationParams.shortName },
+                bypassAuth: true
+            })).groupId
+        }),
     ownershipCheck: async ({ implementationParams, params }) =>
         (await readParagraph({
             params: { shortName: implementationParams.shortName },
@@ -148,10 +150,12 @@ const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
 
 const updateLogo = defineOperation({
     authorizer: async ({ params }) =>
-        committeeAuth.updateLogo((await read({
-            params: { shortName: params.shortName },
-            bypassAuth: true
-        })).groupId),
+        committeeAuth.updateLogo.data({
+            groupId: (await read({
+                params: { shortName: params.shortName },
+                bypassAuth: true
+            })).groupId
+        }),
     paramsSchema: z.object({
         shortName: z.string(),
     }),
@@ -323,10 +327,12 @@ const update = defineOperation({
 })
 
 const updateArticle = implementUpdateArticleOperations({
-    authorizer: async ({ implementationParams }) => committeeAuth.updateArticle((await read({
-        params: { shortName: implementationParams.shortName },
-        bypassAuth: true
-    })).groupId),
+    authorizer: async ({ implementationParams }) => committeeAuth.updateArticle.data({
+        groupId: (await read({
+            params: { shortName: implementationParams.shortName },
+            bypassAuth: true
+        })).groupId
+    }),
     implementationParamsSchema: z.object({
         shortName: z.string(),
     }),
@@ -342,24 +348,24 @@ const commonGroupOperations = implementGroupType({
     type: GroupType.COMMITTEE,
     auth: {
         readExpanded: committeeAuth.readExpanded,
-        readMembers: ({ groupId }) => committeeAuth.readMembers(groupId),
+        readMembers: ({ groupId }) => committeeAuth.readMembers.data({ groupId }),
     },
 })
 
 const memberManagement = implementSimpleAddRemoveMembersOperation({
     type: GroupType.COMMITTEE,
     auth: {
-        addMembers: ({ groupId }) => committeeAuth.addMembers(groupId),
-        removeMembers: ({ groupId }) => committeeAuth.removeMembers(groupId),
-        setMemberAdmin: ({ groupId }) => committeeAuth.setMemberAdmin(groupId),
-        setMemberTitle: ({ groupId }) => committeeAuth.setMemberTitle(groupId),
+        addMembers: ({ groupId }) => committeeAuth.addMembers.data({ groupId }),
+        removeMembers: ({ groupId }) => committeeAuth.removeMembers.data({ groupId }),
+        setMemberAdmin: ({ groupId }) => committeeAuth.setMemberAdmin.data({ groupId }),
+        setMemberTitle: ({ groupId }) => committeeAuth.setMemberTitle.data({ groupId }),
     },
 })
 
 const migration = implementManualMigrationPerGroup({
     type: GroupType.COMMITTEE,
     auth: {
-        migrateGroup: ({ groupId }) => committeeAuth.migrateGroup(groupId),
+        migrateGroup: ({ groupId }) => committeeAuth.migrateGroup.data({ groupId }),
         pension: () => committeeAuth.pension,
     },
     setPensioned: (prisma, groupId, pensioned) => prisma.committee.update({

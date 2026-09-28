@@ -1,6 +1,8 @@
 import { Require } from '@/auth/authorizer/Require'
 import { requireReadManagedGroupMembers } from '@/services/groups/auth'
 
+const adminOrGroupAdmin = Require.anyOf(Require.permission('MANUAL_GROUP_ADMIN'), Require.groupAdmin())
+
 export const manualGroupAuth = {
     create: Require.permission('MANUAL_GROUP_ADMIN'),
     read: Require.permission('MANUAL_GROUP_USE'),
@@ -10,13 +12,9 @@ export const manualGroupAuth = {
     update: Require.permission('MANUAL_GROUP_ADMIN'),
     destroy: Require.permission('MANUAL_GROUP_ADMIN'),
     pension: Require.permission('MANUAL_GROUP_ADMIN'),
-    addMembers: (groupId: number) => Require.anyOf(Require.permission('MANUAL_GROUP_ADMIN'), Require.groupAdmin(groupId)),
-    removeMembers: (groupId: number) =>
-        Require.anyOf(Require.permission('MANUAL_GROUP_ADMIN'), Require.groupAdmin(groupId)),
-    setMemberAdmin: (groupId: number) =>
-        Require.anyOf(Require.permission('MANUAL_GROUP_ADMIN'), Require.groupAdmin(groupId)),
-    setMemberTitle: (groupId: number) =>
-        Require.anyOf(Require.permission('MANUAL_GROUP_ADMIN'), Require.groupAdmin(groupId)),
-    migrateGroup: (groupId: number) =>
-        Require.anyOf(Require.permission('MANUAL_GROUP_ADMIN'), Require.groupAdmin(groupId)),
+    addMembers: adminOrGroupAdmin,
+    removeMembers: adminOrGroupAdmin,
+    setMemberAdmin: adminOrGroupAdmin,
+    setMemberTitle: adminOrGroupAdmin,
+    migrateGroup: adminOrGroupAdmin,
 } as const

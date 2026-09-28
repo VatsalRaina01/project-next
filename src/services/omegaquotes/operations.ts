@@ -8,7 +8,7 @@ import { z } from 'zod'
 
 export const omegaquoteOperations = {
     create: defineOperation({
-        authorizer: ({ params }) => omegaQuotesAuth.create(params.userPosterId),
+        authorizer: ({ params }) => omegaQuotesAuth.create.data({ userId: params.userPosterId }),
         dataSchema: omegaquoteSchemas.create,
         paramsSchema: z.object({
             userPosterId: z.number()

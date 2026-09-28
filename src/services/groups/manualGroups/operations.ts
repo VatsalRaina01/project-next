@@ -17,24 +17,24 @@ const commonGroupOperations = implementGroupType({
     type: GroupType.MANUAL_GROUP,
     auth: {
         readExpanded: manualGroupAuth.readExpanded,
-        readMembers: ({ groupId }) => manualGroupAuth.readMembers(groupId),
+        readMembers: ({ groupId }) => manualGroupAuth.readMembers.data({ groupId }),
     },
 })
 
 const memberManagement = implementSimpleAddRemoveMembersOperation({
     type: GroupType.MANUAL_GROUP,
     auth: {
-        addMembers: ({ groupId }) => manualGroupAuth.addMembers(groupId),
-        removeMembers: ({ groupId }) => manualGroupAuth.removeMembers(groupId),
-        setMemberAdmin: ({ groupId }) => manualGroupAuth.setMemberAdmin(groupId),
-        setMemberTitle: ({ groupId }) => manualGroupAuth.setMemberTitle(groupId),
+        addMembers: ({ groupId }) => manualGroupAuth.addMembers.data({ groupId }),
+        removeMembers: ({ groupId }) => manualGroupAuth.removeMembers.data({ groupId }),
+        setMemberAdmin: ({ groupId }) => manualGroupAuth.setMemberAdmin.data({ groupId }),
+        setMemberTitle: ({ groupId }) => manualGroupAuth.setMemberTitle.data({ groupId }),
     },
 })
 
 const migration = implementManualMigrationPerGroup({
     type: GroupType.MANUAL_GROUP,
     auth: {
-        migrateGroup: ({ groupId }) => manualGroupAuth.migrateGroup(groupId),
+        migrateGroup: ({ groupId }) => manualGroupAuth.migrateGroup.data({ groupId }),
         pension: () => manualGroupAuth.pension,
     },
     setPensioned: (prisma, groupId, pensioned) => prisma.manualGroup.update({

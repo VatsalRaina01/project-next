@@ -15,7 +15,7 @@ const commonGroupOperations = implementGroupType({
     type: GroupType.STUDY_PROGRAMME,
     auth: {
         readExpanded: studyProgrammeAuth.readExpanded,
-        readMembers: ({ groupId }) => studyProgrammeAuth.readMembers(groupId),
+        readMembers: ({ groupId }) => studyProgrammeAuth.readMembers.data({ groupId }),
     },
 })
 
@@ -28,10 +28,10 @@ const commonGroupOperations = implementGroupType({
 const memberManagement = implementSimpleAddRemoveMembersOperation({
     type: GroupType.STUDY_PROGRAMME,
     auth: {
-        addMembers: ({ groupId }) => studyProgrammeAuth.addMembers(groupId),
-        removeMembers: ({ groupId }) => studyProgrammeAuth.removeMembers(groupId),
-        setMemberAdmin: ({ groupId }) => studyProgrammeAuth.setMemberAdmin(groupId),
-        setMemberTitle: ({ groupId }) => studyProgrammeAuth.setMemberTitle(groupId),
+        addMembers: ({ groupId }) => studyProgrammeAuth.addMembers.data({ groupId }),
+        removeMembers: ({ groupId }) => studyProgrammeAuth.removeMembers.data({ groupId }),
+        setMemberAdmin: ({ groupId }) => studyProgrammeAuth.setMemberAdmin.data({ groupId }),
+        setMemberTitle: ({ groupId }) => studyProgrammeAuth.setMemberTitle.data({ groupId }),
     },
 })
 

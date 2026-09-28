@@ -6,10 +6,11 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
  * register for it - and, for an event not viewable by all, who may see it at all. EVENT_ADMIN
  * bypasses both levels for every event, and is also what it takes to make one in the first place.
  */
+const levelAuthorizer = Require.anyOf(Require.permission('EVENT_ADMIN'), Require.visibility())
 const regularLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
-    Require.anyOf(Require.permission('EVENT_ADMIN'), Require.visibility(doubleLevelMatrix.regularLevel))
+    levelAuthorizer.data({ visibility: doubleLevelMatrix.regularLevel })
 const adminLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
-    Require.anyOf(Require.permission('EVENT_ADMIN'), Require.visibility(doubleLevelMatrix.adminLevel))
+    levelAuthorizer.data({ visibility: doubleLevelMatrix.adminLevel })
 
 export const eventAuth = {
     create: Require.permission('EVENT_ADMIN'),

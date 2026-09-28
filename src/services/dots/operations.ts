@@ -45,7 +45,7 @@ export const dotOperations = {
         numberOfActiveDotsForUser,
     },
     create: createInternal.implement({
-        authorizer: ({ params }) => dotAuth.create(params.accuserId),
+        authorizer: ({ params }) => dotAuth.create.data({ userId: params.accuserId }),
         ownershipCheck: () => true,
     }),
 
@@ -87,7 +87,7 @@ export const dotOperations = {
             userId: z.coerce.number(),
             onlyActive: z.boolean().default(false),
         }),
-        authorizer: ({ params }) => dotAuth.readForUser(params.userId),
+        authorizer: ({ params }) => dotAuth.readForUser.data({ userId: params.userId }),
         operation: async ({ prisma, params }): Promise<DotExpanded[]> => {
             const [dots, freezePeriods] = await Promise.all([
                 prisma.dot.findMany({

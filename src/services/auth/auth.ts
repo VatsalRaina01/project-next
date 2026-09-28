@@ -1,8 +1,8 @@
 import { Require } from '@/auth/authorizer/Require'
 
 export const authAuth = {
-    verifyEmail: (token: string) => Require.jwt(token, 'verifyemail'),
-    resetPassword: (token: string) => Require.jwt(token, 'resetpassword'),
+    verifyEmail: Require.jwt('verifyemail'),
+    resetPassword: Require.jwt('resetpassword'),
     sendResetPasswordEmail: Require.nothing(),
     sendLinkFeideAccountEmail: Require.user(),
     readFeideLoginMatch: Require.user(),

@@ -22,7 +22,7 @@ export default function UserDotsInEditMode({ userId, dots }: PropTypes) {
     const sessionUser = session.loading ? null : session.session.user
 
     const editCreate = useEditMode({
-        authorizer: dotAuth.create(sessionUser?.id ?? 0)
+        authorizer: dotAuth.create.data({ userId: sessionUser?.id ?? 0 })
     })
     const editUpdate = useEditMode({ authorizer: dotAuth.update })
     const editDestroy = useEditMode({ authorizer: dotAuth.destroy })

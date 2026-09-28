@@ -37,19 +37,19 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
 
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
     const canUpdate = useEditMode({
-        authorizer: newsAuth.update(doubleLevelMatrix)
+        authorizer: newsAuth.update.data({ visibility: doubleLevelMatrix.adminLevel })
     })
     const canDestroy = useEditMode({
-        authorizer: newsAuth.destroy(doubleLevelMatrix)
+        authorizer: newsAuth.destroy.data({ visibility: doubleLevelMatrix.adminLevel })
     })
     const canUpdateRegularVisibility = useEditMode({
-        authorizer: newsAuth.updateRegularLevel(doubleLevelMatrix)
+        authorizer: newsAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix.adminLevel })
     })
     const canUpdateAdminVisibility = useEditMode({
-        authorizer: newsAuth.updateAdminLevel(doubleLevelMatrix)
+        authorizer: newsAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix.adminLevel })
     })
     const canSetPublished = useEditMode({
-        authorizer: newsAuth.setPublished(doubleLevelMatrix)
+        authorizer: newsAuth.setPublished.data({ visibility: doubleLevelMatrix.adminLevel })
     })
 
     // The editors are bound to doubleLevelVisibility rather than doubleLevelMatrix on purpose:

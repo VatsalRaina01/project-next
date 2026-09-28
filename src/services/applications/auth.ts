@@ -1,8 +1,10 @@
 import { Require } from '@/auth/authorizer/Require'
 
+const userIdOrApplicationAdmin = Require.anyOf(Require.permission('APPLICATION_ADMIN'), Require.userId())
+
 export const applicationAuth = {
-    readForUser: (userId: number) => Require.anyOf(Require.permission('APPLICATION_ADMIN'), Require.userId(userId)),
-    create: (userId: number) => Require.anyOf(Require.permission('APPLICATION_ADMIN'), Require.userId(userId)),
-    update: (userId: number) => Require.anyOf(Require.permission('APPLICATION_ADMIN'), Require.userId(userId)),
-    destroy: (userId: number) => Require.anyOf(Require.permission('APPLICATION_ADMIN'), Require.userId(userId)),
+    readForUser: userIdOrApplicationAdmin,
+    create: userIdOrApplicationAdmin,
+    update: userIdOrApplicationAdmin,
+    destroy: userIdOrApplicationAdmin,
 }

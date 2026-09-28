@@ -24,7 +24,7 @@ export function requireBookingAccess(
 ) {
     return Require.anyOf(
         Require.permission(permission),
-        Require.custom((session) => (
+        Require.custom(({ session }) => (
             (session.user !== null && session.user.id === booking.userId) ||
             (providedSecret !== undefined && secretsMatch(providedSecret, booking.secret))
         ), { errorMessage: 'Du har ikke tilgang til denne bookingen.' }),

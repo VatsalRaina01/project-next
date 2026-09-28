@@ -12,6 +12,6 @@ export const flairAuth = {
     decreaseRank: Require.permission('FLAIR_ADMIN'),
     read: Require.nothing(),
     readAll: Require.nothing(),
-    readUserFlairs: (userId: number) => Require.anyOf(Require.permission('USERS_USE'), Require.userId(userId)),
+    readUserFlairs: Require.anyOf(Require.permission('USERS_USE'), Require.userId()),
     updateImage: Require.permission('FLAIR_ADMIN'),
 } as const

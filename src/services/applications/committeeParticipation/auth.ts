@@ -1,6 +1,8 @@
 import { Require } from '@/auth/authorizer/Require'
 
+const groupAdminOrApplicationAdmin = Require.anyOf(Require.permission('APPLICATION_ADMIN'), Require.groupAdmin())
+
 export const committeeParticipationAuth = {
-    read: (groupId: number) => Require.anyOf(Require.permission('APPLICATION_ADMIN'), Require.groupAdmin(groupId)),
-    readAll: (groupId: number) => Require.anyOf(Require.permission('APPLICATION_ADMIN'), Require.groupAdmin(groupId)),
+    read: groupAdminOrApplicationAdmin,
+    readAll: groupAdminOrApplicationAdmin,
 }

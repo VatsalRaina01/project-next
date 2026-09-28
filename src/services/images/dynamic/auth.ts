@@ -1,26 +1,24 @@
 import { Require } from '@/auth/authorizer/Require'
-import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 
-const regularLevelOrImageAdmin = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
-    Require.anyOf(Require.permission('IMAGE_ADMIN'), Require.visibility(doubleLevelMatrix.regularLevel))
-const adminLevelOrImageAdmin = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
-    Require.anyOf(Require.permission('IMAGE_ADMIN'), Require.visibility(doubleLevelMatrix.adminLevel))
+// The caller picks which half of a double-level matrix to supply as `visibility` in `.data()` -
+// regularLevel for the "regular" keys below, adminLevel for the "admin" ones.
+const visibilityOrImageAdmin = Require.anyOf(Require.permission('IMAGE_ADMIN'), Require.visibility())
 
 export const dynamicImageAuth = {
-    readDoubleLevelMatrix: regularLevelOrImageAdmin,
-    updateRegularLevel: adminLevelOrImageAdmin,
-    updateAdminLevel: adminLevelOrImageAdmin,
+    readDoubleLevelMatrix: visibilityOrImageAdmin,
+    updateRegularLevel: visibilityOrImageAdmin,
+    updateAdminLevel: visibilityOrImageAdmin,
 
-    readCollection: regularLevelOrImageAdmin,
-    readCollectionPage: () => Require.visibilityFilter({ bypassPermission: 'IMAGE_ADMIN' }),
+    readCollection: visibilityOrImageAdmin,
+    readCollectionPage: Require.visibilityFilter({ bypassPermission: 'IMAGE_ADMIN' }),
 
     createCollection: Require.permission('IMAGE_USE'),
-    destroyCollection: adminLevelOrImageAdmin,
-    updateCollection: adminLevelOrImageAdmin,
+    destroyCollection: visibilityOrImageAdmin,
+    updateCollection: visibilityOrImageAdmin,
 
-    uploadImage: adminLevelOrImageAdmin,
-    uploadManyImages: adminLevelOrImageAdmin,
-    readPageOfImagesInCollection: regularLevelOrImageAdmin,
-    updateImageMeta: adminLevelOrImageAdmin,
-    destroyImage: adminLevelOrImageAdmin,
+    uploadImage: visibilityOrImageAdmin,
+    uploadManyImages: visibilityOrImageAdmin,
+    readPageOfImagesInCollection: visibilityOrImageAdmin,
+    updateImageMeta: visibilityOrImageAdmin,
+    destroyImage: visibilityOrImageAdmin,
 } as const

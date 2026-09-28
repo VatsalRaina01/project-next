@@ -49,7 +49,7 @@ export const userNavDef: UserNavItem[] = [
     {
         name: 'Profil',
         icon: faUser,
-        authorizers: ({ username }) => [userAuth.readProfile(username)],
+        authorizers: ({ username }) => [userAuth.readProfile.data({ userField: { username } })],
     },
     {
         // Reading the trials is the floor: the level itself is on the profile anyway, so it is the
@@ -69,8 +69,8 @@ export const userNavDef: UserNavItem[] = [
         icon: faCircleDot,
         path: 'dots',
         authorizers: ({ userId }) => [
-            dotAuth.readForUser(userId),
-            dotAuth.create(userId),
+            dotAuth.readForUser.data({ userId }),
+            dotAuth.create.data({ userId }),
         ],
     },
     {
@@ -78,15 +78,15 @@ export const userNavDef: UserNavItem[] = [
         icon: faPaperPlane,
         path: 'notifications',
         authorizers: ({ userId }) => [
-            notificationSubscriptionAuth.read(userId),
-            notificationSubscriptionAuth.update(userId),
+            notificationSubscriptionAuth.read.data({ userId }),
+            notificationSubscriptionAuth.update.data({ userId }),
         ],
     },
     {
         name: 'Tilganger',
         icon: faKey,
         path: 'permissions',
-        authorizers: ({ username }) => [userAuth.updateProfile(username)],
+        authorizers: ({ username }) => [userAuth.updateProfile.data({ userField: { username } })],
     },
     {
         name: 'Kapper',
@@ -98,15 +98,15 @@ export const userNavDef: UserNavItem[] = [
         name: 'Tema',
         icon: faSwatchbook,
         path: 'theme',
-        authorizers: ({ username }) => [Require.userField({ username })],
+        authorizers: ({ username }) => [Require.userField().data({ userField: { username } })],
     },
     {
         name: 'Innstillinger',
         icon: faCog,
         path: 'settings',
         authorizers: ({ username }) => [
-            userAuth.updateProfile(username),
-            userAuth.updateProfileImage(username),
+            userAuth.updateProfile.data({ userField: { username } }),
+            userAuth.updateProfileImage.data({ userField: { username } }),
             classAuth.changeClassOfUser,
             studyProgrammeAuth.update,
         ],

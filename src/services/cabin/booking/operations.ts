@@ -247,7 +247,7 @@ export const cabinBookingOperations = {
             userId: z.number(),
             bookingProducts: bookingProductParams,
         }),
-        authorizer: ({ params }) => cabinBookingAuth.createCabinBookingUserAttached(params.userId),
+        authorizer: ({ params }) => cabinBookingAuth.createCabinBookingUserAttached.data({ userId: params.userId }),
         dataSchema: cabinBookingSchemas.createBookingUserAttached,
         operation: async ({ params, data }) =>
             createBookingWithUser.internalCall({
@@ -265,7 +265,7 @@ export const cabinBookingOperations = {
             userId: z.number(),
             bookingProducts: bookingProductParams,
         }),
-        authorizer: ({ params }) => cabinBookingAuth.createBedBookingUserAttached(params.userId),
+        authorizer: ({ params }) => cabinBookingAuth.createBedBookingUserAttached.data({ userId: params.userId }),
         dataSchema: cabinBookingSchemas.createBookingUserAttached,
         operation: async ({ params, data }) =>
             createBookingWithUser.internalCall({

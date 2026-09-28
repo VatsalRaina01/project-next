@@ -20,24 +20,24 @@ const commonGroupOperations = implementGroupType({
     type: GroupType.INTEREST_GROUP,
     auth: {
         readExpanded: interestGroupAuth.readExpanded,
-        readMembers: ({ groupId }) => interestGroupAuth.readMembers(groupId),
+        readMembers: ({ groupId }) => interestGroupAuth.readMembers.data({ groupId }),
     },
 })
 
 const memberManagement = implementSimpleAddRemoveMembersOperation({
     type: GroupType.INTEREST_GROUP,
     auth: {
-        addMembers: ({ groupId }) => interestGroupAuth.addMembers(groupId),
-        removeMembers: ({ groupId }) => interestGroupAuth.removeMembers(groupId),
-        setMemberAdmin: ({ groupId }) => interestGroupAuth.setMemberAdmin(groupId),
-        setMemberTitle: ({ groupId }) => interestGroupAuth.setMemberTitle(groupId),
+        addMembers: ({ groupId }) => interestGroupAuth.addMembers.data({ groupId }),
+        removeMembers: ({ groupId }) => interestGroupAuth.removeMembers.data({ groupId }),
+        setMemberAdmin: ({ groupId }) => interestGroupAuth.setMemberAdmin.data({ groupId }),
+        setMemberTitle: ({ groupId }) => interestGroupAuth.setMemberTitle.data({ groupId }),
     },
 })
 
 const migration = implementManualMigrationPerGroup({
     type: GroupType.INTEREST_GROUP,
     auth: {
-        migrateGroup: ({ groupId }) => interestGroupAuth.migrateGroup(groupId),
+        migrateGroup: ({ groupId }) => interestGroupAuth.migrateGroup.data({ groupId }),
         pension: () => interestGroupAuth.pension,
     },
     setPensioned: (prisma, groupId, pensioned) => prisma.interestGroup.update({
@@ -143,7 +143,7 @@ export const interestGroupOperations = {
                 select: { groupId: true },
             })
 
-            return interestGroupAuth.update(groupId)
+            return interestGroupAuth.update.data({ groupId })
         },
         operation: async ({ prisma, params: { id }, data }) => {
             await assertNotPensioned(prisma, id)
@@ -199,7 +199,7 @@ export const interestGroupOperations = {
                 where: { id: implementationParams.interestGroupId },
                 select: { groupId: true }
             })
-            return interestGroupAuth.updateArticleSection(groupId)
+            return interestGroupAuth.updateArticleSection.data({ groupId })
         },
         beforeRun: ({ prisma, implementationParams }) =>
             assertNotPensioned(prisma, implementationParams.interestGroupId),

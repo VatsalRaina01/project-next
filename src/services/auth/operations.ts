@@ -39,7 +39,7 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string(),
         }),
-        authorizer: ({ params }) => authAuth.verifyEmail(params.token),
+        authorizer: ({ params }) => authAuth.verifyEmail.data({ token: params.token }),
         operation: async ({ prisma, params }) => {
             // INFO: Safe to parse unsafe since the authorizer has verified the token.
             const payload = readJWTPayload(params.token)
@@ -81,7 +81,7 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string()
         }),
-        authorizer: ({ params }) => authAuth.resetPassword(params.token),
+        authorizer: ({ params }) => authAuth.resetPassword.data({ token: params.token }),
         operation: async ({ prisma, params }) => {
             // INFO: Safe to parse unsafe since the authorizer has verified the token.
             const payload = readJWTPayload(params.token)
@@ -114,7 +114,7 @@ export const authOperations = {
             token: z.string()
         }),
         dataSchema: userSchemas.updatePassword,
-        authorizer: ({ params }) => authAuth.resetPassword(params.token),
+        authorizer: ({ params }) => authAuth.resetPassword.data({ token: params.token }),
         operation: async ({ params, data }) => {
             const userId = await authOperations.verifyResetPasswordToken({ params })
 

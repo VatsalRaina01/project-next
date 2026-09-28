@@ -84,7 +84,7 @@ export default async function ApplicationPeriod({ params }: PropTypes) {
                 <CmsParagraph
                     className={styles.committeeParagraph}
                     canEdit={
-                        committeeAuth.updateParagraphContent(part.committee.groupId).authorize(
+                        committeeAuth.updateParagraphContent.data({ groupId: part.committee.groupId }).authorize(
                             session
                         ).toJsObject()
                     }

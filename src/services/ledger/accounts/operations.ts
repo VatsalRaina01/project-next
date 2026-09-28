@@ -158,7 +158,7 @@ export const ledgerAccountOperations = {
      * @returns The account details.
      */
     readOrCreate: defineOperation({
-        authorizer: ({ params }) => ledgerAccountAuth.readOrCreate(params.userId),
+        authorizer: ({ params }) => ledgerAccountAuth.readOrCreate.data({ userId: params.userId }),
         paramsSchema: z.object({
             userId: z.number(),
         }),

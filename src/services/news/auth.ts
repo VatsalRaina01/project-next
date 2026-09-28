@@ -1,27 +1,22 @@
 import { Require } from '@/auth/authorizer/Require'
-import type { DoubleLevelVisibilityMatrix, VisibilityMatrix } from '@/services/visibility/types'
 
-const visibilityOrNewsAdmin = (visibility: VisibilityMatrix) =>
-    Require.anyOf(Require.permission('NEWS_ADMIN'), Require.visibility(visibility))
-const adminLevelOrNewsAdmin = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
-    visibilityOrNewsAdmin(doubleLevelMatrix.adminLevel)
+// The caller picks which half of a double-level matrix (or, for `read`, whichever level currently
+// applies) to supply as `visibility` in `.data()`.
+const visibilityOrNewsAdmin = Require.anyOf(Require.permission('NEWS_ADMIN'), Require.visibility())
 
 export const newsAuth = {
     create: Require.permission('NEWS_USE'),
 
-    readDoubleLevelMatrix: (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
-        visibilityOrNewsAdmin(doubleLevelMatrix.regularLevel),
-    updateRegularLevel: adminLevelOrNewsAdmin,
-    updateAdminLevel: adminLevelOrNewsAdmin,
+    readDoubleLevelMatrix: visibilityOrNewsAdmin,
+    updateRegularLevel: visibilityOrNewsAdmin,
+    updateAdminLevel: visibilityOrNewsAdmin,
 
-    destroy: adminLevelOrNewsAdmin,
-    update: adminLevelOrNewsAdmin,
-    updateArticle: adminLevelOrNewsAdmin,
-    setPublished: adminLevelOrNewsAdmin,
+    destroy: visibilityOrNewsAdmin,
+    update: visibilityOrNewsAdmin,
+    updateArticle: visibilityOrNewsAdmin,
+    setPublished: visibilityOrNewsAdmin,
 
-    // The level to check is picked at call time (published vs. draft), not fixed per-key like the
-    // others above - the caller passes whichever of the matrix's two halves currently applies.
     read: visibilityOrNewsAdmin,
-    readCurrent: () => Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
-    readOldPage: () => Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
+    readCurrent: Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
+    readOldPage: Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
 } as const

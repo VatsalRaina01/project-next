@@ -31,7 +31,7 @@ export default async function Committee({ params }: PropTypes) {
 
     const paragraph = paragraphRes.data
 
-    const canEditCommitteeParagraph = committeeAuth.updateParagraphContent(committee.groupId)
+    const canEditCommitteeParagraph = committeeAuth.updateParagraphContent.data({ groupId: committee.groupId })
         .authorize(await ServerSession.fromNextAuth()).toJsObject()
 
     return (

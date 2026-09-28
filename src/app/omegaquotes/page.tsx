@@ -12,7 +12,8 @@ import type { PageSizeOmegaquote } from '@/contexts/paging/OmegaquotesPaging'
 
 export default async function OmegaQuotes() {
     const session = await ServerSession.fromNextAuth()
-    const showCreateButton = session.user && omegaQuotesAuth.create(session.user.id).authorize(session).authorized || false
+    const showCreateButton = session.user &&
+        omegaQuotesAuth.create.data({ userId: session.user.id }).authorize(session).authorized || false
 
     const pageSize: PageSizeOmegaquote = 20
 

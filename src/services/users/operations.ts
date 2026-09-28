@@ -77,7 +77,7 @@ export const userOperations = {
             email: z.string().optional(),
             studentCard: z.string().optional(),
         }),
-        authorizer: ({ params }) => userAuth.read(params),
+        authorizer: ({ params }) => userAuth.read.data({ userField: params }),
         operation: async ({ prisma, params }) => await prisma.user.findUniqueOrThrow({
             where: {
                 id: params.id,
@@ -94,7 +94,7 @@ export const userOperations = {
             email: z.string().optional(),
             studentCard: z.string().optional(),
         }),
-        authorizer: ({ params }) => userAuth.read(params),
+        authorizer: ({ params }) => userAuth.read.data({ userField: params }),
         operation: async ({ prisma, params }) => await prisma.user.findUnique({
             where: {
                 id: params.id, // This is a bit wierd, but now ts is satisfied.
@@ -108,7 +108,7 @@ export const userOperations = {
         paramsSchema: z.object({
             username: z.string(),
         }),
-        authorizer: ({ params }) => userAuth.readProfile(params.username),
+        authorizer: ({ params }) => userAuth.readProfile.data({ userField: { username: params.username } }),
         operation: async ({ prisma, params }) => {
             const { id: userId } = await prisma.user.findUniqueOrThrow({
                 where: { username: params.username.toLowerCase() },
@@ -389,7 +389,7 @@ export const userOperations = {
             username: z.string()
         }),
         dataSchema: userSchemas.update,
-        authorizer: ({ params }) => userAuth.updateProfile(params.username),
+        authorizer: ({ params }) => userAuth.updateProfile.data({ userField: { username: params.username } }),
         operation: ({ prisma, data, params }) => prisma.user.update({
             where: params,
             data,
@@ -401,7 +401,7 @@ export const userOperations = {
             id: z.number(),
         }),
         dataSchema: userSchemas.updatePassword,
-        authorizer: ({ params }) => userAuth.updatePassword(params.id),
+        authorizer: ({ params }) => userAuth.updatePassword.data({ userId: params.id }),
         operation: async ({ prisma, data, params }) => {
             const passwordHash = await hashAndEncryptPassword(data.password)
 
@@ -422,7 +422,7 @@ export const userOperations = {
         paramsSchema: z.object({
             id: z.number(),
         }),
-        authorizer: ({ params }) => userAuth.registerNewEmail(params.id),
+        authorizer: ({ params }) => userAuth.registerNewEmail.data({ userId: params.id }),
         dataSchema: userSchemas.registerNewEmail,
         operation: async ({ prisma, params, data }) => {
             const storedUser = await prisma.user.findUniqueOrThrow({
@@ -487,7 +487,7 @@ export const userOperations = {
             id: z.number(),
         }),
         dataSchema: userSchemas.register,
-        authorizer: ({ params }) => userAuth.register(params.id),
+        authorizer: ({ params }) => userAuth.register.data({ userId: params.id }),
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => {
             const { sex, password, mobile, allergies, imageConsent } = data
@@ -587,8 +587,8 @@ export const userOperations = {
     }),
 
     readUserWithBalance: defineOperation({
-        authorizer: ({ params }) => userAuth.read({
-            username: params.username || '',
+        authorizer: ({ params }) => userAuth.read.data({
+            userField: { username: params.username || '' },
         }),
         paramsSchema: z.object({
             username: z.string().optional(),
@@ -650,7 +650,7 @@ export const userOperations = {
     }),
 
     updateProfileImage: defineOperation({
-        authorizer: ({ params }) => userAuth.updateProfileImage(params.username),
+        authorizer: ({ params }) => userAuth.updateProfileImage.data({ userField: { username: params.username } }),
         paramsSchema: z.object({
             username: z.string(),
         }),

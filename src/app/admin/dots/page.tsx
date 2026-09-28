@@ -65,7 +65,7 @@ export default async function Dots({ searchParams }: PropTypes) {
                     userId={user.id}
                     dots={dots}
                     showCreateForm={
-                        dotAuth.create(session.user?.id ?? 0).authorize(session).authorized
+                        dotAuth.create.data({ userId: session.user?.id ?? 0 }).authorize(session).authorized
                     }
                     showUpdateForm={dotAuth.update.authorize(session).authorized}
                     showDestroyForm={dotAuth.destroy.authorize(session).authorized}

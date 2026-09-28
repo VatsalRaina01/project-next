@@ -5,11 +5,13 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
  * The regular level of an event is what it takes to register for it, and its admin level is what it
  * takes to act on the registrations of everyone else. EVENT_ADMIN bypasses both for every event.
  */
+const levelAuthorizer = Require.anyOf(Require.permission('EVENT_ADMIN'), Require.visibility())
 const registerLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
-    Require.anyOf(Require.permission('EVENT_ADMIN'), Require.visibility(doubleLevelMatrix.regularLevel))
+    levelAuthorizer.data({ visibility: doubleLevelMatrix.regularLevel })
 const eventAdminLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
-    Require.anyOf(Require.permission('EVENT_ADMIN'), Require.visibility(doubleLevelMatrix.adminLevel))
-const ownUserOrEventAdmin = (userId: number) => Require.anyOf(Require.permission('EVENT_ADMIN'), Require.userId(userId))
+    levelAuthorizer.data({ visibility: doubleLevelMatrix.adminLevel })
+const userIdOrEventAdmin = Require.anyOf(Require.permission('EVENT_ADMIN'), Require.userId())
+const ownUserOrEventAdmin = (userId: number) => userIdOrEventAdmin.data({ userId })
 
 /**
  * Acting on the registration of a given user: their own, or anyone's for those who administrate the

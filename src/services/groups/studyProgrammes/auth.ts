@@ -1,6 +1,8 @@
 import { Require } from '@/auth/authorizer/Require'
 import { requireReadManagedGroupMembers } from '@/services/groups/auth'
 
+const adminOrGroupAdmin = Require.anyOf(Require.permission('STUDY_PROGRAMME_ADMIN'), Require.groupAdmin())
+
 export const studyProgrammeAuth = {
     create: Require.permission('STUDY_PROGRAMME_ADMIN'),
     upsertMany: Require.permission('STUDY_PROGRAMME_ADMIN'),
@@ -11,14 +13,10 @@ export const studyProgrammeAuth = {
     readExpanded: Require.permission('STUDY_PROGRAMME_USE'),
     readMembers: requireReadManagedGroupMembers('STUDY_PROGRAMME_USE'),
     update: Require.permission('STUDY_PROGRAMME_ADMIN'),
-    addMembers: (groupId: number) =>
-        Require.anyOf(Require.permission('STUDY_PROGRAMME_ADMIN'), Require.groupAdmin(groupId)),
-    removeMembers: (groupId: number) =>
-        Require.anyOf(Require.permission('STUDY_PROGRAMME_ADMIN'), Require.groupAdmin(groupId)),
-    setMemberAdmin: (groupId: number) =>
-        Require.anyOf(Require.permission('STUDY_PROGRAMME_ADMIN'), Require.groupAdmin(groupId)),
-    setMemberTitle: (groupId: number) =>
-        Require.anyOf(Require.permission('STUDY_PROGRAMME_ADMIN'), Require.groupAdmin(groupId)),
+    addMembers: adminOrGroupAdmin,
+    removeMembers: adminOrGroupAdmin,
+    setMemberAdmin: adminOrGroupAdmin,
+    setMemberTitle: adminOrGroupAdmin,
     destroy: Require.permission('STUDY_PROGRAMME_ADMIN'),
     migrateGroups: Require.permission('STUDY_PROGRAMME_ADMIN'),
 } as const

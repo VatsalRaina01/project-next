@@ -24,9 +24,12 @@ async function readDefaultCollectionCover() {
 const visibility = implementDoubleLevelVisibilityOperations({
     implementationParamsSchema: dynamicImageSchemas.paramsSchemaCollection,
     authorizers: {
-        readDoubleLevelMatrix: ({ doubleLevelMatrix }) => dynamicImageAuth.readDoubleLevelMatrix(doubleLevelMatrix),
-        updateRegularLevel: ({ doubleLevelMatrix }) => dynamicImageAuth.updateRegularLevel(doubleLevelMatrix),
-        updateAdminLevel: ({ doubleLevelMatrix }) => dynamicImageAuth.updateAdminLevel(doubleLevelMatrix)
+        readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
+            dynamicImageAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix.regularLevel }),
+        updateRegularLevel: ({ doubleLevelMatrix }) =>
+            dynamicImageAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix.adminLevel }),
+        updateAdminLevel: ({ doubleLevelMatrix }) =>
+            dynamicImageAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix.adminLevel })
     },
     readDoubleLevel: async ({ prisma, implementationParams, include }) => {
         const collection = await prisma.imageCollection.findFirstOrThrow({
@@ -50,10 +53,9 @@ const visibility = implementDoubleLevelVisibilityOperations({
 const readCollection = defineOperation({
     paramsSchema: dynamicImageSchemas.paramsSchemaCollection,
     authorizer: async ({ params, prisma }) =>
-        dynamicImageAuth.readCollection(await visibility.readDoubleLevelMatrixInternal({
-            params,
-            prisma
-        })),
+        dynamicImageAuth.readCollection.data({
+            visibility: (await visibility.readDoubleLevelMatrixInternal({ params, prisma })).regularLevel
+        }),
     operation: async ({ prisma, params }) => {
         const collection = await prisma.imageCollection.findFirstOrThrow({
             where: whereConditionWithOwnershipCheck(params),
@@ -65,7 +67,7 @@ const readCollection = defineOperation({
 
 const readCollectionPage = defineOperation({
     paramsSchema: dynamicImageSchemas.readCollectionPage,
-    authorizer: async () => dynamicImageAuth.readCollectionPage(),
+    authorizer: async () => dynamicImageAuth.readCollectionPage,
     operation: async ({ prisma, params }, prismaWhereFilter) => {
         const collections = await prisma.imageCollection.findMany({
             ...cursorPageingSelection(params.paging.page),
@@ -130,50 +132,46 @@ export const dynamicImageOperations = {
 
     destroyCollection: imageOperations.destroyCollection.implement({
         authorizer: async ({ params, prisma }) =>
-            dynamicImageAuth.destroyCollection(await visibility.readDoubleLevelMatrixInternal({
-                params,
-                prisma
-            })),
+            dynamicImageAuth.destroyCollection.data({
+                visibility: (await visibility.readDoubleLevelMatrixInternal({ params, prisma })).adminLevel
+            }),
         ownershipCheck,
     }),
 
     updateCollection: imageOperations.updateCollection.implement({
         authorizer: async ({ params, prisma }) =>
-            dynamicImageAuth.updateCollection(await visibility.readDoubleLevelMatrixInternal({
-                params,
-                prisma
-            })),
+            dynamicImageAuth.updateCollection.data({
+                visibility: (await visibility.readDoubleLevelMatrixInternal({ params, prisma })).adminLevel
+            }),
         ownershipCheck,
     }),
 
     uploadImage: imageOperations.uploadImage.implement({
         authorizer: async ({ params, prisma }) =>
-            dynamicImageAuth.uploadImage(await visibility.readDoubleLevelMatrixInternal({
-                params,
-                prisma
-            })),
+            dynamicImageAuth.uploadImage.data({
+                visibility: (await visibility.readDoubleLevelMatrixInternal({ params, prisma })).adminLevel
+            }),
         ownershipCheck,
         operationImplementationFields: { uploadAsStandardImage: null, allowedExtensions }
     }),
 
     uploadManyImages: imageOperations.uploadManyImages.implement({
         authorizer: async ({ params, prisma }) =>
-            dynamicImageAuth.uploadManyImages(await visibility.readDoubleLevelMatrixInternal({
-                params,
-                prisma
-            })),
+            dynamicImageAuth.uploadManyImages.data({
+                visibility: (await visibility.readDoubleLevelMatrixInternal({ params, prisma })).adminLevel
+            }),
         ownershipCheck,
         operationImplementationFields: { allowedExtensions }
     }),
 
     readPageOfImagesInCollection: imageOperations.readPageOfImagesInCollection.implement({
         authorizer: async ({ params, prisma }) =>
-            dynamicImageAuth.readPageOfImagesInCollection(await visibility.readDoubleLevelMatrixInternal({
-                params: {
-                    collectionId: params.collectionId
-                },
-                prisma
-            })),
+            dynamicImageAuth.readPageOfImagesInCollection.data({
+                visibility: (await visibility.readDoubleLevelMatrixInternal({
+                    params: { collectionId: params.collectionId },
+                    prisma
+                })).regularLevel
+            }),
         ownershipCheck: ({ params, prisma }) => ownershipCheck({
             params: { collectionId: params.collectionId },
             prisma
@@ -182,12 +180,14 @@ export const dynamicImageOperations = {
 
     updateImageMeta: imageOperations.updateImageMeta.implement({
         authorizer: async ({ params, prisma }) =>
-            dynamicImageAuth.updateImageMeta(await visibility.readDoubleLevelMatrixInternal({
-                params: {
-                    collectionId: (await imageOperations.readCollectionOfImage.internalCall({ params })).id,
-                },
-                prisma
-            })),
+            dynamicImageAuth.updateImageMeta.data({
+                visibility: (await visibility.readDoubleLevelMatrixInternal({
+                    params: {
+                        collectionId: (await imageOperations.readCollectionOfImage.internalCall({ params })).id,
+                    },
+                    prisma
+                })).adminLevel
+            }),
         ownershipCheck: async ({ params, prisma }) => ownershipCheck({
             params: { collectionId: (await imageOperations.readCollectionOfImage.internalCall({ params })).id },
             prisma
@@ -196,12 +196,14 @@ export const dynamicImageOperations = {
 
     destroyImage: imageOperations.destroyImage.implement({
         authorizer: async ({ params, prisma }) =>
-            dynamicImageAuth.destroyImage(await visibility.readDoubleLevelMatrixInternal({
-                params: {
-                    collectionId: (await imageOperations.readCollectionOfImage.internalCall({ params })).id,
-                },
-                prisma
-            })),
+            dynamicImageAuth.destroyImage.data({
+                visibility: (await visibility.readDoubleLevelMatrixInternal({
+                    params: {
+                        collectionId: (await imageOperations.readCollectionOfImage.internalCall({ params })).id,
+                    },
+                    prisma
+                })).adminLevel
+            }),
         ownershipCheck: async ({ params, prisma }) => ownershipCheck({
             params: { collectionId: (await imageOperations.readCollectionOfImage.internalCall({ params })).id },
             prisma
