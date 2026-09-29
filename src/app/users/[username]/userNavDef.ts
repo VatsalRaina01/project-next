@@ -61,6 +61,7 @@ export const userNavDef: UserNavItem[] = [
             admissionAuth.readTrial.dynamicFields({ userId }),
             admissionAuth.createTrial.dynamicFields({}),
             omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}),
+            omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}),
         ],
     },
     {

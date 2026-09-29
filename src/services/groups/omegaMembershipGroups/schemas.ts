@@ -12,6 +12,10 @@ export const omegaMembershipGroupSchemas = {
     ]),
     readUserLevel: userRelation,
     inferUserLevel: userRelation,
+    updateUserOrderParams: userRelation,
+    updateUserOrder: z.object({
+        order: z.coerce.number().int().min(1),
+    }),
     updateUserLevel: z.object({
         userId: z.number(),
         omegaMembershipLevel: z.nativeEnum(OmegaMembershipLevel),

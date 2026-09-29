@@ -369,3 +369,78 @@ describe('inferUserLevel', () => {
         })).level).toBe('SYSKEN')
     })
 })
+
+describe('updateUserOrder', () => {
+    const readOrder = async (userId: number) => (await omegaMembershipGroupOperations.readUserLevel({
+        params: { userId }, bypassAuth: true,
+    })).order
+
+    const setOrder = (userId: number, order: number) => omegaMembershipGroupOperations.updateUserOrder({
+        params: { userId },
+        data: { order },
+        bypassAuth: true,
+    })
+
+    test('moves the active membership to the given order, keeping its level', async () => {
+        const user = await createTestUser('omegaorderone')
+        await setLevel(user.id, 'SOELLE')
+        const { order: current } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+
+        await setOrder(user.id, current - 1)
+
+        const membership = await omegaMembershipGroupOperations.readUserLevel({
+            params: { userId: user.id }, bypassAuth: true,
+        })
+        expect(membership.order).toBe(current - 1)
+        expect(membership.level).toBe('SOELLE')
+        expect(await readOmegaMemberships(user.id)).toHaveLength(1)
+    })
+
+    test('leaves a membership already of that order alone', async () => {
+        const user = await createTestUser('omegaordertwo')
+        const before = await readOrder(user.id)
+
+        await setOrder(user.id, before)
+
+        expect(await readOrder(user.id)).toBe(before)
+        expect(await readOmegaMemberships(user.id)).toHaveLength(1)
+    })
+
+    test('refuses an order that does not exist', async () => {
+        const user = await createTestUser('omegaorderthree')
+        const before = await readOrder(user.id)
+
+        await expect(setOrder(user.id, 9999)).rejects.toThrow(Smorekopp)
+
+        expect(await readOrder(user.id)).toBe(before)
+    })
+
+    test('collapses onto a membership of the same level already sitting at the target order', async () => {
+        const user = await createTestUser('omegaorderfour')
+        await setLevel(user.id, 'SOELLE')
+        const { order: current } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+        const soelle = await prisma.omegaMembershipGroup.findUniqueOrThrow({
+            where: { omegaMembershipLevel: 'SOELLE' },
+        })
+
+        // An inactive duplicate of the same membership, an order behind.
+        await prisma.membership.create({
+            data: {
+                userId: user.id,
+                groupId: soelle.groupId,
+                order: current - 1,
+                admin: false,
+                active: false,
+            },
+        })
+
+        await setOrder(user.id, current - 1)
+
+        const all = await prisma.membership.findMany({
+            where: { userId: user.id, group: { groupType: 'OMEGA_MEMBERSHIP_GROUP' } },
+        })
+        expect(all).toHaveLength(1)
+        expect(all[0].order).toBe(current - 1)
+        expect(all[0].active).toBe(true)
+    })
+})
