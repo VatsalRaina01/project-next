@@ -2,6 +2,7 @@ import { admissionOperations } from '@/services/admission/operations'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { userOperations } from '@/services/users/operations'
 import { prisma } from '@/prisma-pn-client-instance'
+import { Smorekopp } from '@/services/error'
 import { describe, expect, test } from '@jest/globals'
 
 async function createTestUser(username: string) {
@@ -135,5 +136,116 @@ describe('userCompletedTrials', () => {
 
         await prisma.admissionTrial.create({ data: { userId: user.id, admission: 'PROEVELSEN' } })
         expect(await completed()).toBe(true)
+    })
+})
+
+const countTrials = (userId: number) => prisma.admissionTrial.count({ where: { userId } })
+
+const setLevel = (userId: number, omegaMembershipLevel: 'SOELLE' | 'SYSKEN' | 'DEN_GEMENE_HOB') =>
+    omegaMembershipGroupOperations.updateUserLevel({
+        params: { userId, omegaMembershipLevel, onlyUpgrade: false },
+        bypassAuth: true,
+    })
+
+describe('updateUserLevel resets admission trials', () => {
+    test('demoting a sysken to soelle clears the trials they sat', async () => {
+        const user = await createTestUser('omegamembershipsix')
+        await prisma.admissionTrial.createMany({
+            data: [
+                { userId: user.id, admission: 'PLIKTTIAENESTE' },
+                { userId: user.id, admission: 'PROEVELSEN' },
+            ],
+        })
+        await setLevel(user.id, 'SYSKEN')
+        expect(await countTrials(user.id)).toBe(2)
+
+        await setLevel(user.id, 'SOELLE')
+
+        expect(await countTrials(user.id)).toBe(0)
+    })
+
+    test('demoting to den gemene hob clears them too', async () => {
+        const user = await createTestUser('omegamembershipseven')
+        await prisma.admissionTrial.createMany({
+            data: [
+                { userId: user.id, admission: 'PLIKTTIAENESTE' },
+                { userId: user.id, admission: 'PROEVELSEN' },
+            ],
+        })
+        await setLevel(user.id, 'SYSKEN')
+
+        await setLevel(user.id, 'DEN_GEMENE_HOB')
+
+        expect(await countTrials(user.id)).toBe(0)
+    })
+
+    test('promoting to sysken keeps them', async () => {
+        const user = await createTestUser('omegamembershipeight')
+        await setLevel(user.id, 'SOELLE')
+        await prisma.admissionTrial.createMany({
+            data: [
+                { userId: user.id, admission: 'PLIKTTIAENESTE' },
+                { userId: user.id, admission: 'PROEVELSEN' },
+            ],
+        })
+
+        await setLevel(user.id, 'SYSKEN')
+
+        expect(await countTrials(user.id)).toBe(2)
+    })
+})
+
+describe('createTrial only accepts a soelle', () => {
+    const createTrial = (userId: number) => admissionOperations.createTrial({
+        params: { admission: 'PLIKTTIAENESTE' },
+        data: { userId },
+        bypassAuth: true,
+    })
+
+    test('a soelle may sit a trial', async () => {
+        const user = await createTestUser('omegamembershipnine')
+        await setLevel(user.id, 'SOELLE')
+
+        await createTrial(user.id)
+
+        expect(await countTrials(user.id)).toBe(1)
+    })
+
+    test('den gemene hob may not', async () => {
+        const user = await createTestUser('omegamembershipten')
+        expect((await readOmegaMemberships(user.id))[0]
+            .group.omegaMembershipGroup?.omegaMembershipLevel).toBe('DEN_GEMENE_HOB')
+
+        await expect(createTrial(user.id)).rejects.toThrow(Smorekopp)
+        expect(await countTrials(user.id)).toBe(0)
+    })
+
+    test('a sysken may not', async () => {
+        const user = await createTestUser('omegamembositeleven')
+        await setLevel(user.id, 'SYSKEN')
+
+        await expect(createTrial(user.id)).rejects.toThrow(Smorekopp)
+        expect(await countTrials(user.id)).toBe(0)
+    })
+
+    test('sitting the last trial makes the soelle a sysken', async () => {
+        const user = await createTestUser('omegamembershiptwelve')
+        await setLevel(user.id, 'SOELLE')
+
+        await admissionOperations.createTrial({
+            params: { admission: 'PLIKTTIAENESTE' }, data: { userId: user.id }, bypassAuth: true,
+        })
+        expect((await omegaMembershipGroupOperations.readUserLevel({
+            params: { userId: user.id }, bypassAuth: true,
+        })).level).toBe('SOELLE')
+
+        await admissionOperations.createTrial({
+            params: { admission: 'PROEVELSEN' }, data: { userId: user.id }, bypassAuth: true,
+        })
+
+        expect((await omegaMembershipGroupOperations.readUserLevel({
+            params: { userId: user.id }, bypassAuth: true,
+        })).level).toBe('SYSKEN')
+        expect(await countTrials(user.id)).toBe(2)
     })
 })
