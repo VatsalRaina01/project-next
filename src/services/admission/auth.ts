@@ -8,4 +8,7 @@ export const admissionAuth = {
     readTrial: RequireUserIdOrPermission.staticFields({
         permission: 'ADMISSION_TRIAL_ADMIN',
     }),
-}
+    userCompletedTrials: RequireUserIdOrPermission.staticFields({
+        permission: 'ADMISSION_TRIAL_ADMIN',
+    }),
+} as const

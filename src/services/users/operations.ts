@@ -169,17 +169,22 @@ export const userOperations = {
                     userId: user.id
                 }
             })
-            // The class is resolved by the class service rather than dug out of the memberships
-            // above: a user has one class, and deciding which one that is when the data says
-            // otherwise is its job, not every reader's.
-            const userClass = await classOperations.readClassOfUser({
-                params: {
-                    userId: user.id
-                },
-                bypassAuth: true,
-            })
+            const [userClass, omegaMembership] = await Promise.all([
+                classOperations.readClassOfUser({
+                    params: {
+                        userId: user.id
+                    },
+                    bypassAuth: true,
+                }),
+                omegaMembershipGroupOperations.readUserLevel({
+                    params: {
+                        userId: user.id
+                    },
+                    bypassAuth: true,
+                }),
+            ])
 
-            return { user, memberships, permissions, class: userClass }
+            return { user, memberships, permissions, class: userClass, omegaMembership }
         }
     }),
 
