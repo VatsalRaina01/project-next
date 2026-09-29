@@ -33,6 +33,8 @@ model Event {
   screenPages ScreenPage[]
   cabinEvent  Booking[]
 
+  showToUsersHwoCannotRegister Boolean
+
   // Legacy from old database
   company     Boolean @default(false) // If a plus one is allowed
   lead        String?

@@ -5,9 +5,13 @@ import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
 import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 
 
-export type EventFiltered = Prisma.EventGetPayload<{
+/**
+ * The raw `_count` of registrations is not exposed - `numOfRegistrations` (how many took the places
+ * of the event) and `numOnWaitingList` (how many queue past them) are the numbers to read.
+ */
+export type EventFiltered = Omit<Prisma.EventGetPayload<{
     select: typeof eventFilterSelection
-}> & {
+}>, '_count'> & {
     numOfRegistrations: number,
     numOnWaitingList: number,
 }
@@ -15,7 +19,6 @@ export type EventFiltered = Prisma.EventGetPayload<{
 export type EventExpanded = EventFiltered & {
     coverImage: Pick<ExpandedCmsImage, 'image'>
     tags: EventTag[],
-    onWaitingList?: boolean,
 }
 
 export type EventArchiveCursor = InferPagingCursor<typeof eventSchemas.readManyArchivedPage>
