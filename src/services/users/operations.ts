@@ -108,11 +108,23 @@ export const userOperations = {
         }),
         authorizer: ({ params }) => userAuth.readProfile.dynamicFields({ username: params.username }),
         operation: async ({ prisma, params }) => {
+            const { id: userId } = await prisma.user.findUniqueOrThrow({
+                where: { username: params.username.toLowerCase() },
+                select: { id: true },
+            })
+
+            const omegaMembership = await omegaMembershipGroupOperations.readUserLevel({
+                params: {
+                    userId
+                },
+                bypassAuth: true,
+            })
+
             const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
                 params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
             })
             const user = await prisma.user.findUniqueOrThrow({
-                where: { username: params.username.toLowerCase() },
+                where: { id: userId },
                 select: {
                     ...userFilterSelection,
                     bio: true,
@@ -161,28 +173,20 @@ export const userOperations = {
 
             const memberships = await groupOperations.readMembershipsOfUser.internalCall({
                 params: {
-                    userId: user.id,
+                    userId,
                 }
             })
             const permissions = await permissionOperations.readPermissionsOfUser.internalCall({
                 params: {
-                    userId: user.id
+                    userId
                 }
             })
-            const [userClass, omegaMembership] = await Promise.all([
-                classOperations.readClassOfUser({
-                    params: {
-                        userId: user.id
-                    },
-                    bypassAuth: true,
-                }),
-                omegaMembershipGroupOperations.readUserLevel({
-                    params: {
-                        userId: user.id
-                    },
-                    bypassAuth: true,
-                }),
-            ])
+            const userClass = await classOperations.readClassOfUser({
+                params: {
+                    userId
+                },
+                bypassAuth: true,
+            })
 
             return { user, memberships, permissions, class: userClass, omegaMembership }
         }
