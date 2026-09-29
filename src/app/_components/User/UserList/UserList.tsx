@@ -32,7 +32,11 @@ type PropTypes = {
     disableFilters?: DisableGroupFilters & {
         name?: boolean,
     },
-    linksToUser?: boolean
+    linksToUser?: boolean,
+    /**
+     * Where a row leads when `linksToUser` is set. Defaults to the user's profile.
+     */
+    userHref?: (user: UserPagingReturn) => string,
 }
 
 function getGroupType(groups: ExpandedGroupsOfAllTypes | null, type: GroupType) {
@@ -75,6 +79,8 @@ function getOrdereOptions(group: ExpandedGroup): { value: number | 'NULL', label
  * to the left of the user's name, username, study, and class.
  * @param disableFilters - An object that specifies which filters to disable. The keys are the
  * names of the filters and the values are booleans. If a key is not present, the filter is enabled.
+ * @param linksToUser - Whether clicking a row navigates to the user it is for.
+ * @param userHref - Where such a click leads, if not the user's profile.
  * @returns - A component that displays a list of users with filters for groups and a search bar.
  */
 export default function UserList({
@@ -88,6 +94,7 @@ export default function UserList({
         OMEGA_MEMBERSHIP_GROUP: false
     },
     linksToUser,
+    userHref = user => `/users/${user.username}`,
 }: PropTypes) {
     const userPaging = useContext(UserPagingContext)
     const usersSelection = useContext(UsersSelectionContext)
@@ -320,7 +327,7 @@ export default function UserList({
                                 className={linksToUser ? styles.clickable : ''}
                                 onClick={() => {
                                     if (!linksToUser) return
-                                    router.push(`/users/${user.username}`)
+                                    router.push(userHref(user))
                                 }}
                             >
                                 { usersSelection &&

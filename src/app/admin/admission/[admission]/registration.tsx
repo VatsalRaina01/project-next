@@ -3,7 +3,7 @@
 import styles from './registration.module.scss'
 import Form from '@/components/Form/Form'
 import OmegaIdReader from '@/components/OmegaId/reader/OmegaIdReader'
-import TextInput from '@/components/UI/TextInput'
+import UserList from '@/components/User/UserList/UserList'
 import { createAdmissionTrialAction } from '@/services/admission/actions'
 import { configureAction } from '@/services/configureAction'
 import type { Admission } from '@/prisma-generated-pn-types'
@@ -40,12 +40,24 @@ export default function RegisterAdmissiontrial({
             }}
         />
 
-        <h4>Registrer manuelt</h4>
-        <Form
-            submitText="Registrer"
-            action={configureAction(createAdmissionTrialAction, { params: { admission } })}
-        >
-            <TextInput name="userId" label="userId" />
-        </Form>
+        <h4>Søk opp soellen</h4>
+        <p className={styles.lead}>
+            Kun en soelle kan ta opptaksprøver. Filtrer på medlemskap for å finne dem.
+        </p>
+        {/* A button per row rather than a box to type an id into: who is being registered is then
+            something that was looked up and read back, not something that was remembered. */}
+        <UserList
+            displayForUser={user => (
+                <Form
+                    className={styles.registerForm}
+                    submitText="Registrer"
+                    submitColor="secondary"
+                    refreshOnSuccess
+                    action={configureAction(createAdmissionTrialAction, { params: { admission } })}
+                >
+                    <input type="hidden" name="userId" value={user.id} />
+                </Form>
+            )}
+        />
     </div>
 }
