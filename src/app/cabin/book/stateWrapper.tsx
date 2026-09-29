@@ -18,7 +18,7 @@ import {
     createCabinBookingNoUserAction,
     createCabinBookingUserAttachedAction,
 } from '@/services/cabin/booking/actions'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CabinBookingReservation } from '@/components/Ledger/Modals/CabinBookingPaymentModal'
 import type { CabinProductExtended } from '@/services/cabin/product/constants'
 import type { BookingFiltered } from '@/services/cabin/booking/types'
@@ -117,6 +117,10 @@ export default function StateWrapper({
         reservation: CabinBookingReservation | null,
     }>({ checked: false, reservation: null })
 
+    // Caches the booking created by getReservation below, so a retried payment submission (e.g.
+    // after a declined card) reuses it instead of creating a second, competing booking.
+    const reservationCache = useRef<CabinBookingReservation | null>(null)
+
     const session = useSession()
 
     useEffect(() => {
@@ -185,6 +189,7 @@ export default function StateWrapper({
     const contactMobile = user?.mobile ?? mobile
 
     const startOver = () => {
+        reservationCache.current = null
         clearStoredReservation()
         setReservationState({ checked: true, reservation: null })
     }
@@ -192,8 +197,13 @@ export default function StateWrapper({
     // Reserves the booking (first step of the reserve-then-pay flow) right before payment is
     // submitted. cabinBookingOperations.createPayment (called next, inside
     // CabinBookingPaymentModal) never creates a booking itself - it only pays for one created
-    // here.
+    // here. Caches the result so a retried payment submission (e.g. after a declined card)
+    // reuses the same booking instead of creating a second one that competes for the same dates.
     const getReservation = async (): Promise<ActionReturn<CabinBookingReservation>> => {
+        if (reservationCache.current) {
+            return { success: true, data: reservationCache.current }
+        }
+
         if (!dateRange.start || !dateRange.end) {
             return createActionError('BAD PARAMETERS', 'Velg en periode.')
         }
@@ -229,15 +239,15 @@ export default function StateWrapper({
             return createActionError('SERVER ERROR', 'Reservasjonen fikk ingen utløpstid.')
         }
 
-        return {
-            success: true,
-            data: {
-                bookingId: bookingResult.data.id,
-                secret: bookingResult.data.secret,
-                totalPrice: bookingResult.data.totalPrice,
-                expiresAt: bookingResult.data.transactionTimeout,
-            },
+        const reservationData = {
+            bookingId: bookingResult.data.id,
+            secret: bookingResult.data.secret,
+            totalPrice: bookingResult.data.totalPrice,
+            expiresAt: bookingResult.data.transactionTimeout,
         }
+        reservationCache.current = reservationData
+
+        return { success: true, data: reservationData }
     }
 
     if (reservation) {

@@ -5,6 +5,7 @@ import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { defineOperation } from '@/services/serviceOperation'
 import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
+import { RequireNothing } from '@/auth/authorizer/RequireNothing'
 import { LedgerAccountType } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 import type { LedgerAccount, Prisma } from '@/prisma-generated-pn-types'
@@ -229,11 +230,19 @@ export const ledgerAccountOperations = {
      * @returns The updated account.
      */
     update: defineOperation({
-        authorizer: async ({ params, prisma }) => andAuthorizers(
-            ledgerAccountAuth.update.ledgerUse.dynamicFields({}),
-            ledgerAccountAuth.update.accountAccess.dynamicFields({
-                accounts: [await resolveAccountOwnership(prisma, params)],
-            }),
+        authorizer: async ({ params, data, prisma }) => andAuthorizers(
+            andAuthorizers(
+                ledgerAccountAuth.update.ledgerUse.dynamicFields({}),
+                ledgerAccountAuth.update.accountAccess.dynamicFields({
+                    accounts: [await resolveAccountOwnership(prisma, params)],
+                }),
+            ),
+            // Group links decide who can access the account (RequireLedgerAccountAccess treats
+            // an owning group's members as owners), so changing them needs LEDGER_ADMIN even for
+            // a caller who already owns the account being changed.
+            (data.addGroupIds?.length || data.removeGroupIds?.length)
+                ? ledgerAccountAuth.update.groupAccess.dynamicFields({})
+                : RequireNothing.staticFields({}).dynamicFields({}),
         ),
         paramsSchema: z.object({
             userId: z.number().optional(),

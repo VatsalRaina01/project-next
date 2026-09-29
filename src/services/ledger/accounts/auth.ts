@@ -29,6 +29,9 @@ export const ledgerAccountAuth = {
     update: {
         ledgerUse: RequirePermission.staticFields({ permission: 'LEDGER_USE' }),
         accountAccess: RequireLedgerAccountAccess.staticFields({ permission: 'LEDGER_ADMIN' }),
+        // Group links decide who can access the account, so changing them is LEDGER_ADMIN only,
+        // not covered by ownership like the rest of an update.
+        groupAccess: RequirePermission.staticFields({ permission: 'LEDGER_ADMIN' }),
     },
 
     calculateBalances: RequireLedgerAccountAccess.staticFields({ permission: 'LEDGER_ADMIN' }),
