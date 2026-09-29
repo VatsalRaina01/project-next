@@ -8,7 +8,13 @@ import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
 import { LedgerAccountType } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 import type { LedgerAccount, Prisma } from '@/prisma-generated-pn-types'
-import type { Balance, BalanceRecord } from './types'
+import type { Balance, BalanceRecord, ExpandedLedgerAccount } from './types'
+
+// Resolves the account type the same way `create` below actually persists it, so its
+// authorizer can gate on the type a caller who omitted it will really end up with.
+function resolveCreateType(data: { type?: LedgerAccountType, userId?: number }): LedgerAccountType {
+    return data.type ?? (data.userId !== undefined ? 'USER' : 'GROUP')
+}
 
 // Nested calls between these operations are not bypassed unless noted otherwise: the checks
 // involved are cheap (a session permission, or one indexed lookup), so checking access again
@@ -26,14 +32,21 @@ export const ledgerAccountOperations = {
      * @returns The created account.
      */
     create: defineOperation({
-        authorizer: () => ledgerAccountAuth.create.dynamicFields({}),
+        // A USER account is a caller creating their own account (LEDGER_USE is enough - see
+        // readOrCreate). A GROUP account has no such self-service angle, so it's admin-only.
+        authorizer: ({ data }) => (
+            resolveCreateType(data) === 'GROUP'
+                ? ledgerAccountAuth.create.ledgerAdmin.dynamicFields({})
+                : ledgerAccountAuth.create.ledgerUse.dynamicFields({})
+        ),
         dataSchema: ledgerAccountSchemas.create,
         operation: async ({ prisma, data }): Promise<LedgerAccount> => {
-            const type = data.type ?? (data.userId !== undefined ? 'USER' : 'GROUP')
+            const type = resolveCreateType(data)
 
             return prisma.ledgerAccount.create({
                 data: {
                     type,
+                    name: data.name,
                     userId: data.userId,
                     groups: data.groupIds ? {
                         createMany: {
@@ -71,12 +84,22 @@ export const ledgerAccountOperations = {
             ({ userId, ledgerAccountId }) => userId !== undefined || ledgerAccountId !== undefined,
             'Enten bruker ID eller konto ID må være oppgitt.',
         ),
-        operation: async ({ prisma, params }): Promise<LedgerAccount> => await prisma.ledgerAccount.findFirstOrThrow({
-            where: {
-                id: params.ledgerAccountId,
-                userId: params.userId,
-            },
-        }),
+        operation: async ({ prisma, params }): Promise<ExpandedLedgerAccount> => {
+            const account = await prisma.ledgerAccount.findFirstOrThrow({
+                where: {
+                    id: params.ledgerAccountId,
+                    userId: params.userId,
+                },
+                include: {
+                    groups: { select: { groupId: true } },
+                },
+            })
+
+            return {
+                ...account,
+                groupIds: account.groups.map(group => group.groupId),
+            }
+        },
     }),
 
     /**

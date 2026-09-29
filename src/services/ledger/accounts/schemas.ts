@@ -1,10 +1,13 @@
 import { LedgerAccountType } from '@/prisma-generated-pn/enums'
+import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
 const ledgerAcccountSchema = z.object({
     type: z.nativeEnum(LedgerAccountType),
+    // Display name for the account. Only meaningful for GROUP accounts (see LedgerAccount.name).
+    name: z.string().optional(),
     userId: z.number().optional(),
-    groupIds: z.number().array().optional(),
+    groupIds: Zpn.numberListCheckboxFriendly({ label: 'Grupper' }).optional(),
     payoutAccountNumber: z.string().optional(),
     frozen: z.boolean(),
 })
@@ -12,6 +15,7 @@ const ledgerAcccountSchema = z.object({
 export const ledgerAccountSchemas = {
     create: ledgerAcccountSchema.partial().pick({
         type: true,
+        name: true,
         userId: true,
         groupIds: true,
         payoutAccountNumber: true,
@@ -43,6 +47,7 @@ export const ledgerAccountSchemas = {
     }),
 
     update: ledgerAcccountSchema.partial().pick({
+        name: true,
         payoutAccountNumber: true,
         userId: true,
         groupIds: true,

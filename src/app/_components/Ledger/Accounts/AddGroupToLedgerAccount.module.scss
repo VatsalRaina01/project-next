@@ -1,0 +1,8 @@
+@use '@/styles/ohma';
+
+.addGroup {
+    display: flex;
+    align-items: flex-end;
+    gap: ohma.$gap;
+    margin-top: ohma.$gap;
+}
