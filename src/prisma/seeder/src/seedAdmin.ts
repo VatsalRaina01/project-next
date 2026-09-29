@@ -1,3 +1,4 @@
+import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import logger from '@/lib/logger'
 import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { Permission } from '@/prisma-generated-pn-types'
@@ -97,6 +98,21 @@ export default async function seedAdmin(prisma: PrismaClientPn) {
             emailVerified: new Date(),
             acceptedTerms: new Date(),
         },
+    })
+
+    // Every user holds exactly one omega membership, and the admin is created here with raw
+    // prisma rather than through userOperations.create, which is what normally places one. A
+    // user holding none is a state the system calls broken and rewrites at read time, so the
+    // admin is placed the same way a new user is: at the level their study programmes imply,
+    // and only ever upwards, so re-seeding cannot demote an account the admin name matched.
+    const omegaMembershipLevel = await omegaMembershipGroupOperations.inferUserLevel({
+        params: { userId: user.id },
+        bypassAuth: true,
+    })
+
+    await omegaMembershipGroupOperations.updateUserLevel({
+        params: { userId: user.id, omegaMembershipLevel, onlyUpgrade: true },
+        bypassAuth: true,
     })
 
     // Upserted rather than nested in the create above, which only ever ran for a brand
