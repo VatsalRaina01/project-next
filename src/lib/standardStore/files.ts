@@ -1,14 +1,13 @@
 import { licenseOperations } from '@/services/licenses/operations'
 import { mimeTypeForExtension } from '@/lib/store/fileExtensions'
 import { readFile } from 'fs/promises'
-import { dirname, join } from 'path'
-import { fileURLToPath } from 'url'
+import { join } from 'path'
 import { File } from 'node:buffer'
 import type { StandardLicenseName } from '@/services/licenses/constants'
 import type { imageSchemas } from '@/services/images/subservice/schemas'
 import type { z } from 'zod'
 
-const standardStoreRoot = join(dirname(fileURLToPath(import.meta.url)), '../../../standard_store/')
+const standardStoreRoot = join(process.cwd(), 'standard_store')
 
 export type StandardStoreFile = {
     file: () => Promise<File>,

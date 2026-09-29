@@ -11,7 +11,7 @@ import UserDisplayName from '@/components/User/UserDisplayName'
 import Slider from '@/components/UI/Slider'
 import Form from '@/components/Form/Form'
 import ContactCard from '@/components/User/ContactCard'
-import { eventRegistrationDestroyAction } from '@/services/events/registration/actions'
+import { destroyEventRegistrationAction } from '@/services/events/registration/actions'
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
 import { configureAction } from '@/services/configureAction'
 import Link from 'next/link'
@@ -63,7 +63,7 @@ function DetailedTable({
                                 <td>
                                     <Form
                                         action={configureAction(
-                                            eventRegistrationDestroyAction,
+                                            destroyEventRegistrationAction,
                                             { params: { registrationId: row.id } }
                                         )}
                                         submitText="Slett"
@@ -104,14 +104,14 @@ function DefaultList({
         <div className={styles.RegistrationsList}>
             <EndlessScroll
                 pagingContext={EventRegistrationPagingContext}
-                renderer={(row, i) => {
+                renderer={row => {
                     if (row.user) {
-                        return <UserCard key={i} user={{
+                        return <UserCard key={row.id} user={{
                             ...row.user,
                             image: row.image
                         }} className={styles.userCard} />
                     }
-                    return <ContactCard key={i} name={row.contact?.name ?? 'Ukjent'} image={row.image} />
+                    return <ContactCard key={row.id} name={row.contact?.name ?? 'Ukjent'} image={row.image} />
                 }}
             />
         </div>

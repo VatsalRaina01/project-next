@@ -56,19 +56,9 @@ export const permissionConfig = {
         description: 'kan lese Omega medlemsgrupper',
         category: 'groups',
     },
-    CLASS_CREATE: {
-        name: 'Lage klasse',
-        description: 'kan lage klasse',
-        category: 'groups',
-    },
-    CLASS_UPDATE: {
-        name: 'Oppdatere klasse',
-        description: 'kan oppdatere klasse',
-        category: 'groups',
-    },
-    CLASS_DESTROY: {
-        name: 'Slette klasse',
-        description: 'kan slette klasse',
+    OMEGA_MEMBERSHIP_GROUP_ADMIN: {
+        name: 'Administrer Omega medlemsgrupper',
+        description: 'kan endre hvilken medlemsgruppe en bruker tilhører',
         category: 'groups',
     },
     CLASS_READ: {
@@ -76,14 +66,9 @@ export const permissionConfig = {
         description: 'kan lese klasse',
         category: 'groups',
     },
-    COMMITTEE_CREATE: {
-        name: 'Lage komite',
-        description: 'kan lage komite',
-        category: 'groups',
-    },
-    COMMITTEE_DESTROY: {
-        name: 'Slette komite',
-        description: 'kan slette komite',
+    CLASS_ADMIN: {
+        name: 'Administrer klasser',
+        description: 'kan endre hvilken klasse en bruker er i og rykke opp klassene',
         category: 'groups',
     },
     COMMITTEE_READ: {
@@ -91,9 +76,9 @@ export const permissionConfig = {
         description: 'kan lese komite',
         category: 'groups',
     },
-    COMMITTEE_UPDATE: {
-        name: 'Oppdatere komite',
-        description: 'kan oppdatere komite',
+    COMMITTEE_ADMIN: {
+        name: 'Administrer komiteer',
+        description: 'kan lage, endre og slette komiteer, og administrere medlemmene i dem',
         category: 'groups',
     },
     INTEREST_GROUP_READ: {
@@ -106,44 +91,24 @@ export const permissionConfig = {
         description: 'Administrere interessegruppe uten å være admin i gruppen. Og lage nye grupper',
         category: 'groups',
     },
-    OMEGA_MEMBERSHIP_GROUP_UPDATE: {
-        name: 'Oppdatere Omega medlemsgrupper',
-        description: 'kan oppdatere Omega medlemsgrupper',
-        category: 'groups',
-    },
-    STUDY_PROGRAMME_CREATE: {
-        name: 'Lage studieprogram',
-        description: 'kan lage studieprogram',
-        category: 'groups',
-    },
-    STUDY_PROGRAMME_DESTROY: {
-        name: 'Slette studieprogram',
-        description: 'kan slette studieprogram',
-        category: 'groups',
-    },
     STUDY_PROGRAMME_READ: {
         name: 'Les studieprogram',
         description: 'kan lese studieprogram',
         category: 'groups',
     },
-    STUDY_PROGRAMME_UPDATE: {
-        name: 'Oppdatere studieprogram',
-        description: 'kan oppdatere studieprogram',
+    STUDY_PROGRAMME_ADMIN: {
+        name: 'Administrer studieprogram',
+        description: 'kan lage, endre og slette studieprogram, og administrere medlemmene i dem',
         category: 'groups',
     },
-    GROUP_READ: {
-        name: 'Les grupper',
-        description: 'kan lese grupper',
+    MANUAL_GROUP_READ: {
+        name: 'Les andre grupper',
+        description: 'kan lese andre grupper',
         category: 'groups',
     },
-    GROUP_DESTROY: {
-        name: 'Slette grupper',
-        description: 'kan slette grupper',
-        category: 'groups',
-    },
-    GROUP_ADMIN: {
-        name: 'Gruppeadministrator',
-        description: 'kan administrere grupper',
+    MANUAL_GROUP_ADMIN: {
+        name: 'Administrer andre grupper',
+        description: 'kan opprette, oppdatere og slette andre grupper, og styre medlemmene deres',
         category: 'groups',
     },
     JOBAD_CREATE: {
@@ -181,9 +146,14 @@ export const permissionConfig = {
         description: 'kan administrere frontpage',
         category: 'public',
     },
-    PUBLIC_ARTICLE_ADMIN: {
-        name: 'Administrere offentlige artikler',
-        description: 'kan administrere offentlige artikler',
+    NEW_STUDENT_ADMIN: {
+        name: 'Administrere ny student siden',
+        description: 'kan administrere artikkelen på ny student siden',
+        category: 'public',
+    },
+    REPORT_ADMIN: {
+        name: 'Administrere varslingssiden',
+        description: 'kan administrere artikkelen på varslingssiden',
         category: 'public',
     },
     USERS_CREATE: {
@@ -308,9 +278,9 @@ export const permissionConfig = {
         description: 'kan administrere epostliste og tilknyttede relasjoner',
         category: 'mail',
     },
-    ADMISSION_TRIAL_CREATE: {
-        name: 'Lage opptak prøve',
-        description: 'kan lage opptak prøve',
+    ADMISSION_TRIAL_ADMIN: {
+        name: 'Administrere opptaksprøver',
+        description: 'kan lage og lese opptaksprøver for alle brukere',
         category: 'brukere',
     },
     APIKEY_ADMIN: {
@@ -416,26 +386,6 @@ export const permissionConfig = {
             legge til en lisens uavhengig av denne tillatelsen
         `,
         category: 'diverse admin'
-    },
-    EVENT_READ: {
-        name: 'Les arrangementer',
-        description: 'kan lese arrangementer',
-        category: 'events'
-    },
-    EVENT_REGISTRATION_CREATE: {
-        name: 'Meld deg på arrangementer',
-        description: 'kan melde seg på arrangementer',
-        category: 'events'
-    },
-    EVENT_REGISTRATION_DESROY: {
-        name: 'Meld deg av arrangementer',
-        description: 'kan melde seg av arrangementer',
-        category: 'events'
-    },
-    EVENT_REGISTRATION_READ: {
-        name: 'Les påemeldinger',
-        description: 'kan lese påmeldinger',
-        category: 'events'
     },
     CABIN_BOOKING_BED_CREATE: {
         name: 'Booke senger i hytta',

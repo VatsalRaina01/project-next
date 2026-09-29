@@ -24,8 +24,9 @@ export const COMMITTEE_PERMISSIONS: Permission[] = [
 
 export default async function seedPermissions(prisma: PrismaClientPn) {
     const defaultPermissions: Permission[] = [
-        'GROUP_READ',
+        'MANUAL_GROUP_READ',
         'CLASS_READ',
+        'OMEGA_ORDER_READ',
         'JOBAD_READ',
         'SCHOOLS_READ',
         'COURSES_READ',
@@ -43,7 +44,7 @@ export default async function seedPermissions(prisma: PrismaClientPn) {
     })
 
     const membershipPermissions: Record<OmegaMembershipLevel, Permission[]> = {
-        MEMBER: [
+        SYSKEN: [
             'OMBUL_READ',
             'OMEGAQUOTES_READ',
             'OMEGAQUOTES_WRITE',
@@ -51,9 +52,6 @@ export default async function seedPermissions(prisma: PrismaClientPn) {
             'INTEREST_GROUP_READ',
             'STUDY_PROGRAMME_READ',
             'LOCKER_USE',
-            'EVENT_READ',
-            'EVENT_REGISTRATION_READ',
-            'EVENT_REGISTRATION_CREATE',
             'PURCHASE_CREATE',
             'USERS_READ',
             'CLASS_READ',
@@ -72,8 +70,6 @@ export default async function seedPermissions(prisma: PrismaClientPn) {
             'COMMITTEE_READ',
             'INTEREST_GROUP_READ',
             'STUDY_PROGRAMME_READ',
-            'EVENT_READ',
-            'EVENT_REGISTRATION_READ',
             'USERS_READ',
             'CLASS_READ',
             'OMEGA_MEMBERSHIP_GROUP_READ',
@@ -85,12 +81,12 @@ export default async function seedPermissions(prisma: PrismaClientPn) {
             'CABIN_BOOKING_BED_CREATE',
             'CABIN_CALENDAR_READ',
         ],
-        EXTERNAL: []
+        DEN_GEMENE_HOB: []
     }
 
-    checkForPermissionDuplicates(membershipPermissions.MEMBER, 'MEMBER permissions')
+    checkForPermissionDuplicates(membershipPermissions.SYSKEN, 'SYSKEN permissions')
     checkForPermissionDuplicates(membershipPermissions.SOELLE, 'SOELLE permissions')
-    checkForPermissionDuplicates(membershipPermissions.EXTERNAL, 'EXTERNAL permissions')
+    checkForPermissionDuplicates(membershipPermissions.DEN_GEMENE_HOB, 'DEN_GEMENE_HOB permissions')
 
     for (const [level, permissions] of Object.entries(membershipPermissions)) {
         const membershipType = await prisma.omegaMembershipGroup.findUniqueOrThrow({

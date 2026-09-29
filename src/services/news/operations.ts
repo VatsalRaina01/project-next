@@ -5,7 +5,12 @@ import { newsAuth } from './auth'
 import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { visibilityOperations } from '@/services/visibility/operations'
-import { implementDoubleLevelVisibilityOperations, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
+import {
+    assertAdminLevelIsSubOfRegularLevel,
+    implementDoubleLevelVisibilityOperations,
+    toMatrix,
+    visibilityIncluder
+} from '@/services/visibility/implement'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { ServerError } from '@/services/error'
@@ -81,14 +86,23 @@ export const newsOperations = {
             const backupEndDateTime = new Date()
             backupEndDateTime.setDate(backupEndDateTime.getDate() + defaultNewsArticleOldCutoff)
 
+            assertAdminLevelIsSubOfRegularLevel({
+                regularLevel: { requirements: data.visibilityRegularRequirements },
+                adminLevel: { requirements: data.visibilityAdminRequirements },
+            })
+
             const article = await articleOperations.create.internalCall({
                 data: { name },
                 dataSchemaImplementationFields: { maxNameLength: 30 },
                 operationImplementationFields: { special: null }
             })
 
-            const visibilityRegular = await visibilityOperations.create.internalCall({})
-            const visibilityAdmin = await visibilityOperations.create.internalCall({})
+            const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
+                data: { requirements: data.visibilityRegularRequirements },
+            })
+            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+                data: { requirements: data.visibilityAdminRequirements },
+            })
 
             const news = await prisma.newsArticle.create({
                 data: {

@@ -1,16 +1,24 @@
 import '@pn-server-only'
 import { committeeAuth } from './auth'
-import { committeeExpandedIncluder, committeeLogoIncluder, membershipIncluder } from './constants'
+import { committeeExpandedIncluder, committeeLogoIncluder } from './constants'
 import { committeeSchemas } from './schemas'
 import { committeeLogoImageOperations } from './committeeLogoCollection'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { defineOperation } from '@/services/serviceOperation'
+import {
+    implementGroupType,
+    implementManualMigrationPerGroup,
+    implementSimpleAddRemoveMembersOperation,
+} from '@/services/groups/implementGroupType'
 import { articleRealtionsIncluder } from '@/cms/articles/constants'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { articleOperations } from '@/cms/articles/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
+import { ServerError } from '@/services/error'
 import { GroupType } from '@/prisma-generated-pn-types'
+import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { Prisma } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { z } from 'zod'
 
@@ -71,45 +79,6 @@ const read = defineOperation({
     }
 })
 
-const readMembers = defineOperation({
-    authorizer: () => committeeAuth.readMembers.dynamicFields({}),
-    paramsSchema: z.object({
-        shortName: z.string(),
-        active: z.boolean().optional(),
-    }),
-    operation: async ({ prisma, params }) => {
-        const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
-            params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
-        })
-
-        const commitee = await prisma.committee.findUniqueOrThrow({
-            where: {
-                shortName: params.shortName
-            },
-            select: {
-                group: {
-                    select: {
-                        memberships: {
-                            include: membershipIncluder,
-                            where: {
-                                active: params.active
-                            }
-                        }
-                    }
-                }
-            }
-        })
-
-        return commitee.group.memberships.map(member => ({
-            ...member,
-            user: {
-                ...member.user,
-                image: member.user.image ?? defaultProfileImage
-            }
-        }))
-    }
-})
-
 const readArticle = defineOperation({
     authorizer: () => committeeAuth.readArticle.dynamicFields({}),
     paramsSchema: z.object({
@@ -138,6 +107,27 @@ const readParagraph = defineOperation({
     })).paragraph
 })
 
+/**
+ * A pensioned committee is history: nothing about it may be changed until someone brings it back.
+ * The check sits on every operation that writes, so the rule holds however the operation is reached.
+ */
+async function assertNotPensioned(
+    prisma: PrismaPossibleTransaction<false>,
+    where: Prisma.CommitteeWhereUniqueInput,
+) {
+    const committee = await prisma.committee.findUniqueOrThrow({
+        where,
+        select: { name: true, pensioned: true },
+    })
+
+    if (committee.pensioned) {
+        throw new ServerError(
+            'BAD PARAMETERS',
+            `${committee.name} er pensjonert og kan ikke endres. Gjenopprett komiteen først.`
+        )
+    }
+}
+
 const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
     implementationParamsSchema: z.object({
         shortName: z.string(),
@@ -153,7 +143,9 @@ const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
         (await readParagraph({
             params: { shortName: implementationParams.shortName },
             bypassAuth: true
-        })).id === params.paragraphId
+        })).id === params.paragraphId,
+    beforeRun: ({ prisma, implementationParams }) =>
+        assertNotPensioned(prisma, { shortName: implementationParams.shortName }),
 })
 
 const updateLogo = defineOperation({
@@ -170,6 +162,8 @@ const updateLogo = defineOperation({
     dataSchema: committeeSchemas.updateLogo,
     opensTransaction: true,
     operation: async ({ prisma, params, data }) => {
+        await assertNotPensioned(prisma, { shortName: params.shortName })
+
         const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
             const existingCommittee = await tx.committee.findUniqueOrThrow({
                 where: { shortName: params.shortName },
@@ -209,6 +203,8 @@ const destroy = defineOperation({
         id: z.number()
     }),
     operation: async ({ prisma, params }) => {
+        await assertNotPensioned(prisma, { id: params.id })
+
         const committee = await prisma.committee.delete({
             where: {
                 id: params.id,
@@ -310,6 +306,7 @@ const update = defineOperation({
     }),
     dataSchema: committeeSchemas.update,
     operation: async ({ prisma, params, data }) => {
+        await assertNotPensioned(prisma, { id: params.id })
         const defaultCommitteeLogo = await readDefaultCommitteeLogo()
 
         const committee = await prisma.committee.update({
@@ -342,7 +339,39 @@ const updateArticle = implementUpdateArticleOperations({
     ownedArticles: async ({ implementationParams }) => {
         const article = await readArticle({ params: { shortName: implementationParams.shortName }, bypassAuth: true })
         return [article]
-    }
+    },
+    beforeRun: ({ prisma, implementationParams }) =>
+        assertNotPensioned(prisma, { shortName: implementationParams.shortName }),
+})
+
+const commonGroupOperations = implementGroupType({
+    type: GroupType.COMMITTEE,
+    auth: {
+        readExpanded: committeeAuth.readExpanded.dynamicFields({}),
+        readMembers: ({ groupId }) => committeeAuth.readMembers.dynamicFields({ groupId }),
+    },
+})
+
+const memberManagement = implementSimpleAddRemoveMembersOperation({
+    type: GroupType.COMMITTEE,
+    auth: {
+        addMembers: ({ groupId }) => committeeAuth.addMembers.dynamicFields({ groupId }),
+        removeMembers: ({ groupId }) => committeeAuth.removeMembers.dynamicFields({ groupId }),
+        setMemberAdmin: ({ groupId }) => committeeAuth.setMemberAdmin.dynamicFields({ groupId }),
+        setMemberTitle: ({ groupId }) => committeeAuth.setMemberTitle.dynamicFields({ groupId }),
+    },
+})
+
+const migration = implementManualMigrationPerGroup({
+    type: GroupType.COMMITTEE,
+    auth: {
+        migrateGroup: ({ groupId }) => committeeAuth.migrateGroup.dynamicFields({ groupId }),
+        pension: () => committeeAuth.pension.dynamicFields({}),
+    },
+    setPensioned: (prisma, groupId, pensioned) => prisma.committee.update({
+        where: { groupId },
+        data: { pensioned },
+    }),
 })
 
 export const committeeOperations = {
@@ -351,7 +380,14 @@ export const committeeOperations = {
     updateLogo,
     readAll,
     read,
-    readMembers,
+    readExpanded: commonGroupOperations.readExpanded,
+    readMembers: commonGroupOperations.readMembers,
+    addMembers: memberManagement.addMembers,
+    removeMembers: memberManagement.removeMembers,
+    setMemberAdmin: memberManagement.setMemberAdmin,
+    setMemberTitle: memberManagement.setMemberTitle,
+    migrateGroup: migration.migrateGroup,
+    pension: migration.pension,
     readArticle,
     readParagraph,
     updateParagraphContent,

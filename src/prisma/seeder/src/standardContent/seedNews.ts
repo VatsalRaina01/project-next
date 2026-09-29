@@ -58,7 +58,14 @@ async function upsertNews(prisma: PrismaClient, news: SeedNewsConfig) {
 
 async function createNews(prisma: PrismaClient, news: SeedNewsConfig) {
     const createdNews = await newsOperations.create({
-        data: { name: news.article.name, description: news.description }
+        // Standard content is administrated through the NEWS_ADMIN permission rather than by any
+        // group: a requirement with no conditions can never be satisfied, so the admin level admits
+        // only those who bypass it with that permission.
+        data: {
+            name: news.article.name,
+            description: news.description,
+            visibilityAdminRequirements: [{ conditions: [] }],
+        }
     })
 
     await buildArticleFromConfig({

@@ -6,15 +6,14 @@ import TextInput from '@/components/UI/TextInput'
 import SubmitButton from '@/components/UI/SubmitButton'
 import {
     createEventRegistrationAction,
-    eventRegistrationDestroyAction,
-    eventRegistrationUpdateNotesAction
+    destroyEventRegistrationAction,
+    updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import type { EventExpanded } from '@/services/events/types'
-import type { DotPunishment } from '@/services/events/registration/types'
-import type { EventRegistration } from '@/prisma-generated-pn-types'
+import type { DotPunishment, EventRegistrationWithWaitingList } from '@/services/events/registration/types'
 
 enum RegistrationButtonState {
     NOT_REGISTERED = 'NOT_REGISTERED',
@@ -25,19 +24,20 @@ enum RegistrationButtonState {
     REGISTRATION_NOT_OPEN = 'REGISTRATION_NOT_OPEN',
     REGISTRATION_CLOSED = 'REGISTRATION_CLOSED',
     BANNED_BY_DOTS = 'BANNED_BY_DOTS',
+    NOT_ALLOWED = 'NOT_ALLOWED',
     ERROR = 'ERROR',
 }
 
 export default function RegistrationUI({
     event,
-    onWaitingList,
     registration,
     dotPunishment,
+    canRegister,
 }: {
     event: EventExpanded,
-    onWaitingList: boolean,
-    registration?: EventRegistration,
+    registration: EventRegistrationWithWaitingList | null,
     dotPunishment: DotPunishment | null,
+    canRegister: boolean,
 }) {
     if (!event.takesRegistration) {
         throw new Error('Can only show registration button for event that take registration')
@@ -49,20 +49,23 @@ export default function RegistrationUI({
         new Date(event.registrationStart.getTime() + dotPunishment.punishmentMinutes * 60 * 1000) :
         event.registrationStart
 
-    const getInitialBtnState = (_onWaitingList: boolean, _registration?: EventRegistration) => {
-        if (_onWaitingList) {
-            return RegistrationButtonState.ON_WAITING_LIST
-        }
-        if (_registration) {
-            return RegistrationButtonState.REGISTERED
+    const getInitialBtnState = (ownRegistration: EventRegistrationWithWaitingList | null) => {
+        if (ownRegistration) {
+            return ownRegistration.onWaitingList ?
+                RegistrationButtonState.ON_WAITING_LIST :
+                RegistrationButtonState.REGISTERED
         }
         if (dotPunishment?.type === 'ban') {
             return RegistrationButtonState.BANNED_BY_DOTS
         }
+        // The regular visibility level of the event decides who may register for it at all.
+        if (!canRegister) {
+            return RegistrationButtonState.NOT_ALLOWED
+        }
         if (registrationStart > new Date()) {
             return RegistrationButtonState.REGISTRATION_NOT_OPEN
         }
-        if (event._count.eventRegistrations >= event.places) {
+        if (event.numOfRegistrations >= event.places) {
             if (event.waitingList) {
                 return RegistrationButtonState.WAITING_LIST_OPEN
             }
@@ -77,7 +80,7 @@ export default function RegistrationUI({
     const [errorText, setErrorText] = useState('')
     const [registrationState, setRegistrationState] = useState(registration)
 
-    const [btnState, setBtnState] = useState(getInitialBtnState(onWaitingList, registration))
+    const [btnState, setBtnState] = useState(getInitialBtnState(registration))
     const [btnPending, setBtnPending] = useState(false)
     const [btnKey, setBtnKey] = useState(1)
 
@@ -88,7 +91,7 @@ export default function RegistrationUI({
         let timeoutId: ReturnType<typeof setTimeout>
         if (timeUntilRegistration > 0) {
             timeoutId = setTimeout(() => {
-                setBtnState(RegistrationButtonState.NOT_REGISTERED)
+                setBtnState(getInitialBtnState(registrationState))
             }, timeUntilRegistration)
         }
 
@@ -107,12 +110,12 @@ export default function RegistrationUI({
         setBtnPending(true)
 
         if (registrationState) {
-            const result = await eventRegistrationDestroyAction({
+            const result = await destroyEventRegistrationAction({
                 params: { registrationId: registrationState.id },
             })
             if (result.success) {
-                setBtnState(getInitialBtnState(false, undefined))
-                setRegistrationState(undefined)
+                setBtnState(getInitialBtnState(null))
+                setRegistrationState(null)
             } else if (result.error && result.error.length > 0) {
                 const message = result.error[0].message
                 setErrorText(message)
@@ -130,12 +133,8 @@ export default function RegistrationUI({
             })
 
             if (result.success) {
-                if (result.data.onWaitingList) {
-                    setBtnState(RegistrationButtonState.ON_WAITING_LIST)
-                } else {
-                    setBtnState(RegistrationButtonState.REGISTERED)
-                }
-                setRegistrationState(result.data.result)
+                setBtnState(getInitialBtnState(result.data))
+                setRegistrationState(result.data)
             } else if (result.error && result.error.length > 0) {
                 const message = result.error[0].message
                 setErrorText(message)
@@ -190,6 +189,7 @@ export default function RegistrationUI({
             {btnState === RegistrationButtonState.ERROR && errorText}
             {btnState === RegistrationButtonState.REGISTRATION_CLOSED && 'Påmeldingen er over'}
             {btnState === RegistrationButtonState.BANNED_BY_DOTS && 'Utestengt av prikker'}
+            {btnState === RegistrationButtonState.NOT_ALLOWED && 'Du kan ikke melde deg på dette arrangementet'}
         </SubmitButton>
 
         {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && (
@@ -209,7 +209,7 @@ export default function RegistrationUI({
 
         {registrationState && event.registrationEnd > new Date() && <Form
             action={configureAction(
-                eventRegistrationUpdateNotesAction,
+                updateEventRegistrationNotesAction,
                 { params: { registrationId: registrationState.id } }
             )}
             submitText="Oppdater notat"
