@@ -3,6 +3,7 @@ import { admissionSchemas } from './schemas'
 import { admissionAuth } from './auth'
 import { userFilterSelection } from '@/services/users/constants'
 import { defineOperation } from '@/services/serviceOperation'
+import { ServerError } from '@/services/error'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { Admission } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
@@ -35,6 +36,14 @@ export const admissionOperations = {
             return trials >= Object.keys(Admission).length
         }
     }),
+    /**
+     * Registers that the user has sat the given trial, and makes them a sysken once that was the
+     * last one they had left.
+     *
+     * Only a soelle sits trials: den gemene hob has not been let in to start their admission, and a
+     * sysken has already finished it. Anyone else is therefore turned away rather than quietly
+     * given a trial that would never add up to anything.
+     */
     createTrial: defineOperation({
         authorizer: () => admissionAuth.createTrial.dynamicFields({}),
         paramsSchema: z.object({
@@ -42,6 +51,20 @@ export const admissionOperations = {
         }),
         dataSchema: admissionSchemas.createTrial,
         operation: async ({ prisma, session, params, data }): Promise<ExpandedAdmissionTrail> => {
+            const omegaMembership = await omegaMembershipGroupOperations.readUserLevel({
+                params: {
+                    userId: data.userId
+                },
+                bypassAuth: true,
+            })
+
+            if (omegaMembership.level !== 'SOELLE') {
+                throw new ServerError(
+                    'BAD PARAMETERS',
+                    'Opptaksprøver kan kun registreres for en soelle.'
+                )
+            }
+
             const results = await prisma.admissionTrial.create({
                 data: {
                     user: {

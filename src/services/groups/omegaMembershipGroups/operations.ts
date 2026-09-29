@@ -94,7 +94,19 @@ const updateUserLevel = defineOperation({
 
         const currentOmegaOrder = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
+        // Admission trials are what earns a soelle their place as a sysken, so a user being put
+        // anywhere below sysken has not earned it - and must not be left holding a completed set of
+        // trials, which is what `readUserLevel` reads to decide who a user is when it has to guess.
+        const keepsTrials = omegaMembershipGTEQ(params.omegaMembershipLevel, 'SYSKEN')
+
         await prisma.$transaction([
+            ...(keepsTrials ? [] : [
+                prisma.admissionTrial.deleteMany({
+                    where: {
+                        userId: params.userId,
+                    }
+                }),
+            ]),
             prisma.membership.deleteMany({
                 where: {
                     userId: params.userId,
