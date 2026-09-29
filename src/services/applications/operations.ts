@@ -11,7 +11,7 @@ export const applicationOperations = {
             userId: z.number(),
             periodId: z.number()
         }),
-        authorizer: ({ params }) => applicationAuth.readForUser.data({ //: params.userId }),
+        authorizer: ({ params }) => applicationAuth.readForUser.data({ userId: params.userId }),
         operation: async ({ prisma, params }) => prisma.application.findMany({
             where: {
                 userId: params.userId,
