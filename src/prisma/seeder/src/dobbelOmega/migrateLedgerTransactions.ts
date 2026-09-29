@@ -1,4 +1,4 @@
-import { owIdToPnId, type IdMapper } from './IdMapper'
+import { owIdToPnId, type IdMapper, type MappedResource } from './IdMapper'
 import manifest from '@/prisma/seeder/src/dobbelOmega/manifest'
 import type { Prisma, PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
 import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
@@ -28,8 +28,14 @@ function toLegacyJson(row: unknown): Prisma.InputJsonValue {
  * legacy suspense account (and logging it) whenever the real counterpart can't be resolved -
  * e.g. the OW row was deleted/orphaned, or its owning committee/user wasn't migrated.
  */
-function resolveOrSuspend(mapper: IdMapper, owId: number | null, legacySuspenseAccountId: number, context: string): number {
-    const resolved = owIdToPnId(mapper, owId)
+function resolveOrSuspend(
+    mapper: IdMapper,
+    owId: number | null,
+    resource: MappedResource,
+    legacySuspenseAccountId: number,
+    context: string,
+): number {
+    const resolved = owIdToPnId(mapper, owId, resource)
     if (resolved) return resolved
     manifest.info(`${context}: could not resolve OW account id ${owId ?? 'null'} - routing to the legacy suspense account.`)
     return legacySuspenseAccountId
@@ -44,7 +50,8 @@ async function migrateManualDeposits(
 
     await Promise.all(deposits.map(async deposit => {
         const ledgerAccountId = resolveOrSuspend(
-            userAccountIdMap, deposit.MoneySourceAccountId, legacySuspenseAccountId, `MoneyManualDeposits ${deposit.id}`
+            userAccountIdMap, deposit.MoneySourceAccountId, 'user accounts', legacySuspenseAccountId,
+            `MoneyManualDeposits ${deposit.id}`
         )
 
         await pnPrisma.ledgerTransaction.create({
@@ -108,7 +115,8 @@ async function migrateStripeDeposits(
 
     await Promise.all(deposits.map(async deposit => {
         const ledgerAccountId = resolveOrSuspend(
-            userAccountIdMap, deposit.MoneySourceAccountId, legacySuspenseAccountId, `MoneyStripeDeposits ${deposit.id}`
+            userAccountIdMap, deposit.MoneySourceAccountId, 'user accounts', legacySuspenseAccountId,
+            `MoneyStripeDeposits ${deposit.id}`
         )
         const states = stripeStateMap[deposit.status]
 
@@ -166,7 +174,8 @@ async function migrateTransfers(
 
     await Promise.all(transfers.map(async transfer => {
         const ledgerAccountId = resolveOrSuspend(
-            drainAccountIdMap, transfer.MoneyDrainAccountId, legacySuspenseAccountId, `MoneyTransfers ${transfer.id}`
+            drainAccountIdMap, transfer.MoneyDrainAccountId, 'drain accounts', legacySuspenseAccountId,
+            `MoneyTransfers ${transfer.id}`
         )
 
         await pnPrisma.ledgerTransaction.create({
@@ -252,7 +261,7 @@ async function migratePayments({
         const purpose = link || commodity.type === 'event' ? 'EVENT_PAYMENT' : 'SHOP_PURCHASE'
         let eventRegistrationId: number | undefined
         if (link) {
-            const resolved = owIdToPnId(eventRegistrationIdMap, link.registration.id)
+            const resolved = owIdToPnId(eventRegistrationIdMap, link.registration.id, 'event registrations')
             if (!resolved) {
                 manifest.info(
                     `MoneyPayments ${payment.id}: could not resolve migrated event registration ` +
@@ -263,10 +272,11 @@ async function migratePayments({
         }
 
         const debitAccountId = resolveOrSuspend(
-            userAccountIdMap, payment.MoneySourceAccountId, legacySuspenseAccountId, `MoneyPayments ${payment.id}`
+            userAccountIdMap, payment.MoneySourceAccountId, 'user accounts', legacySuspenseAccountId,
+            `MoneyPayments ${payment.id}`
         )
         const creditAccountId = resolveOrSuspend(
-            drainAccountIdMap, commodity.MoneyDrainAccountId, legacySuspenseAccountId,
+            drainAccountIdMap, commodity.MoneyDrainAccountId, 'drain accounts', legacySuspenseAccountId,
             `MoneyPayments ${payment.id} (commodity ${commodity.id})`
         )
 

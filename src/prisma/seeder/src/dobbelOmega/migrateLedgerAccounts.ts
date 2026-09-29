@@ -57,7 +57,7 @@ export default async function migrateLedgerAccounts(
 
     const drainAccountIdMap: IdMapper = await Promise.all(drainAccounts.map(async account => {
         const committeeId = account.SpecialRoles?.CommitteeId ?? null
-        const groupId = owIdToPnId(committeeGroupIdMap, committeeId)
+        const groupId = owIdToPnId(committeeGroupIdMap, committeeId, 'committees')
 
         if (account.SpecialRoleId && !groupId) {
             manifest.info(
