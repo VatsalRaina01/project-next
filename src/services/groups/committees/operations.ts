@@ -15,7 +15,7 @@ import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { articleOperations } from '@/cms/articles/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { GroupType } from '@/prisma-generated-pn-types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -121,7 +121,7 @@ async function assertNotPensioned(
     })
 
     if (committee.pensioned) {
-        throw new ServerError(
+        throw new ServiceError(
             'BAD PARAMETERS',
             `${committee.name} er pensjonert og kan ikke endres. Gjenopprett komiteen først.`
         )

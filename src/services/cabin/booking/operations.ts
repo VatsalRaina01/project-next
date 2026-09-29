@@ -6,7 +6,7 @@ import { cabinBookingFilerSelection, cabinBookingIncluder } from './constants'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
 import { cabinProductPriceIncluder } from '@/services/cabin/product/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { sendSystemMail } from '@/lib/email/send'
 import { notificationOperations } from '@/services/notifications/operations'
@@ -62,17 +62,17 @@ const create = defineSubOperation({
         })
 
         if (latestReleaseDate === null) {
-            throw new ServerError('SERVER ERROR', 'Hyttebooking siden er ikke tilgjengelig.')
+            throw new ServiceError('SERVER ERROR', 'Hyttebooking siden er ikke tilgjengelig.')
         }
 
         if (data.end > latestReleaseDate.releaseUntil) {
-            throw new ServerError('BAD PARAMETERS', 'Hytta kan ikke bookes etter siste slippdato.')
+            throw new ServiceError('BAD PARAMETERS', 'Hytta kan ikke bookes etter siste slippdato.')
         }
 
         if (!await cabinAvailable.internalCall({
             params: data,
         })) {
-            throw new ServerError('BAD PARAMETERS', 'Hytta er ikke tilgjengelig i den perioden.')
+            throw new ServiceError('BAD PARAMETERS', 'Hytta er ikke tilgjengelig i den perioden.')
         }
 
         const products = await prisma.cabinProduct.findMany({
@@ -84,7 +84,7 @@ const create = defineSubOperation({
             include: cabinProductPriceIncluder,
         })
         if (products.length !== params.bookingProducts.length) {
-            throw new ServerError('BAD PARAMETERS', 'Kunne ikke finne alle hytta produktene. Duplikater er ikke tillat.')
+            throw new ServiceError('BAD PARAMETERS', 'Kunne ikke finne alle hytta produktene. Duplikater er ikke tillat.')
         }
 
         const productsInOrder: CabinProductExtended[] = []
@@ -92,32 +92,32 @@ const create = defineSubOperation({
         for (const paramProduct of params.bookingProducts) {
             const product = products.find(prodItem => prodItem.id === paramProduct.cabinProductId)
             if (!product) {
-                throw new ServerError('UNKNOWN ERROR', 'Kunne ikke finne mengden av produktet.')
+                throw new ServiceError('UNKNOWN ERROR', 'Kunne ikke finne mengden av produktet.')
             }
             productsInOrder.push(product)
 
             if (product.type !== params.bookingType) {
-                throw new ServerError('BAD PARAMETERS', 'Alle produktene må ha samme type som bookingen.')
+                throw new ServiceError('BAD PARAMETERS', 'Alle produktene må ha samme type som bookingen.')
             }
 
             if (product.amount < paramProduct.quantity) {
-                throw new ServerError('BAD PARAMETERS', 'Det er ikke nok av produktet til å oppfylle bookingen.')
+                throw new ServiceError('BAD PARAMETERS', 'Det er ikke nok av produktet til å oppfylle bookingen.')
             }
         }
 
         if (params.bookingType === 'EVENT' && params.bookingProducts.length !== 0) {
-            throw new ServerError('BAD PARAMETERS', 'Hvad der hender bookinger kan ikke inneholde produkter.')
+            throw new ServiceError('BAD PARAMETERS', 'Hvad der hender bookinger kan ikke inneholde produkter.')
         }
 
         if (params.bookingType === 'CABIN' &&
             params.bookingProducts.length !== 1 &&
             params.bookingProducts[0].quantity !== 1
         ) {
-            throw new ServerError('BAD PARAMETERS', 'Hyttebookinger kan bare inneholde ett produkt med mengde 1.')
+            throw new ServiceError('BAD PARAMETERS', 'Hyttebookinger kan bare inneholde ett produkt med mengde 1.')
         }
 
         if (params.bookingType === 'BED' && params.bookingProducts.length === 0) {
-            throw new ServerError('BAD PARAMETERS', 'Sengebookinger må inneholde minst ett produkt.')
+            throw new ServiceError('BAD PARAMETERS', 'Sengebookinger må inneholde minst ett produkt.')
         }
 
         const pricePeriods = await cabinPricePeriodOperations.readMany({ bypassAuth: true })

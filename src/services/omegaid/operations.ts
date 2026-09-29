@@ -4,7 +4,7 @@ import { omegaIdSchemas } from './schemas'
 import { OmegaIdExpiryTime } from './constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { generateJWT } from '@/jwt/jwt'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 
 export const omegaIdOperations = {
     generate: defineOperation({
@@ -18,7 +18,7 @@ export const omegaIdOperations = {
         operation: () => {
             const key = process.env.JWT_PUBLIC_KEY
             if (!key) {
-                throw new ServerError('INVALID CONFIGURATION', 'The JWT_PUBLIC_KEY must be set')
+                throw new ServiceError('INVALID CONFIGURATION', 'The JWT_PUBLIC_KEY must be set')
             }
             return key
         },

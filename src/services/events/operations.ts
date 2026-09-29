@@ -4,7 +4,7 @@ import { eventSchemas } from './schemas'
 import { eventFilterSelection } from './constants'
 import { notificationOperations } from '@/services/notifications/operations'
 import { getOsloTime } from '@/lib/dates/getOsloTime'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
@@ -147,15 +147,15 @@ export const eventOperations = {
             })
 
             if (data.eventStart > data.eventEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Event må jo strate før den slutter')
+                throw new ServiceError('BAD PARAMETERS', 'Event må jo strate før den slutter')
             }
 
             if (data.registrationStart && data.registrationEnd && data.registrationStart > data.registrationEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Påmelding må jo strate før den slutter')
+                throw new ServiceError('BAD PARAMETERS', 'Påmelding må jo strate før den slutter')
             }
 
             if (data.registrationStart && !data.registrationEnd || !data.registrationStart && data.registrationEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
+                throw new ServiceError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
             }
 
             const cmsParagraph = await cmsParagraphOperations.create.internalCall({
@@ -322,15 +322,15 @@ export const eventOperations = {
             })
 
             if ((data.eventStart ?? event?.eventStart) > (data.eventEnd ?? event?.eventEnd)) {
-                throw new ServerError('BAD PARAMETERS', 'Event må jo strate før den slutter')
+                throw new ServiceError('BAD PARAMETERS', 'Event må jo strate før den slutter')
             }
 
             if (data.registrationStart && data.registrationEnd && data.registrationStart > data.registrationEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Påmelding må jo strate før den slutter')
+                throw new ServiceError('BAD PARAMETERS', 'Påmelding må jo strate før den slutter')
             }
 
             if (data.registrationStart && !data.registrationEnd || !data.registrationStart && data.registrationEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
+                throw new ServiceError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
             }
 
             const eventUpdate = await prisma.event.update({
