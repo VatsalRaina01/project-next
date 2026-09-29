@@ -1,11 +1,8 @@
 import { AuthResult } from './AuthResult'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { visibilityFilter as buildVisibilityFilter } from '@/auth/visibility/visibilityFilter'
-import { verifyJWT } from '@/lib/jwt/jwt'
-import { ServerError } from '@/services/error'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
-import type { OmegaJWTAudience } from '@/lib/jwt/types'
 import type { Permission } from '@/prisma-generated-pn-types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
 
@@ -187,25 +184,6 @@ export class RequireBuilder<Data extends object = NoData, PrismaWhereFilter exte
                 ? { success: true }
                 : { success: true, prismaWhereFilter: buildVisibilityFilter(session.memberships) }
         ))
-    }
-
-    /**
-     * Verifies a JWT was signed for `audience` — needs `{ token: string }` supplied via `.data()`.
-     * Mirrors the legacy `RequireJWT` authorizer: a `ServerError` with any other code (e.g. missing
-     * server configuration) is rethrown rather than treated as a failed authorization.
-     */
-    jwt(audience: OmegaJWTAudience, opts?: { errorMessage?: string }): RequireBuilder<Data & { token: string }> {
-        return this.and<{ token: string }>(({ token }) => {
-            try {
-                verifyJWT(token, audience)
-            } catch (err) {
-                if (!(err instanceof ServerError) || (err.errorCode !== 'JWT INVALID' && err.errorCode !== 'JWT EXPIRED')) {
-                    throw err
-                }
-                return { success: false, errorMessage: opts?.errorMessage }
-            }
-            return { success: true }
-        })
     }
 
     /**

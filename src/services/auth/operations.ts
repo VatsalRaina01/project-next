@@ -8,7 +8,7 @@ import { sendLinkFeideAccountMail } from '@/lib/email/systemMail/linkFeideAccoun
 import { defineOperation } from '@/services/serviceOperation'
 import { ServerError } from '@/services/error'
 import { userOperations } from '@/services/users/operations'
-import { readJWTPayload } from '@/lib/jwt/jwtReadUnsecure'
+import { verifyJWT } from '@/lib/jwt/jwt'
 import logger from '@/lib/logger'
 import { z } from 'zod'
 
@@ -39,10 +39,9 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string(),
         }),
-        authorizer: ({ params }) => authAuth.verifyEmail.data({ token: params.token }),
+        authorizer: () => authAuth.verifyEmail,
         operation: async ({ prisma, params }) => {
-            // INFO: Safe to parse unsafe since the authorizer has verified the token.
-            const payload = readJWTPayload(params.token)
+            const payload = verifyJWT(params.token, 'verifyemail')
 
             if (!payload.sub || !payload.email || !payload.iat) {
                 throw new ServerError('JWT INVALID', 'The JWT does not contain the mandatory fields')
@@ -81,10 +80,9 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string()
         }),
-        authorizer: ({ params }) => authAuth.resetPassword.data({ token: params.token }),
+        authorizer: () => authAuth.resetPassword,
         operation: async ({ prisma, params }) => {
-            // INFO: Safe to parse unsafe since the authorizer has verified the token.
-            const payload = readJWTPayload(params.token)
+            const payload = verifyJWT(params.token, 'resetpassword')
 
             if (!payload.sub || !payload.iat) {
                 throw new ServerError('JWT INVALID', 'The forgot password JWT is not valid')
@@ -114,7 +112,7 @@ export const authOperations = {
             token: z.string()
         }),
         dataSchema: userSchemas.updatePassword,
-        authorizer: ({ params }) => authAuth.resetPassword.data({ token: params.token }),
+        authorizer: () => authAuth.resetPassword,
         operation: async ({ params, data }) => {
             const userId = await authOperations.verifyResetPasswordToken({ params })
 
