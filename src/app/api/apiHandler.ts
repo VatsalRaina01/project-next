@@ -63,10 +63,15 @@ export function apiHandler<
                 }
             }
 
+            let parsedParams
+            if (query) {
+                parsedParams = query(new URL(req.url).searchParams)
+            } else if (params) {
+                parsedParams = params(await rawParams)
+            }
+
             return serviceOperation<'UNSAFE'>({
-                params: query
-                    ? query(new URL(req.url).searchParams)
-                    : params ? params(await rawParams) : undefined,
+                params: parsedParams,
                 data,
                 session,
             })
