@@ -3,6 +3,7 @@ import {
     faCircleDot,
     faCog,
     faHatWizard,
+    faIdCard,
     faKey,
     faPaperPlane,
     faSwatchbook,
@@ -19,6 +20,9 @@ export default function UserAdminNavBar({ username, canAssignFlairs }: PropTypes
         <SubPageNavBar>
             <SubPageNavBarItem icon={faUser} href={`/users/${username}`}>
                 Profil
+            </SubPageNavBarItem>
+            <SubPageNavBarItem icon={faIdCard} href={`/users/${username}/membership-status`}>
+                Medlemsstatus
             </SubPageNavBarItem>
             <SubPageNavBarItem icon={faCircleDot} href={`/users/${username}/dots`}>
                 Prikker

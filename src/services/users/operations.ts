@@ -36,7 +36,7 @@ export const userOperations = {
         authorizer: () => userAuth.create.dynamicFields({}),
         operation: async ({ prisma, data }) => {
             const omegaMembership = await omegaMembershipGroupOperations.read({
-                params: { omegaMembershipLevel: 'EXTERNAL' },
+                params: { omegaMembershipLevel: 'DEN_GEMENE_HOB' },
                 bypassAuth: true,
             })
             const omegaOrder = await omegaOrderOperations.readCurrent({ bypassAuth: true })
@@ -534,7 +534,7 @@ export const userOperations = {
             await omegaMembershipGroupOperations.updateUserLevel({
                 params: {
                     userId: params.id,
-                    omegaMembershipLevel: partOfOmega ? 'SOELLE' : 'EXTERNAL',
+                    omegaMembershipLevel: partOfOmega ? 'SOELLE' : 'DEN_GEMENE_HOB',
                     onlyUpgrade: true,
                 },
                 bypassAuth: true,

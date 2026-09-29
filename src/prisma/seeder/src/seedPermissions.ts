@@ -44,7 +44,7 @@ export default async function seedPermissions(prisma: PrismaClientPn) {
     })
 
     const membershipPermissions: Record<OmegaMembershipLevel, Permission[]> = {
-        MEMBER: [
+        SYSKEN: [
             'OMBUL_READ',
             'OMEGAQUOTES_READ',
             'OMEGAQUOTES_WRITE',
@@ -81,12 +81,12 @@ export default async function seedPermissions(prisma: PrismaClientPn) {
             'CABIN_BOOKING_BED_CREATE',
             'CABIN_CALENDAR_READ',
         ],
-        EXTERNAL: []
+        DEN_GEMENE_HOB: []
     }
 
-    checkForPermissionDuplicates(membershipPermissions.MEMBER, 'MEMBER permissions')
+    checkForPermissionDuplicates(membershipPermissions.SYSKEN, 'SYSKEN permissions')
     checkForPermissionDuplicates(membershipPermissions.SOELLE, 'SOELLE permissions')
-    checkForPermissionDuplicates(membershipPermissions.EXTERNAL, 'EXTERNAL permissions')
+    checkForPermissionDuplicates(membershipPermissions.DEN_GEMENE_HOB, 'DEN_GEMENE_HOB permissions')
 
     for (const [level, permissions] of Object.entries(membershipPermissions)) {
         const membershipType = await prisma.omegaMembershipGroup.findUniqueOrThrow({

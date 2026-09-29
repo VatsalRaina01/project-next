@@ -94,13 +94,13 @@ export default async function User({ params }: PropTypes) {
         switch (omegaMembership?.group.omegaMembershipGroup?.omegaMembershipLevel) {
             case 'SOELLE':
                 return 'Soelle Noviice (avsky!)'
-            case 'MEMBER':
+            case 'SYSKEN':
                 return `
                     ${sexConfig[profile.user.sex ?? 'OTHER'].title}
-                    uudaf ${omegaMembership.order}´dis orden i Sanctus Omega Broderskab
+                    uudaf den ${omegaMembership.order}´dis orden i Sanctus Omega Broderskab
                 `
-            case 'EXTERNAL':
-                return 'Ekstern'
+            case 'DEN_GEMENE_HOB':
+                return 'Fortabt uudi den gemene hob'
             default:
         }
         return 'Kunne ikke finne tittel'

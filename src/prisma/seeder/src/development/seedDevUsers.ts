@@ -26,7 +26,7 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
 
     const memberGroup = await prisma.omegaMembershipGroup.findUniqueOrThrow({
         where: {
-            omegaMembershipLevel: OmegaMembershipLevel.MEMBER
+            omegaMembershipLevel: OmegaMembershipLevel.SYSKEN
         }
     })
 
