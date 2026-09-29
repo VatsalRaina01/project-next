@@ -2,16 +2,41 @@ import { Zpn } from '@/lib/fields/zpn'
 import { imageSchemas } from '@/services/images/subservice/schemas'
 import { z } from 'zod'
 
+/**
+ * The promo link ends up straight in the href of the banner anchor, so it is restricted to
+ * internal paths and http(s) urls. Schemes like `javascript:` would otherwise run on click,
+ * and protocol relative paths (`//host`) would leave the site while looking internal.
+ */
+const promoLinkRefiner = {
+    fcn: (link: string): boolean => {
+        if (link.startsWith('//')) return false
+        if (link.startsWith('/')) return true
+        try {
+            return ['http:', 'https:'].includes(new URL(link).protocol)
+        } catch {
+            return false
+        }
+    },
+    message: 'Lenken må være en intern sti (/...) eller en http(s)-URL'
+}
+
+const dateOrderRefiner = (data: { startDate?: Date, endDate?: Date }) =>
+    !data.startDate || !data.endDate || data.startDate <= data.endDate
+
+const dateOrderMessage = 'Til dato kan ikke være før fra dato'
+
 const baseSchema = z.object({
     title: z.string().min(2, 'min length is 2').max(80, 'max length is 80'),
     text: z.string().min(2, 'min length is 2').max(300, 'max length is 300'),
-    link: z.string().min(1, 'link kan ikke være tom'),
+    link: z.string().min(1, 'link kan ikke være tom').refine(promoLinkRefiner.fcn, {
+        message: promoLinkRefiner.message
+    }),
     startDate: Zpn.date({ label: 'Fra dato' }),
     endDate: Zpn.date({ label: 'Til dato' }),
 })
 
 export const promoSchema = {
-    create: baseSchema.merge(imageSchemas.uploadImage),
-    update: baseSchema.partial(),
+    create: baseSchema.merge(imageSchemas.uploadImage).refine(dateOrderRefiner, dateOrderMessage),
+    update: baseSchema.partial().refine(dateOrderRefiner, dateOrderMessage),
     updateImage: imageSchemas.uploadImage,
 } as const

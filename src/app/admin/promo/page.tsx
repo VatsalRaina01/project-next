@@ -10,6 +10,7 @@ import FileInput from '@/components/UI/FileInput'
 import LicenseChooser from '@/components/LicenseChooser/LicenseChooser'
 import SimpleTable from '@/components/Table/SimpleTable'
 import Image from '@/components/Image/Image'
+import DateDisplay from '@/components/Date/Date'
 
 export default async function PromoAdminPage() {
     const promos = unwrapActionReturn(await readAllPromosAction())
@@ -46,7 +47,11 @@ export default async function PromoAdminPage() {
                 body={promos.map(promo => [
                     <Image key={promo.id} width={100} image={promo.image} hideCredit hideCopyRight />,
                     promo.title,
-                    `${promo.startDate.toLocaleDateString('nb-NO')} – ${promo.endDate.toLocaleDateString('nb-NO')}`,
+                    <>
+                        <DateDisplay date={promo.startDate} includeTime={false} />
+                        {' – '}
+                        <DateDisplay date={promo.endDate} includeTime={false} />
+                    </>,
                     promo.startDate <= now && promo.endDate >= now ? 'Aktiv' : 'Inaktiv',
                 ])}
                 links={promos.map(promo => `/admin/promo/${promo.id}`)}
