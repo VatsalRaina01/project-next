@@ -52,13 +52,13 @@ export const itemsForMenu: NavItem[] = [
         icon: faAddressCard,
     },
     {
-        name: 'For Bedrifter',
+        name: 'For bedrifter',
         href: '/career',
         show: 'loggedOut',
         icon: faSuitcase,
     },
     {
-        name: 'Ny Student?',
+        name: 'Ny student?',
         href: '/articles',
         show: 'loggedOut',
         icon: faGraduationCap,
@@ -94,7 +94,7 @@ export const itemsForMenu: NavItem[] = [
         icon: faComment,
     },
     {
-        name: 'Artikkler',
+        name: 'Artikler',
         href: '/articles',
         show: 'all',
         icon: faSignature,
@@ -118,7 +118,7 @@ export const itemsForMenu: NavItem[] = [
         icon: faCircleInfo,
     },
     {
-        name: 'Intressegrupper',
+        name: 'Interessegrupper',
         href: '/interest-groups',
         show: 'all',
         icon: faGamepad,
@@ -130,7 +130,7 @@ export const itemsForMenu: NavItem[] = [
         icon: faHouseChimneyWindow,
     },
     {
-        name: 'Broedre item Systre',
+        name: 'Broedre iitem Systre',
         href: '/users',
         show: 'loggedIn',
         icon: faPeopleLine,

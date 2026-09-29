@@ -59,7 +59,7 @@ export default function Scanner() {
 
     return (
         <>
-            <h1 className={styles.title}>Scan QR Kode</h1>
+            <h1 className={styles.title}>Skann QR-kode</h1>
             <div className={styles.camera}>
                 <CameraFeed
                     videoRef={videoRef}

@@ -73,7 +73,7 @@ export default function Company({
                     showSettings ? (
                         <SettingsHeaderItemPopUp showButtonClass={styles.showSettings} popUpKey={`Edit ${company.id}`}>
                             <Form
-                                title="Rediger Bedrift"
+                                title="Rediger bedrift"
                                 action={configureAction(updateCompanyAction, { params: { id: company.id } })}
                                 refreshOnSuccess
                                 closePopUpOnSuccess={`Edit ${company.id}`}

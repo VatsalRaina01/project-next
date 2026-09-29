@@ -49,7 +49,7 @@ export default async function JobAd({ params }: PropTypes) {
     if (!jobAdRes.success) {
         //TODO: Handle error in idiomatic way
         if (jobAdRes.errorCode === 'NOT FOUND') notFound()
-        throw new Error('Failed to read jobAd')
+        throw new Error('Kunne ikke laste stillingsannonsen')
     }
     const jobAd = jobAdRes.data
 

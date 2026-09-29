@@ -40,3 +40,17 @@
     color: ohma.$colors-accent-blue;
     text-shadow: 0 0 0.3em color-mix(in srgb, ohma.$colors-accent-blue, transparent 40%);
 }
+
+.lastIncremented {
+    margin: 0;
+    color: ohma.$colors-text-muted;
+}
+
+.requirements {
+    @include ohma.card;
+    background-color: ohma.$colors-surface-raised;
+    padding: calc(3 * #{ohma.$gap});
+    width: 100%;
+    max-width: 700px;
+    text-align: left;
+}

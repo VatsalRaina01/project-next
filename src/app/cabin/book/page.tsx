@@ -5,12 +5,12 @@ import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { default as DateComponent } from '@/components/Date/Date'
 import {
     readCabinAvailabilityAction,
-    readCabinProductsActiveAction,
-    readPublicPricePeriodsAction,
-    readReleasePeriodsAction,
     readSpecialCmsParagraphCabinContractAction,
     updateSpecialCmsParagraphCabinContractAction
-} from '@/services/cabin/actions'
+} from '@/services/cabin/booking/actions'
+import { readCabinProductsActiveAction } from '@/services/cabin/product/actions'
+import { readPublicPricePeriodsAction } from '@/services/cabin/pricePeriod/actions'
+import { readReleasePeriodsAction } from '@/services/cabin/releasePeriod/actions'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { displayDate } from '@/lib/dates/displayDate'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
@@ -54,7 +54,7 @@ export default async function CabinBooking() {
     ).toJsObject()
 
     return <PageWrapper
-        title="Heutte Booking"
+        title="Hyttebooking"
     >
         {nextReleasePeriod &&
             <p>

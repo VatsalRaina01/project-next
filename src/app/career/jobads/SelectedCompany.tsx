@@ -11,7 +11,7 @@ export default function SelectedCompany() {
     const companyCtx = useContext(CompanySelectionContext)
 
     if (!companyCtx) {
-        throw new Error('CompanySelectionContext or companyPaging is not defined')
+        throw new Error('CompanySelectionContext eller companyPaging er ikke definert')
     }
 
     const company = companyCtx.selectedCompany

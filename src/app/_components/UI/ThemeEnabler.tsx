@@ -1,8 +1,8 @@
 'use client'
 
-import { applyTheme, themes } from '@/app/users/[username]/(user-admin)/theme/theme'
+import { applyTheme, themes } from '@/app/users/[username]/(user-pages)/theme/theme'
 import { useEffect } from 'react'
-import type { ThemeName } from '@/app/users/[username]/(user-admin)/theme/theme'
+import type { ThemeName } from '@/app/users/[username]/(user-pages)/theme/theme'
 
 export default function ThemeEnabler() {
     useEffect(() => {

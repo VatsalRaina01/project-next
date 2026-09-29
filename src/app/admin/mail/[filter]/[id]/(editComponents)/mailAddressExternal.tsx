@@ -28,7 +28,7 @@ export default function EditMailAddressExternal({
 
     const focusedAddress = data.mailaddressExternal[0]
     if (!focusedAddress) {
-        throw Error('Could not find external mail address')
+        throw Error('Fant ikke ekstern e-postadresse')
     }
 
     const canUpdate = useAuthorizer({ authorizer: mailAddressExternalAuth.update.dynamicFields({}) }).authorized
@@ -41,7 +41,7 @@ export default function EditMailAddressExternal({
         <h2>{focusedAddress.address}</h2>
         { canUpdate && <div>
             <Form
-                title="Ekstern mailaddresse"
+                title="Ekstern e-postadresse"
                 submitText="Oppdater"
                 action={updateMailAddressExternalAction}
             >
@@ -58,13 +58,13 @@ export default function EditMailAddressExternal({
                 submitColor="red"
                 confirmation={{
                     confirm: true,
-                    text: 'Sikker på at du vil slette denne eksterne addressen? Dette kan ikke angres.',
+                    text: 'Sikker på at du vil slette denne eksterne adressen? Dette kan ikke angres.',
                 }}
             />
         </div> }
         { canAddToList && <div>
             <Form
-                title="Legg til mailliste"
+                title="Legg til e-postliste"
                 submitText="Legg til"
                 action={createMailingListExternalRelationAction}
             >
@@ -72,7 +72,7 @@ export default function EditMailAddressExternal({
                 <SelectNumber
                     options={mailingLists.map(list => ({ value: list.id, label: list.name }))}
                     name="mailingListId"
-                    label="Mailliste"
+                    label="E-postliste"
                 />
             </Form>
         </div>}

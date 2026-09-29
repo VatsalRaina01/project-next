@@ -15,7 +15,7 @@ export default function CompanyChooser({ className }: PropTypes) {
     const companyPagingCtx = useContext(CompanyPagingContext)
 
     if (!companyPagingCtx) {
-        throw new Error('CompanyPagingContext is not defined')
+        throw new Error('CompanyPagingContext er ikke definert')
     }
 
     const handleNameFilter = (e: ChangeEvent<HTMLInputElement>) => {

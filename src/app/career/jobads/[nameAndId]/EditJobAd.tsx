@@ -37,7 +37,7 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
     const companyPagingCtx = useContext(CompanyPagingContext)
     if (!canEdit) return children
     if (!companyPagingCtx) {
-        throw new Error('CompanySelectionContext or companyPaging is not defined')
+        throw new Error('CompanySelectionContext eller companyPaging er ikke definert')
     }
 
     const updateAction = configureAction(updateJobAdAction, { params: { id: jobAd.id } })
@@ -52,11 +52,11 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
                         navigateOnSuccess={(data) =>
                             `/career/jobads/${data ? formatVevenUri(data.articleName, data.id) : ''}`
                         }
-                        submitText="oppdater"
+                        submitText="Oppdater"
                     >
                         <Textarea
                             defaultValue={jobAd.description || ''}
-                            label="beskrivelse"
+                            label="Beskrivelse"
                             name="description"
                         />
                         <TextInput
@@ -91,11 +91,11 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
                         <Form
                             action={configureAction(destroyJobAdAction, { params: { id: jobAd.id } })}
                             navigateOnSuccess="/career/jobads"
-                            submitText="slett annonse"
+                            submitText="Slett annonse"
                             confirmation={{
                                 confirm: true,
-                                text: 'Er du sikker på at du vil slette denne annonsen?' +
-                                'Dette kan ikke angres. Vi anbefaler å sette annonsen' +
+                                text: 'Er du sikker på at du vil slette denne annonsen? ' +
+                                'Dette kan ikke angres. Vi anbefaler å sette annonsen ' +
                                 'til inaktiv i stedet.'
                             }}
                             submitColor="red"

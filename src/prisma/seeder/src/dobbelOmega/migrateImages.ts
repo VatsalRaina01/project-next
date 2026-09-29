@@ -1,4 +1,5 @@
 import { owIdToPnId, type IdMapper } from './IdMapper'
+import { createProgressBar } from './progressBar'
 import manifest from '@/prisma/seeder/src/dobbelOmega/manifest'
 import { imageOperations } from '@/services/images/subservice/operations'
 import { allowedExtensions } from '@/services/images/subservice/constants'
@@ -7,6 +8,12 @@ import { ombulCoversImagePanelOperations } from '@/services/ombul/ombulCoverColl
 import { profileImagesImagePanelOperations } from '@/services/users/profileImageCollection'
 import { committeeLogosImagePanelOperations } from '@/services/groups/committees/committeeLogoCollection'
 import logger from '@/lib/logger'
+import {
+    PrismaClientInitializationError,
+    PrismaClientKnownRequestError,
+    PrismaClientRustPanicError,
+    PrismaClientUnknownRequestError,
+} from '@prisma/client/runtime/client'
 import { File } from 'node:buffer'
 import type { Limits } from './migrationLimits'
 import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
@@ -86,7 +93,7 @@ export default async function migrateImages(
 
     manifest.info(`Before filter: ${images.length} images`)
     const imagesWithCollection = images.map(image => {
-        let collectionId = owIdToPnId(migrateImageCollectionIdMap, image.ImageGroupId)
+        let collectionId = owIdToPnId(migrateImageCollectionIdMap, image.ImageGroupId, 'image collections')
         if (image.Ombul.length) {
             collectionId = ombulCollection.id
         } else if (committeeImageIds.has(image.id)) {
@@ -130,54 +137,86 @@ export default async function migrateImages(
     })
 
     const migrateImageIdMap: IdMapper = []
-    let imageCounter = 1
+    const bar = createProgressBar('Migrating images', imagesWithCorrectedName.length)
 
     const migrateOneImage = async (image: (typeof imagesWithCorrectedName)[number]) => {
-        manifest.info(`Migrating image number ${imageCounter++} of ${imagesWithCorrectedName.length}`)
-        const ext = (image.originalName.split('.').pop() || '').toLowerCase()
-        const mimeType = mimeTypeForExtension(ext)
-        if (!mimeType) {
-            logger.error(`Image ${image.originalName} has unsupported extension "${ext}", skipping.`)
-            return
+        try {
+            const ext = (image.originalName.split('.').pop() || '').toLowerCase()
+            const mimeType = mimeTypeForExtension(ext)
+            if (!mimeType) {
+                logger.error(`Image ${image.originalName} has unsupported extension "${ext}", skipping`)
+                return
+            }
+
+            const fsLocationOldVev = `${process.env.OW_STORE_URL}/image/default/${image.name}`
+                + `?url=/store/images/${image.name}.${ext}`
+
+            const res = await fetch(fsLocationOldVev, {
+                method: 'GET',
+                //This is to make the fetch request look like it comes from a browser. Not sure if it helps
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+                        + 'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+                },
+            }).catch(() => {
+                // The network-failure case is logged here and nowhere else: the
+                // !res check below is the same path, and logging in both printed
+                // every failure twice - especially noisy behind a progress bar.
+                logger.error(`Failed to fetch image from ${fsLocationOldVev}`)
+                return undefined
+            })
+
+            if (!res || !res.ok) {
+                // res is set only when the request completed but the status was bad,
+                // which the catch above never saw.
+                if (res) {
+                    logger.error(`Failed to fetch image from ${fsLocationOldVev}: HTTP ${res.status}`)
+                }
+                return
+            }
+
+            const buffer = Buffer.from(await res.arrayBuffer())
+            const imageFile = new File([new Uint8Array(buffer)], `${image.pnImageName}.${ext}`, { type: mimeType })
+
+            const pnImage = await imageOperations.uploadImage.internalCall({
+                prisma: pnPrisma,
+                params: { collectionId: image.collectionId },
+                data: {
+                    imageFile,
+                    imageName: image.pnImageName.slice(0, 50),
+                    imageAlt: image.pnImageName.split('_').join(' ').slice(0, 100),
+                },
+                operationImplementationFields: {
+                    uploadAsStandardImage: null,
+                    // Deliberately the full set rather than the per-collection subset: this migrates
+                    // what omegaweb-basic already has, including committee logos, raster over there.
+                    allowedExtensions,
+                },
+            })
+
+            migrateImageIdMap.push({ owId: image.id, pnId: pnImage.id })
+        } catch (error) {
+            // One bad file must not take the whole import with it. These run inside a
+            // Promise.all over every image on the old site, so an uncaught rejection here
+            // aborts DobbelOmega entirely - hours in, with the database already reset.
+            // Omegaweb-basic holds files whose bytes do not match their extension at all,
+            // which sharp only discovers once it tries to decode them, so this is a
+            // certainty on the real dataset rather than a defensive flourish.
+            //
+            // A database or disk that has gone away is the opposite case and must not be
+            // swallowed: skipping leaves the image out of migrateImageIdMap, and every
+            // migration after this one reads that map to rebuild its relations. An outage
+            // would otherwise be reported as a few thousand individually bad files and
+            // produce an import that finishes "successfully" with its images missing.
+            if (isInfrastructureFailure(error)) throw error
+
+            logger.error(
+                `Failed to migrate image ${image.originalName} (owId ${image.id}), skipping: `
+                + `${error instanceof Error ? error.message : String(error)}`
+            )
+        } finally {
+            bar.increment()
         }
-
-        const fsLocationOldVev = `${process.env.OW_STORE_URL}/image/default/${image.name}`
-            + `?url=/store/images/${image.name}.${ext}`
-
-        const res = await fetch(fsLocationOldVev, {
-            method: 'GET',
-            //This is to make the fetch request look like it comes from a browser. Not sure if it helps
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-                    + 'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-            },
-        }).catch(() => { logger.error(`Failed to fetch image from ${fsLocationOldVev}.`) })
-
-        if (!res || !res.ok) {
-            logger.error(`Failed to fetch image from ${fsLocationOldVev}.`)
-            return
-        }
-
-        const buffer = Buffer.from(await res.arrayBuffer())
-        const imageFile = new File([new Uint8Array(buffer)], `${image.pnImageName}.${ext}`, { type: mimeType })
-
-        const pnImage = await imageOperations.uploadImage.internalCall({
-            prisma: pnPrisma,
-            params: { collectionId: image.collectionId },
-            data: {
-                imageFile,
-                imageName: image.pnImageName.slice(0, 50),
-                imageAlt: image.pnImageName.split('_').join(' ').slice(0, 100),
-            },
-            operationImplementationFields: {
-                uploadAsStandardImage: null,
-                // Deliberately the full set rather than the per-collection subset: this migrates
-                // what omegaweb-basic already has, including committee logos, raster over there.
-                allowedExtensions,
-            },
-        })
-
-        migrateImageIdMap.push({ owId: image.id, pnId: pnImage.id })
     }
 
     //Batched to avoid hammering omegaweb-basic with too many concurrent requests at once
@@ -193,6 +232,35 @@ export default async function migrateImages(
     for (const imageBatch of imageBatches) {
         await Promise.all(imageBatch.map(migrateOneImage))
     }
+    bar.stop()
 
     return migrateImageIdMap
+}
+
+/**
+ * Whether an error says the environment is broken rather than the file. Prisma's error
+ * classes cover the database (a rejected query, a connection that never came up, a panicked
+ * engine), and node's fs errors cover the store volume - a full or unwritable disk fails
+ * every image just as reliably as it fails this one, so there is nothing to be gained by
+ * carrying on.
+ *
+ * Anything else - sharp refusing to decode the bytes, a mime type the store does not
+ * accept - is a property of the one file and is skipped.
+ */
+function isInfrastructureFailure(error: unknown): boolean {
+    if (
+        error instanceof PrismaClientKnownRequestError ||
+        error instanceof PrismaClientUnknownRequestError ||
+        error instanceof PrismaClientInitializationError ||
+        error instanceof PrismaClientRustPanicError
+    ) {
+        return true
+    }
+
+    const fsErrorCodes = ['ENOSPC', 'EACCES', 'EROFS', 'EMFILE', 'ENFILE', 'EDQUOT', 'EIO']
+    return typeof error === 'object'
+        && error !== null
+        && 'code' in error
+        && typeof error.code === 'string'
+        && fsErrorCodes.includes(error.code)
 }

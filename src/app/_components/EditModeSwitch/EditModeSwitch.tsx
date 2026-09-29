@@ -9,7 +9,7 @@ import type { ChangeEvent } from 'react'
 
 export default function EditModeSwitch() {
     const editingContext = useContext(EditModeContext)
-    if (!editingContext) throw new Error('No EditModeContext found')
+    if (!editingContext) throw new Error('Fant ikke EditModeContext')
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         editingContext.setEditMode(e.target.checked)

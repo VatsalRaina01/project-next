@@ -1,6 +1,13 @@
 import { eventOperations } from '@/services/events/operations'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
+/**
+ * Seeded content is administrated through the EVENT_ADMIN permission rather than by any group: a
+ * requirement with no conditions can never be satisfied, so the admin level admits only those who
+ * bypass it with that permission.
+ */
+const ADMINISTRATED_BY_PERMISSION_ONLY = [{ conditions: [] }]
+
 export default async function seedDevEvents(prisma: PrismaClient) {
     const today = new Date()
     const tomorrow = new Date()
@@ -40,6 +47,7 @@ export default async function seedDevEvents(prisma: PrismaClient) {
             tagIds: [
                 bedPresTag.id,
             ],
+            visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
         }
     })
 
@@ -57,6 +65,7 @@ export default async function seedDevEvents(prisma: PrismaClient) {
             registrationStart: today,
             registrationEnd: tomorrow,
             tagIds: [],
+            visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
         }
     })
 
@@ -75,8 +84,20 @@ export default async function seedDevEvents(prisma: PrismaClient) {
             registrationStart: today,
             registrationEnd: tomorrow,
             tagIds: [],
+            visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
         }
     })
+
+    // Events are created as drafts, and a draft is visible only to those who administrate it - so
+    // the seeded ones are published to make them show up in the development environment.
+    await Promise.all([bedpres, examReading, ohmaBirthday].map(event =>
+        eventOperations.setPublished({
+            prisma,
+            bypassAuth: true,
+            params: { id: event.id },
+            data: { published: true },
+        })
+    ))
 
     await prisma.cmsImage.updateMany({
         where: {

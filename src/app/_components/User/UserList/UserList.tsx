@@ -7,6 +7,7 @@ import { UserPagingContext } from '@/contexts/paging/UserPaging'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import UserRow from '@/components/User/UserList/UserRow'
 import { useGroups } from '@/contexts/ClientData'
+import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { orderOptions } from '@/lib/groups/groupOptions'
 import { UsersSelectionContext } from '@/contexts/UsersSelection'
 import { UserSelectionContext } from '@/contexts/UserSelection'
@@ -17,7 +18,7 @@ import { faCheck, faSort, faSortDown, faSortUp } from '@fortawesome/free-solid-s
 import type { UserPagingReturn } from '@/services/users/types'
 import type { ChangeEvent, MouseEvent, ReactNode } from 'react'
 import type { GroupType } from '@/prisma-generated-pn-types'
-import type { ExpandedGroup } from '@/services/groups/types'
+import type { ExpandedGroup, ExpandedGroupsOfAllTypes } from '@/services/groups/types'
 
 type GroupSelectionType = Exclude<GroupType, 'INTEREST_GROUP' | 'MANUAL_GROUP'>
 
@@ -31,15 +32,19 @@ type PropTypes = {
     disableFilters?: DisableGroupFilters & {
         name?: boolean,
     },
-    linksToUser?: boolean
+    linksToUser?: boolean,
+    /**
+     * Where a row leads when `linksToUser` is set. Defaults to the user's profile.
+     */
+    userHref?: (user: UserPagingReturn) => string,
 }
 
-function getGroupType(groups: ExpandedGroup[] | null, type: GroupType) {
-    return groups ? groups.filter(group => group.groupType === type) : []
+function getGroupType(groups: ExpandedGroupsOfAllTypes | null, type: GroupType) {
+    return groups?.[type] ?? []
 }
 
 function getGroupOptions(
-    groups: ExpandedGroup[] | null,
+    groups: ExpandedGroupsOfAllTypes | null,
     type: GroupType
 ): { value: number | 'NULL', label: string, key: string }[] {
     return [
@@ -74,6 +79,8 @@ function getOrdereOptions(group: ExpandedGroup): { value: number | 'NULL', label
  * to the left of the user's name, username, study, and class.
  * @param disableFilters - An object that specifies which filters to disable. The keys are the
  * names of the filters and the values are booleans. If a key is not present, the filter is enabled.
+ * @param linksToUser - Whether clicking a row navigates to the user it is for.
+ * @param userHref - Where such a click leads, if not the user's profile.
  * @returns - A component that displays a list of users with filters for groups and a search bar.
  */
 export default function UserList({
@@ -87,6 +94,7 @@ export default function UserList({
         OMEGA_MEMBERSHIP_GROUP: false
     },
     linksToUser,
+    userHref = user => `/users/${user.username}`,
 }: PropTypes) {
     const userPaging = useContext(UserPagingContext)
     const usersSelection = useContext(UsersSelectionContext)
@@ -136,7 +144,7 @@ export default function UserList({
         })
     }, [groupSelection])
 
-    if (!userPaging) throw new Error('UserPagingContext not found')
+    if (!userPaging) throw new Error('Fant ikke UserPagingContext')
 
     const currentSort = userPaging.details.sort
 
@@ -172,7 +180,7 @@ export default function UserList({
             ...groupSelection,
             [type]: {
                 ...groupSelection[type],
-                group: groups.find(group => group.id === groupId) ?? null,
+                group: flattenExpandedGroups(groups).find(group => group.id === groupId) ?? null,
             }
         })
     }
@@ -319,7 +327,7 @@ export default function UserList({
                                 className={linksToUser ? styles.clickable : ''}
                                 onClick={() => {
                                     if (!linksToUser) return
-                                    router.push(`/users/${user.username}`)
+                                    router.push(userHref(user))
                                 }}
                             >
                                 { usersSelection &&

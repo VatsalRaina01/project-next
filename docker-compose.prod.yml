@@ -1,3 +1,5 @@
+name: projectnext-prod
+
 services:
     projectnext:
         extends:
@@ -5,6 +7,8 @@ services:
             service: projectnext
         build:
             target: prod
+        networks:
+            - dokploy-network
         volumes:
             - store:/usr/src/app/store
             - logs:/usr/src/app/logs
@@ -12,16 +16,41 @@ services:
         deploy:
             replicas: 2
         restart: always
+        depends_on:
+            migrate:
+                condition: service_completed_successfully
+
+    # Applies committed migrations, then exits.
+    migrate:
+        extends:
+            file: docker-compose.base.yml
+            service: projectnext
+        build:
+            target: tools
+        command: ["npm", "run", "migrate:deploy"]
+        healthcheck:
+            disable: true
+        networks:
+            - dokploy-network
+        restart: "no"
 
     imageworker:
         extends:
             file: docker-compose.base.yml
             service: projectnext
         build:
-            target: prod
+            target: tools
         command: ["./node_modules/.bin/tsx", "src/lib/images/worker.ts"]
         environment:
             IGNORE_SERVER_ONLY: 'true'
+        healthcheck:
+            test: ["CMD-SHELL", "pgrep -f \"[i]mages/worker.ts\" > /dev/null"]
+            interval: 10s
+            timeout: 3s
+            retries: 3
+            start_period: 15s
+        networks:
+            - dokploy-network
         volumes:
             - store:/usr/src/app/store
             - logs:/usr/src/app/logs
@@ -29,63 +58,50 @@ services:
             replicas: 1
         restart: always
         depends_on:
-            db:
-                condition: service_healthy
+            migrate:
+                condition: service_completed_successfully
 
+    # One-shot, never started with the stack. The migration/seed toolchain needs the
+    # full dependency tree (see the tools stage in the Dockerfile), so it ships as its
+    # own image and is run on demand:
+    #
+    #   docker compose -f docker-compose.prod.yml --profile tools run --rm tools
+    #
+    # The default command is DobbelOmega, which resets the whole database.
+    tools:
+        extends:
+            file: docker-compose.base.yml
+            service: projectnext
+        build:
+            target: tools
+        profiles:
+            - tools
+        healthcheck:
+            disable: true
+        networks:
+            - dokploy-network
+        volumes:
+            - store:/usr/src/app/store
+            - logs:/usr/src/app/logs
+            - dobbelOmegaManifest:/usr/src/app/dobbelOmegaManifest
+        restart: "no"
+
+    # Local database for github actions.
     db:
         extends:
             file: docker-compose.base.yml
             service: db
+        profiles:
+            - localdb
+        networks:
+            - dokploy-network
         restart: always
         volumes:
             - proddb:/var/lib/postgresql/data
 
-    nginx:
-        extends:
-            file: docker-compose.base.yml
-            service: nginx
-        restart: always
-        ports:
-            - 80:80
-            - 443:443
-        environment:
-            DOMAIN: ${DOMAIN}
-            PROXY_PASS: 'projectnext:3000'
-        volumes:
-            - ./containers/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-            - ./containers/nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
-            - store:/usr/store:ro
-            - ./certs/conf:/etc/letsencrypt:ro
-            - ./certs/www/:/var/www/certbot:ro
-
-    certbot:
-        image: certbot/certbot:latest
-        volumes:
-            - ./certs/www:/var/www:rw
-            - ./certs/conf:/etc/letsencrypt:rw
-        entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 14d & wait $${!}; done;'"
-        restart: always
-
-    postfix:
-        build: ${PROJECT_ROOT:-.}/containers/postfix/
-        ports:
-            - '587:587'
-            - '25:25'
-        environment:
-            POSTGRES_HOST: 'db'
-            POSTGRES_DB: ${DB_NAME}
-            POSTGRES_USER: ${DB_USERNAME}
-            POSTGRES_PASSWORD: ${DB_PASSWORD}
-            MY_HOSTNAME: ${MAIL_DOMAIN}
-            MY_DOMAIN: ${DOMAIN}
-            RELAY_HOST: ${MAIL_RELAY_HOST}
-        volumes:
-            - ./certs/conf:/etc/letsencrypt:ro
-        depends_on:
-            - db
-        links:
-            - db
-        restart: always
+networks:
+    dokploy-network:
+        external: true
 
 volumes:
     proddb:

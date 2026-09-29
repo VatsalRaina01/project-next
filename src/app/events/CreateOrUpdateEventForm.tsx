@@ -8,12 +8,14 @@ import NumberInput from '@/components/UI/NumberInput'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import EventTag from '@/components/Event/EventTag'
+import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { createEventAction, updateEventAction } from '@/services/events/actions'
 import { eventCanBeViewdByOptions } from '@/services/events/constants'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import { configureAction } from '@/services/configureAction'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { useState } from 'react'
+import type { VisibilityRequirement } from '@/services/visibility/types'
 import type { Event, EventTag as EventTagT } from '@/prisma-generated-pn-types'
 import type { ChangeEvent } from 'react'
 
@@ -31,6 +33,8 @@ type PropTypes = {
  */
 export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes) {
     const [showRegistrationOptions, setShowRegistrationOptions] = useState(event?.takesRegistration ?? false)
+    const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
+    const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
     const action = event ? configureAction(updateEventAction, { params: { id: event.id } }) : createEventAction
 
     const handleShowRegistration = (changeEvent: ChangeEvent<HTMLInputElement>) => {
@@ -87,6 +91,33 @@ export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes)
                     defaultChecked={event?.takesRegistration}
                 />
 
+                {/*
+                  * Only when creating: an existing event has both levels in the admin panel on its
+                  * own page, where they are saved one at a time against the stored visibilities.
+                  */}
+                {!event && <div className={styles.visibility}>
+                    <h2>Hvem kan administrere arrangementet?</h2>
+                    <VisibilityMatrixEditor
+                        requirements={adminRequirements}
+                        onChange={setAdminRequirements}
+                    />
+                    <input
+                        type="hidden"
+                        name="visibilityAdminRequirements"
+                        value={JSON.stringify(adminRequirements)}
+                    />
+                    <h2>Hvem kan melde seg på? (tomt betyr alle)</h2>
+                    <VisibilityMatrixEditor
+                        requirements={regularRequirements}
+                        onChange={setRegularRequirements}
+                    />
+                    <input
+                        type="hidden"
+                        name="visibilityRegularRequirements"
+                        value={JSON.stringify(regularRequirements)}
+                    />
+                </div>}
+
                 {showRegistrationOptions ? <>
                     <Slider
                         label="Venteliste"
@@ -94,7 +125,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes)
                         defaultChecked={event?.waitingList}
                     />
                     <NumberInput
-                        label="plasser"
+                        label="Plasser"
                         name="places"
                         defaultValue={event?.places}
                     />

@@ -35,7 +35,7 @@ export default function RemovePart({ part, removePartFromArticleSectionAction, c
                     <div className={styles.confirmation}>
                         <Form
                             action={handleRemove}
-                            submitText="Remove"
+                            submitText="Fjern"
                             successCallback={() => {
                                 refresh()
                             }}

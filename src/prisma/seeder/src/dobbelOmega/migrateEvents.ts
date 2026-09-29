@@ -1,8 +1,27 @@
 import { owIdToPnId, type IdMapper } from './IdMapper'
+import { createProgressBar } from './progressBar'
 import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
 import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
 import type { Limits } from './migrationLimits'
 import type { UserMigrator } from './migrateUsers'
+
+/**
+ * The two visibility levels every event needs. Nothing in the old system restricted who could see
+ * an event, so the regular level is created without requirements - which checkVisibility reads as
+ * open to all. Administration is another matter: the admin level gets one requirement with no
+ * conditions, which can never be satisfied, so migrated events are administrated by those who hold
+ * the EVENT_ADMIN permission and no one else.
+ */
+async function createVisibilities(pnPrisma: PrismaClientPn) {
+    const [visibilityRegular, visibilityAdmin] = await Promise.all([
+        pnPrisma.visibility.create({ data: {} }),
+        pnPrisma.visibility.create({ data: { requirements: { create: [{}] } } }),
+    ])
+    return {
+        visibilityRegularId: visibilityRegular.id,
+        visibilityAdminId: visibilityAdmin.id,
+    }
+}
 
 export default async function migrateEvents(
     pnPrisma: PrismaClientPn,
@@ -23,8 +42,9 @@ export default async function migrateEvents(
         }
     })
 
+    const eventsBar = createProgressBar('Migrating events', events.length)
     await Promise.all(events.map(async event => {
-        const coverId = owIdToPnId(imageIdMap, event.ImageId)
+        const coverId = owIdToPnId(imageIdMap, event.ImageId, 'images')
         const coverIage = await pnPrisma.cmsImage.create({
             data: {
                 image: coverId ? {
@@ -62,6 +82,8 @@ export default async function migrateEvents(
                 company: event.company,
                 extraFields: event.extraFields ?? undefined,
                 createdById: event.CreatedByUserId ? await userMigrator.getPnUserId(event.CreatedByUserId) : undefined,
+                published: true,
+                ...(await createVisibilities(pnPrisma)),
             }
         })
 
@@ -90,7 +112,9 @@ export default async function migrateEvents(
                 })
             }
         }))
+        eventsBar.increment()
     }))
+    eventsBar.stop()
 
     const simpleEvents = await owPrisma.simpleEvents.findMany({
         take: limits.events ? limits.events : undefined,
@@ -99,6 +123,7 @@ export default async function migrateEvents(
         }
     })
 
+    const simpleEventsBar = createProgressBar('Migrating simple events', simpleEvents.length)
     await Promise.all(simpleEvents.map(async simpleEvent => {
         const coverIage = await pnPrisma.cmsImage.create({
             data: {
@@ -128,7 +153,11 @@ export default async function migrateEvents(
                 coverImageId: coverIage.id,
                 cmsParagraphId: paragraph.id,
                 waitingList: false,
+                published: true,
+                ...(await createVisibilities(pnPrisma)),
             }
         })
+        simpleEventsBar.increment()
     }))
+    simpleEventsBar.stop()
 }

@@ -16,3 +16,13 @@
         }
     }
 }
+.lead {
+    color: ohma.$colors-text-muted;
+}
+
+// The per-row register button carries none of a form's own spacing.
+.registerForm {
+    margin: 0;
+    padding: 0;
+    font-size: 0.8rem;
+}

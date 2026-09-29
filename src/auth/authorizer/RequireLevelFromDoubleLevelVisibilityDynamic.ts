@@ -8,13 +8,16 @@ import type { Permission } from '@/prisma-generated-pn-types'
  * (dynamicFields) rather than fixed at definition time (staticFields) - for resources where which
  * level applies depends on the resource's own data, e.g. a news article that requires only the
  * regular level once published, but the admin level while still a draft.
+ *
+ * The level 'PUBLIC' is for resources that can additionally declare themselves open to everyone,
+ * e.g. an event marked as viewable by all: then neither level is checked.
  */
 export const RequireLevelFromDoubleLevelVisibilityDynamic = AuthorizerFactory<
     { bypassPermission: Permission | null },
-    { level: 'REGULAR' | 'ADMIN', doubleLevelMatrix: DoubleLevelVisibilityMatrix },
+    { level: 'PUBLIC' | 'REGULAR' | 'ADMIN', doubleLevelMatrix: DoubleLevelVisibilityMatrix },
     'USER_NOT_REQUIERED_FOR_AUTHORIZED'
 > (({ session, dynamicFields, staticFields }) => ({
-    success: checkVisibility(
+    success: dynamicFields.level === 'PUBLIC' || checkVisibility(
         session.memberships,
         dynamicFields.level === 'REGULAR' ?
             dynamicFields.doubleLevelMatrix.regularLevel : dynamicFields.doubleLevelMatrix.adminLevel
