@@ -19,7 +19,10 @@ import {
     updateEventCmsCoverImageAction,
     updateEventParagraphContentAction
 } from '@/services/events/actions'
-import { dotPunishmentOfUserAction } from '@/services/events/registration/actions'
+import {
+    readDotPunishmentOfUserAction,
+    readEventRegistrationOfUserAction
+} from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { ServerSession } from '@/auth/session/ServerSession'
@@ -44,8 +47,6 @@ export default async function Event({ params }: PropTypes) {
 
     const tags = unwrapActionReturn(await readEventTagsAction())
 
-    const ownRegistration = event.eventRegistrations.length ? event.eventRegistrations[0] : undefined
-
     const session = await ServerSession.fromNextAuth()
     const canEditCmsCoverImage = eventAuth.updateCmsCoverImage.dynamicFields({}).auth(
         session
@@ -60,7 +61,14 @@ export default async function Event({ params }: PropTypes) {
     // What the dots of the one visiting hold them back from - nothing to tell a visitor without a
     // user, and nothing to hide either, as it is their own dots it is read from.
     const dotPunishment = event.takesRegistration && session.user ? unwrapActionReturn(
-        await dotPunishmentOfUserAction({ params: { userId: session.user.id } })
+        await readDotPunishmentOfUserAction({ params: { userId: session.user.id } })
+    ) : null
+
+    // The registration of the one visiting, if they are registered - the same holds as for the dots.
+    const ownRegistration = event.takesRegistration && session.user ? unwrapActionReturn(
+        await readEventRegistrationOfUserAction({
+            params: { eventId: event.id, userId: session.user.id }
+        })
     ) : null
 
     return (
@@ -138,7 +146,6 @@ export default async function Event({ params }: PropTypes) {
                     <RegistrationUI
                         event={event}
                         registration={ownRegistration}
-                        onWaitingList={event.onWaitingList}
                         dotPunishment={dotPunishment}
                     />
                 </> : <p>

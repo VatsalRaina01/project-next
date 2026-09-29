@@ -3,6 +3,7 @@ import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 export const eventRegistrationSelection = {
+    id: true,
     user: {
         select: {
             ...userFilterSelection,
@@ -15,6 +16,15 @@ export const eventRegistrationSelection = {
         },
     }
 } satisfies Prisma.EventRegistrationSelect
+
+/**
+ * The order registrations queue in for the places of an event: the ones registered first take the
+ * places, and the ones past them queue on the waiting list. The autoincremented id is the order
+ * they were registered in, and being unique it is a total order - so it also cursor-pages cleanly.
+ */
+export const eventRegistrationQueueOrder = {
+    id: 'asc',
+} as const satisfies Prisma.EventRegistrationOrderByWithRelationInput
 
 export const eventRegistrationIncluderDetailed = {
     ...eventRegistrationSelection,

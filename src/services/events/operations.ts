@@ -23,7 +23,7 @@ const read = defineOperation({
         id: z.number(),
     }),
     authorizer: () => eventAuth.read.dynamicFields({}),
-    operation: async ({ prisma, params, session }) => {
+    operation: async ({ prisma, params }) => {
         const event = await prisma.event.findUniqueOrThrow({
             where: {
                 id: params.id,
@@ -45,35 +45,12 @@ const read = defineOperation({
                         eventRegistrations: true,
                     },
                 },
-                eventRegistrations: true,
             }
         })
 
-        let onWaitingList = false
-
-        if (!session.user) {
-            event.eventRegistrations = []
-        } else {
-            const indexOfUser = event.eventRegistrations.findIndex(reg => reg.userId === session.user.id)
-            if (indexOfUser !== -1) {
-                event.eventRegistrations = [event.eventRegistrations[indexOfUser]]
-                onWaitingList = indexOfUser >= event.places
-            } else {
-                event.eventRegistrations = []
-            }
-        }
-
-        if (onWaitingList && !event.waitingList) {
-            onWaitingList = false
-            event.eventRegistrations = []
-        }
-
         return {
-            ...event,
-            numOfRegistrations: Math.min(event._count.eventRegistrations, event.places),
-            numOnWaitingList: Math.max(0, event._count.eventRegistrations - event.places),
-            onWaitingList,
-            tags: event.eventTagEvents.map(ete => ete.tag)
+            ...withRegistrationCounts(event),
+            tags: event.eventTagEvents.map(eventTagEvent => eventTagEvent.tag)
         }
     }
 })
@@ -187,10 +164,8 @@ export const eventOperations = {
                 }
             })
             return events.map(event => ({
-                ...event,
-                numOfRegistrations: Math.min(event._count.eventRegistrations, event.places),
-                numOnWaitingList: Math.max(0, event._count.eventRegistrations - event.places),
-                tags: event.eventTagEvents.map(ete => ete.tag)
+                ...withRegistrationCounts(event),
+                tags: event.eventTagEvents.map(eventTagEvent => eventTagEvent.tag)
             }))
         }
     }),
@@ -225,10 +200,8 @@ export const eventOperations = {
                 },
             })
             return events.map(event => ({
-                ...event,
-                numOfRegistrations: Math.min(event._count.eventRegistrations, event.places),
-                numOnWaitingList: Math.max(0, event._count.eventRegistrations - event.places),
-                tags: event.eventTagEvents.map(ete => ete.tag)
+                ...withRegistrationCounts(event),
+                tags: event.eventTagEvents.map(eventTagEvent => eventTagEvent.tag)
             }))
         }
     }),
@@ -322,6 +295,20 @@ export const eventOperations = {
             })).paragraph.id === params.paragraphId
     })
 } as const
+
+/**
+ * Replaces the raw count of registrations of an event with the numbers that are exposed: how many
+ * took the places of the event, and how many queue on the waiting list past them.
+ */
+function withRegistrationCounts<RawEvent extends { places: number, _count: { eventRegistrations: number } }>(
+    { _count, ...event }: RawEvent
+) {
+    return {
+        ...event,
+        numOfRegistrations: Math.min(_count.eventRegistrations, event.places),
+        numOnWaitingList: Math.max(0, _count.eventRegistrations - event.places),
+    }
+}
 
 function eventTagSelector(tags: string[] | null) {
     return tags ? {

@@ -1,5 +1,10 @@
 import '@pn-server-only'
-import { eventRegistrationIncluderDetailed, eventRegistrationSelection, REGISTRATION_READER_TYPE } from './constants'
+import {
+    eventRegistrationIncluderDetailed,
+    eventRegistrationQueueOrder,
+    eventRegistrationSelection,
+    REGISTRATION_READER_TYPE,
+} from './constants'
 import { eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
 import { dotOperations } from '@/services/dots/operations'
@@ -10,14 +15,20 @@ import { notificationOperations } from '@/services/notifications/operations'
 import { sendSystemMail } from '@/lib/email/send'
 import { userFilterSelection } from '@/services/users/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { z } from 'zod'
 import type { Prisma } from '@/prisma-generated-pn-types'
-import type { DotPunishment, EventRegistrationExpanded } from './types'
+import type {
+    DotPunishment,
+    EventRegistrationExpanded,
+    EventRegistrationPageDetails,
+    EventRegistrationWithWaitingList,
+} from './types'
 
 /**
  * What the dots of a user hold them back from when registering to an event.
  */
-const dotPunishmentOfUser = defineSubOperation({
+const readDotPunishmentOfUser = defineSubOperation({
     paramsSchema: () => z.object({ userId: z.number().min(0) }),
     operation: () => async ({ prisma, params }): Promise<DotPunishment> => {
         const dots = await dotOperations.internal.numberOfActiveDotsForUser.internalCall({
@@ -49,7 +60,7 @@ async function validateDotPunishmentOfRegistration(
 ) {
     if (isAdmin) return
 
-    const punishment = await dotPunishmentOfUser.internalCall({
+    const punishment = await readDotPunishmentOfUser.internalCall({
         params: { userId },
         prisma,
     })
@@ -80,13 +91,13 @@ export const eventRegistrationOperations = {
             userId: params.userId,
         }),
         opensTransaction: true,
-        operation: async ({ prisma, params, session }) => {
+        operation: async ({ prisma, params, session }): Promise<EventRegistrationWithWaitingList> => {
             const isAdmin = session.permissions.includes('EVENT_ADMIN')
             const event = await preValidateRegistration(prisma, params.eventId, isAdmin)
 
             await validateDotPunishmentOfRegistration(prisma, event.registrationStart, params.userId, isAdmin)
 
-            const result = await prisma.eventRegistration.create({
+            const registration = await prisma.eventRegistration.create({
                 data: {
                     user: {
                         connect: {
@@ -101,20 +112,13 @@ export const eventRegistrationOperations = {
                 },
             })
 
-            const updatedEvent = await postValidateRegistration(prisma, result.id, params.eventId)
+            const updatedEvent = await postValidateRegistration(prisma, registration.id, params.eventId)
 
             return {
-                result,
+                ...registration,
                 onWaitingList: updatedEvent.places < updatedEvent._count.eventRegistrations,
             }
         },
-    }),
-
-    dotPunishmentOfUser: dotPunishmentOfUser.implement({
-        authorizer: ({ params }) => eventRegistrationAuth.dotPunishmentOfUser.dynamicFields({
-            userId: params.userId,
-        }),
-        ownershipCheck: () => true,
     }),
 
     createGuest: defineOperation({
@@ -124,9 +128,9 @@ export const eventRegistrationOperations = {
         }),
         dataSchema: eventRegistrationSchemas.createGuest,
         opensTransaction: true,
-        operation: async ({ prisma, params, data }) => {
+        operation: async ({ prisma, params, data }): Promise<EventRegistrationWithWaitingList> => {
             await preValidateRegistration(prisma, params.eventId, true)
-            const result = await prisma.eventRegistration.create({
+            const registration = await prisma.eventRegistration.create({
                 data: {
                     event: {
                         connect: {
@@ -142,76 +146,104 @@ export const eventRegistrationOperations = {
                 },
             })
 
-            const updatedEvent = await postValidateRegistration(prisma, result.id, params.eventId)
+            const updatedEvent = await postValidateRegistration(prisma, registration.id, params.eventId)
 
             return {
-                result,
+                ...registration,
                 onWaitingList: updatedEvent.places < updatedEvent._count.eventRegistrations,
             }
         },
     }),
 
-    readMany: defineOperation({
-        authorizer: () => eventRegistrationAuth.readMany.dynamicFields({}),
+    readDotPunishmentOfUser: readDotPunishmentOfUser.implement({
+        authorizer: ({ params }) => eventRegistrationAuth.readDotPunishmentOfUser.dynamicFields({
+            userId: params.userId,
+        }),
+        ownershipCheck: () => true,
+    }),
+
+    /**
+     * The registration of one user to one event, or null if that user is not registered. Tells
+     * whether the registration landed on the waiting list, so the one registered can be shown where
+     * they stand.
+     */
+    readOfUser: defineOperation({
+        authorizer: ({ params }) => eventRegistrationAuth.readOfUser.dynamicFields({
+            userId: params.userId,
+        }),
         paramsSchema: z.object({
             eventId: z.number().min(0),
-            skip: z.number().optional(),
-            take: z.number().optional(),
-            type: z.nativeEnum(REGISTRATION_READER_TYPE).optional(),
+            userId: z.number().min(0),
         }),
+        operation: async ({ prisma, params }): Promise<EventRegistrationWithWaitingList | null> => {
+            const event = await prisma.event.findUniqueOrThrow({
+                where: {
+                    id: params.eventId,
+                },
+                select: {
+                    places: true,
+                    eventRegistrations: {
+                        orderBy: eventRegistrationQueueOrder,
+                    },
+                },
+            })
+
+            const queuePosition = event.eventRegistrations.findIndex(
+                registration => registration.userId === params.userId
+            )
+
+            if (queuePosition === -1) return null
+
+            return {
+                ...event.eventRegistrations[queuePosition],
+                onWaitingList: queuePosition >= event.places,
+            }
+        },
+    }),
+
+    readPage: defineOperation({
+        authorizer: () => eventRegistrationAuth.readPage.dynamicFields({}),
+        paramsSchema: eventRegistrationSchemas.readPage,
         operation: async ({ prisma, params }): Promise<EventRegistrationExpanded[]> => {
+            const segment = await queueSegmentFilter(prisma, params.paging.details)
+            if (!segment) return []
+
             const defaultImage = await standardImageCollectionOperations.readStandardImage({
                 params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
             })
 
-            const skipTake = await calculateTakeSkip(prisma, params)
-            if (skipTake.take === 0) return []
-
-            const reults = await prisma.eventRegistration.findMany({
-                where: {
-                    eventId: params.eventId,
-                },
-                orderBy: {
-                    createdAt: 'asc',
-                },
-                ...skipTake,
+            const registrations = await prisma.eventRegistration.findMany({
+                ...cursorPageingSelection(params.paging.page),
+                where: segment,
+                orderBy: eventRegistrationQueueOrder,
                 select: eventRegistrationSelection,
             })
 
-            return reults.map(registration => ({
+            return registrations.map(registration => ({
                 ...registration,
                 image: registration.user?.image || defaultImage,
             }))
         },
     }),
 
-    readManyDetailed: defineOperation({
-        authorizer: () => eventRegistrationAuth.readManyDetailed.dynamicFields({}),
-        paramsSchema: z.object({
-            eventId: z.number().min(0),
-            skip: z.number().optional(),
-            take: z.number().optional(),
-            type: z.nativeEnum(REGISTRATION_READER_TYPE).optional(),
-        }),
+    readPageDetailed: defineOperation({
+        authorizer: () => eventRegistrationAuth.readPageDetailed.dynamicFields({}),
+        paramsSchema: eventRegistrationSchemas.readPageDetailed,
         operation: async ({ prisma, params }) => {
-            const skiptake = await calculateTakeSkip(prisma, params)
-            if (skiptake.take === 0) return []
+            const segment = await queueSegmentFilter(prisma, params.paging.details)
+            if (!segment) return []
 
             return await prisma.eventRegistration.findMany({
-                where: {
-                    eventId: params.eventId,
-                },
-                orderBy: {
-                    createdAt: 'asc',
-                },
-                ...skiptake,
+                ...cursorPageingSelection(params.paging.page),
+                where: segment,
+                orderBy: eventRegistrationQueueOrder,
                 include: eventRegistrationIncluderDetailed,
             })
         }
     }),
 
     updateNotes: defineOperation({
-        authorizer: () => eventRegistrationAuth.updateRegistrationNotes.dynamicFields({}),
+        authorizer: () => eventRegistrationAuth.updateNotes.dynamicFields({}),
         paramsSchema: z.object({
             registrationId: z.number().min(0),
         }),
@@ -266,6 +298,7 @@ export const eventRegistrationOperations = {
                                 },
                             },
                             eventRegistrations: {
+                                orderBy: eventRegistrationQueueOrder,
                                 select: {
                                     id: true,
                                 },
@@ -310,9 +343,7 @@ export const eventRegistrationOperations = {
                     eventId: registration.event.id,
                 },
                 skip: registration.event.places - 1,
-                orderBy: {
-                    id: 'asc',
-                },
+                orderBy: eventRegistrationQueueOrder,
                 include: {
                     user: {
                         select: userFilterSelection,
@@ -348,7 +379,7 @@ export const eventRegistrationOperations = {
             }
         }
     })
-}
+} as const
 
 async function preValidateRegistration(
     prisma: Prisma.TransactionClient,
@@ -427,36 +458,52 @@ async function postValidateRegistration(
     return event
 }
 
-async function calculateTakeSkip(prisma: Prisma.TransactionClient, params: {
-    eventId: number,
-    take?: number,
-    skip?: number,
-    type?: REGISTRATION_READER_TYPE,
-}) {
-    let take = params.take
-    let skip = params.skip
+/**
+ * Narrows to one segment of the registration queue of an event: the registrations that took the
+ * places of the event, or the ones queueing on the waiting list past them. The first registration
+ * past the places is the boundary, and since the queue is ordered by id, each segment is simply the
+ * ids on one side of it.
+ *
+ * @returns The filter to read the segment with, or null if the segment holds no registrations.
+ */
+async function queueSegmentFilter(
+    prisma: Prisma.TransactionClient,
+    details: EventRegistrationPageDetails
+): Promise<Prisma.EventRegistrationWhereInput | null> {
+    const event = await prisma.event.findUniqueOrThrow({
+        where: {
+            id: details.eventId,
+        },
+        select: {
+            places: true,
+        },
+    })
 
-    if (params.type && take) {
-        const event = await prisma.event.findUniqueOrThrow({
-            where: {
-                id: params.eventId,
-            },
-        })
+    const firstOnWaitingList = await prisma.eventRegistration.findFirst({
+        where: {
+            eventId: details.eventId,
+        },
+        orderBy: eventRegistrationQueueOrder,
+        skip: event.places,
+        select: {
+            id: true,
+        },
+    })
 
-        if (params.type === REGISTRATION_READER_TYPE.REGISTRATIONS) {
-            skip = Math.min(skip ?? 0, event.places)
-            take = Math.min(take, event.places - skip)
-        } else {
-            skip = (skip ?? 0) + event.places
-        }
+    if (details.type === REGISTRATION_READER_TYPE.WAITING_LIST) {
+        if (!firstOnWaitingList) return null
 
-        if (skip === 0) {
-            skip = undefined
+        return {
+            eventId: details.eventId,
+            id: { gte: firstOnWaitingList.id },
         }
     }
 
+    // Without anyone past the places of the event, every registration took a place.
+    if (!firstOnWaitingList) return { eventId: details.eventId }
+
     return {
-        take,
-        skip,
+        eventId: details.eventId,
+        id: { lt: firstOnWaitingList.id },
     }
 }

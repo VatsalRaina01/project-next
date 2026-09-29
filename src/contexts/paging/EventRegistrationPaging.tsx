@@ -1,22 +1,20 @@
 'use client'
 import { generatePaging } from './PagingGenerator'
-import { readManyEventRegistrationAction } from '@/services/events/registration/actions'
-import type { EventRegistrationExpanded, EventRegistrationFetcherDetails } from '@/services/events/registration/types'
-import type { PageSizeUsers } from './UserPaging'
+import { readEventRegistrationsPageAction } from '@/services/events/registration/actions'
+import type {
+    EventRegistrationCursor,
+    EventRegistrationExpanded,
+    EventRegistrationPageDetails
+} from '@/services/events/registration/types'
+
+export type PageSizeEventRegistration = 50
 
 export const [EventRegistrationPagingContext, EventRegistrationPagingProvider] = generatePaging<
     EventRegistrationExpanded,
-    number,
-    PageSizeUsers,
-    EventRegistrationFetcherDetails
+    EventRegistrationCursor,
+    PageSizeEventRegistration,
+    EventRegistrationPageDetails
 >({
-    fetcher: async ({ paging }) => await readManyEventRegistrationAction({
-        params: {
-            eventId: paging.details.eventId,
-            take: paging.page.pageSize,
-            skip: (paging.page.page * paging.page.pageSize) || undefined,
-            type: paging.details.type,
-        }
-    }),
-    getCursor: ({ fetchedCount }) => (fetchedCount),
+    fetcher: async ({ paging }) => await readEventRegistrationsPageAction({ params: { paging } }),
+    getCursor: ({ lastElement }) => ({ id: lastElement.id }),
 })
