@@ -121,7 +121,7 @@ The file also sets its own compose project name, `projectnext-prod`. Dev and pro
 
 Mail is **not** part of this compose stack. It runs as its own Dokploy application, built from `containers/postfix/` in this repository.
 
-It is separate because the two directions of mail need different things from the network. Outbound is simple - the app hands a message to Postfix, which relays it on through `MAIL_RELAY_HOST`. Inbound is what the `MailAlias` feature actually depends on: Postfix resolves every alias against the database (`virtual_alias_maps`, see `containers/postfix/pgsql-aliases.cf.tmpl`) and forwards it to the members behind it, which only works if the domain's MX can reach port 25. The stack's ingress is a Cloudflare Tunnel in front of Traefik and carries HTTP only, so a Postfix service inside it could never receive that mail - it would have quietly relayed outbound while every alias silently black-holed.
+It is separate because the two directions of mail need different things from the network. Outbound is handled by the app itself - it authenticates directly against `MAIL_SERVER` (e.g. SMTP2GO) over TLS using `MAIL_PORT`, `MAIL_USER` and `MAIL_PASSWORD`, see `src/lib/email/constants.ts`. Postfix plays no part in outbound mail. Inbound is what the `MailAlias` feature actually depends on: Postfix resolves every alias against the database (`virtual_alias_maps`, see `containers/postfix/pgsql-aliases.cf.tmpl`) and forwards it to the members behind it, which only works if the domain's MX can reach port 25. The stack's ingress is a Cloudflare Tunnel in front of Traefik and carries HTTP only, so a Postfix service inside it could never receive that mail - it would have quietly relayed outbound while every alias silently black-holed.
 
 Deploying it:
 
@@ -129,7 +129,8 @@ Deploying it:
 2. Give it `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (the alias lookups read the same database as the app), plus `MY_HOSTNAME` (`MAIL_DOMAIN`), `MY_DOMAIN` (`DOMAIN`) and `RELAY_HOST` (`MAIL_RELAY_HOST`).
 3. Expose port 25 on the host and point the mail domain's MX record at it.
 4. Provision a certificate for the mail domain and turn `smtpd_use_tls` back on in `containers/postfix/main.cf.tmpl`. It is `no` there because the old certbot flow lived in the nginx container that this setup removed, and pointing Postfix at cert files that don't exist stops it from starting. Inbound SMTP on a published port should not stay plaintext.
-5. Set `MAIL_SERVER` on the stack to this host, so the app relays through it.
+
+`MAIL_SERVER` on the stack is unrelated to this Postfix deployment - it points the app at its own outbound provider (e.g. SMTP2GO), configured with `MAIL_PORT`, `MAIL_USER`, `MAIL_PASSWORD` and `MAIL_SECURE`.
 
 ### Running DobbelOmega
 
