@@ -262,33 +262,6 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         }
     })
 
-    await prisma.membership.createMany({
-        data: [
-            {
-                groupId: syskenGroupId,
-                userId: harambe.id,
-                admin: false,
-                active: true,
-                order: latestOrder.order
-            },
-            {
-                groupId: studyProgrammeMTTK.groupId,
-                userId: harambe.id,
-                admin: false,
-                active: true,
-                order: latestOrder.order
-            },
-            {
-                groupId: harambecom.groupId,
-                userId: harambe.id,
-                admin: false,
-                active: true,
-                order: latestOrder.order
-            }
-        ],
-        skipDuplicates: true,
-    })
-
     const existingVever = await prisma.user.findUnique({
         where: { email: 'vever@vevcom.com' },
         select: { id: true },
@@ -317,8 +290,38 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         },
     })
 
+    // Either of them may sit at another level by now, and `skipDuplicates` would leave that
+    // membership standing beside the sysken one they are given here.
+    await prisma.membership.deleteMany({
+        where: {
+            userId: { in: [harambe.id, vever.id] },
+            group: { groupType: 'OMEGA_MEMBERSHIP_GROUP' },
+        },
+    })
+
     await prisma.membership.createMany({
         data: [
+            {
+                groupId: syskenGroupId,
+                userId: harambe.id,
+                admin: false,
+                active: true,
+                order: latestOrder.order
+            },
+            {
+                groupId: studyProgrammeMTTK.groupId,
+                userId: harambe.id,
+                admin: false,
+                active: true,
+                order: latestOrder.order
+            },
+            {
+                groupId: harambecom.groupId,
+                userId: harambe.id,
+                admin: false,
+                active: true,
+                order: latestOrder.order
+            },
             {
                 groupId: syskenGroupId,
                 userId: vever.id,
