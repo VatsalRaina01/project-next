@@ -5,13 +5,12 @@ import ProfilePicture from '@/components/User/ProfilePicture'
 import UserDisplayName from '@/components/User/UserDisplayName'
 import { readUserProfileAction } from '@/services/users/actions'
 import { ServerSession } from '@/auth/session/ServerSession'
-import { flairAuth } from '@/services/flairs/auth'
 import { sexConfig } from '@/services/users/constants'
 import { readUserFlairsAction } from '@/services/flairs/actions'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
-import UserAdminNavBar from '@/app/users/[username]/UserAdminNavBar'
+import UserNavBar from '@/app/users/[username]/UserNavBar'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faMoneyBill,
@@ -84,7 +83,6 @@ export default async function User({ params }: PropTypes) {
             : 'transparent'
     } as React.CSSProperties
     const isOwnProfile = profile.user.id === session.user?.id
-    const canAssignFlairs = flairAuth.assignToUser.dynamicFields({}).auth(session)
 
     function memberhipTitle(): string {
         switch (omegaMembership.level) {
@@ -248,12 +246,7 @@ export default async function User({ params }: PropTypes) {
                     </div>
                 </div>
 
-                {isOwnProfile && (
-                    <UserAdminNavBar
-                        username={profile.user.username}
-                        canAssignFlairs={canAssignFlairs.authorized}
-                    />
-                )}
+                <UserNavBar username={profile.user.username} userId={profile.user.id} />
             </div>
         </div>
     )

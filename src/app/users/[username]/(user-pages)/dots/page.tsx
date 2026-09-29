@@ -1,7 +1,7 @@
 import styles from './page.module.scss'
 import UserDotsInEditMode from './UserDotsInEditMode'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { getProfileForAdmin } from '@/app/users/[username]/(user-admin)/getProfileForAdmin'
+import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { readDotsForUserAction } from '@/services/dots/actions'
 
 type PropTypes = {
@@ -11,7 +11,7 @@ type PropTypes = {
 }
 
 export default async function UserDotAdmin({ params }: PropTypes) {
-    const { profile } = await getProfileForAdmin(await params, 'dots')
+    const { profile } = await getProfileForUserPage(await params, 'dots')
     const dots = unwrapActionReturn(
         await readDotsForUserAction({ params: { userId: profile.user.id } })
     )
