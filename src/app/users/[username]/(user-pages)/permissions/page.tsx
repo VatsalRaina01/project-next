@@ -1,11 +1,11 @@
 import styles from './page.module.scss'
 import Permission from '@/components/Permission/Permission'
-import { getProfileForAdmin } from '@/app/users/[username]/(user-admin)/getProfileForAdmin'
+import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { v4 as uuid } from 'uuid'
 import type { PropTypes } from '@/app/users/[username]/page'
 
 export default async function UserSettings({ params }: PropTypes) {
-    const { profile } = await getProfileForAdmin(await params, 'permissions')
+    const { profile } = await getProfileForUserPage(await params, 'permissions')
 
     return (
         <div className={styles.wrapper}>
