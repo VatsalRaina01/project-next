@@ -335,6 +335,13 @@ export const groupOperations = {
         operation: ({ setPensioned }: { setPensioned: SetPensioned }) => async ({ prisma, params, data }) => {
             const { order: currentOmegaOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
+            if (!data.pensioned && !await isGroupPensioned(prisma, params.groupId)) {
+                throw new ServerError(
+                    'BAD PARAMETERS',
+                    'Gruppen er ikke pensjonert og kan ikke gjenopprettes.'
+                )
+            }
+
             await prisma.$transaction(async tx => {
                 await setPensioned(tx, params.groupId, data.pensioned)
 
