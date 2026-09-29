@@ -20,7 +20,7 @@ const commonGroupOperations = implementGroupType({
     type: GroupType.INTEREST_GROUP,
     auth: {
         readExpanded: interestGroupAuth.readExpanded.dynamicFields({}),
-        readMembers: () => interestGroupAuth.readMembers.dynamicFields({}),
+        readMembers: ({ groupId }) => interestGroupAuth.readMembers.dynamicFields({ groupId }),
     },
 })
 

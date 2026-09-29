@@ -32,12 +32,13 @@ export default async function ManualGroupAdmin({ params }: PropTypes) {
     if (!Number.isInteger(id)) notFound()
 
     const session = await ServerSession.fromNextAuth()
-    // The page reads the group's members, so it guards on `readMembers` rather than `read`:
-    // `MANUAL_GROUP_READ` is a default permission, held by a visitor with no session at all.
-    manualGroupAuth.readMembers.dynamicFields({}).auth(session)
-        .redirectOnUnauthorized({ returnUrl: `/admin/manual-groups/${id}` })
 
     const manualGroup = unwrapActionReturn(await readManualGroupAction({ params: { id } }))
+
+    // The page reads the group's members, so it guards on `readMembers` rather than `read`:
+    // `MANUAL_GROUP_READ` is a default permission, held by a visitor with no session at all.
+    manualGroupAuth.readMembers.dynamicFields({ groupId: manualGroup.groupId }).auth(session)
+        .redirectOnUnauthorized({ returnUrl: `/admin/manual-groups/${id}` })
 
     const [expandedGroups, members, currentOrder] = await Promise.all([
         readManualGroupsExpandedAction().then(unwrapActionReturn),

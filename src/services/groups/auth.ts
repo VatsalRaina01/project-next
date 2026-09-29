@@ -1,4 +1,5 @@
 import { RequireEveryPermission } from '@/auth/authorizer/RequireEveryPermission'
+import { RequireEveryPermissionOrGroupAdmin } from '@/auth/authorizer/RequireEveryPermissionOrGroupAdmin'
 import type { Permission } from '@/prisma-generated-pn-types'
 
 /**
@@ -17,6 +18,27 @@ import type { Permission } from '@/prisma-generated-pn-types'
  */
 export function requireReadGroupMembers(groupTypeReadPermission: Permission) {
     return RequireEveryPermission.staticFields({
+        permissions: [groupTypeReadPermission, 'USERS_READ'],
+    })
+}
+
+/**
+ * The `readMembers` authorizer for the group types someone administers by hand - committees,
+ * interest groups, manual groups and study programmes.
+ *
+ * `RequirePermissionOrGroupAdmin` lets a group's own admin add, remove and retitle its members
+ * without holding the group type's admin permission. Gating the member list on permissions alone
+ * would leave that admin managing a group whose members they may not see - and the pages that offer
+ * the management read the members first, so they would be turned away before reaching it. An active
+ * admin membership therefore passes here too.
+ *
+ * The permission arm is unchanged from `requireReadGroupMembers`, so nothing that could read a
+ * group's members before can read less now. Group types nobody administers this way - classes and
+ * omega membership groups, whose membership is decided elsewhere - keep the plain authorizer, so a
+ * default read permission still cannot hand out a roster to a visitor.
+ */
+export function requireReadManagedGroupMembers(groupTypeReadPermission: Permission) {
+    return RequireEveryPermissionOrGroupAdmin.staticFields({
         permissions: [groupTypeReadPermission, 'USERS_READ'],
     })
 }
