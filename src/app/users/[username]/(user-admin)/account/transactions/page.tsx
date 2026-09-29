@@ -12,6 +12,6 @@ export default async function Transactions() {
     const ledgerAccount = unwrapActionReturn(await readLedgerAccountAction({ params: { userId: session.user.id } }))
 
     return <div className={styles.wrapper}>
-        <TransactionList accountId={ledgerAccount.id} showFees/>
+        <TransactionList accountId={ledgerAccount.id} />
     </div>
 }

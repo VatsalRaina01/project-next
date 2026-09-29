@@ -4,11 +4,12 @@ import styles from './LedgerTransactionList.module.scss'
 import LedgerTransactionRow from './LedgerTransactionRow'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { LedgerTransactionPagingProvider, LedgerTransactionPagingContext } from '@/contexts/paging/LedgerTransactionPaging'
+import useAuthorizer from '@/hooks/useAuthorizer'
+import { RequirePermission } from '@/auth/authorizer/RequirePermission'
 import { useContext } from 'react'
 
 type Props = {
     accountId: number,
-    showFees?: boolean,
 }
 
 function EmptyState() {
@@ -20,7 +21,11 @@ function EmptyState() {
     return <p>Her var det tomt! Hva med å ta seg en tur innom Kiogeskapet?</p>
 }
 
-export default function TransactionList({ accountId, showFees }: Props) {
+export default function TransactionList({ accountId }: Props) {
+    const isLedgerAdmin = useAuthorizer({
+        authorizer: RequirePermission.staticFields({ permission: 'LEDGER_ADMIN' }).dynamicFields({})
+    }).authorized
+
     return <LedgerTransactionPagingProvider
         startPage={{ page: 0, pageSize: 10 }}
         details={{ accountId }} serverRenderedData={[]}
@@ -33,7 +38,7 @@ export default function TransactionList({ accountId, showFees }: Props) {
                     key={transaction.id}
                     accountId={accountId}
                     transaction={transaction}
-                    showFees={showFees}
+                    canViewFees={isLedgerAdmin}
                 />
             }
             wrapper={children =>
@@ -45,7 +50,6 @@ export default function TransactionList({ accountId, showFees }: Props) {
                             <th>Status</th>
                             <th>Beløp</th>
                             <th>Saldoendring</th>
-                            {showFees && <th>Gebyrendring</th>}
                         </tr>
                     </thead>
                     <tbody>
