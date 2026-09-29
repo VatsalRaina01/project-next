@@ -3,3 +3,8 @@
 .AddNews {
     min-width: 20vw;
 }
+.visibility {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}

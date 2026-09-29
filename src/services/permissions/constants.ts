@@ -387,26 +387,6 @@ export const permissionConfig = {
         `,
         category: 'diverse admin'
     },
-    EVENT_READ: {
-        name: 'Les arrangementer',
-        description: 'kan lese arrangementer',
-        category: 'events'
-    },
-    EVENT_REGISTRATION_CREATE: {
-        name: 'Meld deg på arrangementer',
-        description: 'kan melde seg på arrangementer',
-        category: 'events'
-    },
-    EVENT_REGISTRATION_DESROY: {
-        name: 'Meld deg av arrangementer',
-        description: 'kan melde seg av arrangementer',
-        category: 'events'
-    },
-    EVENT_REGISTRATION_READ: {
-        name: 'Les påemeldinger',
-        description: 'kan lese påmeldinger',
-        category: 'events'
-    },
     CABIN_BOOKING_BED_CREATE: {
         name: 'Booke senger i hytta',
         description: 'Kan booke en senger i hytta',

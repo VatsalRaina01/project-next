@@ -24,6 +24,7 @@ enum RegistrationButtonState {
     REGISTRATION_NOT_OPEN = 'REGISTRATION_NOT_OPEN',
     REGISTRATION_CLOSED = 'REGISTRATION_CLOSED',
     BANNED_BY_DOTS = 'BANNED_BY_DOTS',
+    NOT_ALLOWED = 'NOT_ALLOWED',
     ERROR = 'ERROR',
 }
 
@@ -31,10 +32,12 @@ export default function RegistrationUI({
     event,
     registration,
     dotPunishment,
+    canRegister,
 }: {
     event: EventExpanded,
     registration: EventRegistrationWithWaitingList | null,
     dotPunishment: DotPunishment | null,
+    canRegister: boolean,
 }) {
     if (!event.takesRegistration) {
         throw new Error('Can only show registration button for event that take registration')
@@ -54,6 +57,10 @@ export default function RegistrationUI({
         }
         if (dotPunishment?.type === 'ban') {
             return RegistrationButtonState.BANNED_BY_DOTS
+        }
+        // The regular visibility level of the event decides who may register for it at all.
+        if (!canRegister) {
+            return RegistrationButtonState.NOT_ALLOWED
         }
         if (registrationStart > new Date()) {
             return RegistrationButtonState.REGISTRATION_NOT_OPEN
@@ -182,6 +189,7 @@ export default function RegistrationUI({
             {btnState === RegistrationButtonState.ERROR && errorText}
             {btnState === RegistrationButtonState.REGISTRATION_CLOSED && 'Påmeldingen er over'}
             {btnState === RegistrationButtonState.BANNED_BY_DOTS && 'Utestengt av prikker'}
+            {btnState === RegistrationButtonState.NOT_ALLOWED && 'Du kan ikke melde deg på dette arrangementet'}
         </SubmitButton>
 
         {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && (

@@ -14,9 +14,12 @@ import { standardImageCollectionOperations } from '@/services/images/standard/op
 import { notificationOperations } from '@/services/notifications/operations'
 import { sendSystemMail } from '@/lib/email/send'
 import { userFilterSelection } from '@/services/users/constants'
-import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import { eventOperations } from '@/services/events/operations'
+import { checkVisibility } from '@/auth/visibility/checkVisibility'
+import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { z } from 'zod'
+import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type {
     DotPunishment,
@@ -24,6 +27,49 @@ import type {
     EventRegistrationPageDetails,
     EventRegistrationWithWaitingList,
 } from './types'
+
+/**
+ * The visibility levels of one event - the regular level is what it takes to register for it, the
+ * admin level what it takes to act on the registrations of everyone else.
+ */
+async function eventVisibility(prisma: PrismaPossibleTransaction<false>, eventId: number) {
+    return await eventOperations.visibility.readDoubleLevelMatrixInternal({
+        params: { id: eventId },
+        prisma,
+    })
+}
+
+/**
+ * Whether the session administrates one event - what lets it register people outside the
+ * registration window, past their dots, and unregister them after the deadline. The admin level of
+ * the event grants this, and EVENT_ADMIN administrates every event.
+ */
+async function sessionAdministratesEvent(
+    prisma: PrismaPossibleTransaction<false>,
+    session: SessionMaybeUser,
+    eventId: number
+) {
+    if (session.permissions.includes('EVENT_ADMIN')) return true
+    return checkVisibility(session.memberships, (await eventVisibility(prisma, eventId)).adminLevel)
+}
+
+/**
+ * The same levels for the event one registration belongs to, together with the user that owns the
+ * registration - null for a guest registered by an administrator.
+ */
+async function registrationOwnerAndEventVisibility(
+    prisma: PrismaPossibleTransaction<false>,
+    registrationId: number
+) {
+    const registration = await prisma.eventRegistration.findUniqueOrThrow({
+        where: { id: registrationId },
+        select: { userId: true, eventId: true },
+    })
+    return {
+        userId: registration.userId,
+        doubleLevelMatrix: await eventVisibility(prisma, registration.eventId),
+    }
+}
 
 /**
  * What the dots of a user hold them back from when registering to an event.
@@ -87,12 +133,13 @@ export const eventRegistrationOperations = {
             userId: z.number().min(0),
             eventId: z.number().min(0),
         }),
-        authorizer: ({ params }) => eventRegistrationAuth.create.dynamicFields({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.create.dynamicFields({
             userId: params.userId,
+            doubleLevelMatrix: await eventVisibility(prisma, params.eventId),
         }),
         opensTransaction: true,
         operation: async ({ prisma, params, session }): Promise<EventRegistrationWithWaitingList> => {
-            const isAdmin = session.permissions.includes('EVENT_ADMIN')
+            const isAdmin = await sessionAdministratesEvent(prisma, session, params.eventId)
             const event = await preValidateRegistration(prisma, params.eventId, isAdmin)
 
             await validateDotPunishmentOfRegistration(prisma, event.registrationStart, params.userId, isAdmin)
@@ -122,7 +169,9 @@ export const eventRegistrationOperations = {
     }),
 
     createGuest: defineOperation({
-        authorizer: () => eventRegistrationAuth.createGuest.dynamicFields({}),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.createGuest.dynamicFields({
+            doubleLevelMatrix: await eventVisibility(prisma, params.eventId),
+        }),
         paramsSchema: z.object({
             eventId: z.number(),
         }),
@@ -168,8 +217,9 @@ export const eventRegistrationOperations = {
      * they stand.
      */
     readOfUser: defineOperation({
-        authorizer: ({ params }) => eventRegistrationAuth.readOfUser.dynamicFields({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readOfUser.dynamicFields({
             userId: params.userId,
+            doubleLevelMatrix: await eventVisibility(prisma, params.eventId),
         }),
         paramsSchema: z.object({
             eventId: z.number().min(0),
@@ -202,7 +252,9 @@ export const eventRegistrationOperations = {
     }),
 
     readPage: defineOperation({
-        authorizer: () => eventRegistrationAuth.readPage.dynamicFields({}),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPage.dynamicFields({
+            doubleLevelMatrix: await eventVisibility(prisma, params.paging.details.eventId),
+        }),
         paramsSchema: eventRegistrationSchemas.readPage,
         operation: async ({ prisma, params }): Promise<EventRegistrationExpanded[]> => {
             const segment = await queueSegmentFilter(prisma, params.paging.details)
@@ -227,7 +279,9 @@ export const eventRegistrationOperations = {
     }),
 
     readPageDetailed: defineOperation({
-        authorizer: () => eventRegistrationAuth.readPageDetailed.dynamicFields({}),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPageDetailed.dynamicFields({
+            doubleLevelMatrix: await eventVisibility(prisma, params.paging.details.eventId),
+        }),
         paramsSchema: eventRegistrationSchemas.readPageDetailed,
         operation: async ({ prisma, params }) => {
             const segment = await queueSegmentFilter(prisma, params.paging.details)
@@ -243,25 +297,22 @@ export const eventRegistrationOperations = {
     }),
 
     updateNotes: defineOperation({
-        authorizer: () => eventRegistrationAuth.updateNotes.dynamicFields({}),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.updateNotes.dynamicFields(
+            await registrationOwnerAndEventVisibility(prisma, params.registrationId)
+        ),
         paramsSchema: z.object({
             registrationId: z.number().min(0),
         }),
         dataSchema: eventRegistrationSchemas.updateNotes,
-        operation: async ({ prisma, params, data, session }) => {
-            const registration = await prisma.eventRegistration.findUnique({
+        operation: async ({ prisma, params, data }) => {
+            const registration = await prisma.eventRegistration.findUniqueOrThrow({
                 where: {
                     id: params.registrationId,
                 },
                 select: {
-                    userId: true,
                     event: true,
                 },
             })
-
-            if (!session.user || !registration || registration.userId !== session.user.id) {
-                throw new Smorekopp('UNAUTHORIZED', 'Kan ikke endre påmelding til andre.')
-            }
 
             if (registration.event.registrationEnd < new Date()) {
                 throw new Smorekopp('BAD PARAMETERS', 'Kan ikke endre påmelding etter påmeldingsfristen.')
@@ -279,12 +330,13 @@ export const eventRegistrationOperations = {
     }),
 
     destroy: defineOperation({
-        authorizer: () => eventRegistrationAuth.destroy.dynamicFields({}),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.destroy.dynamicFields(
+            await registrationOwnerAndEventVisibility(prisma, params.registrationId)
+        ),
         paramsSchema: z.object({
             registrationId: z.number().min(0),
         }),
         operation: async ({ prisma, params, session }) => {
-            const isAdmin = session.permissions.includes('EVENT_ADMIN')
             const registration = await prisma.eventRegistration.findUniqueOrThrow({
                 where: {
                     id: params.registrationId,
@@ -309,9 +361,7 @@ export const eventRegistrationOperations = {
                 },
             })
 
-            if (!isAdmin && (session.user === null || registration.userId !== session.user.id)) {
-                throw new Smorekopp('UNAUTHORIZED', 'Kan ikke avregistrere andre.')
-            }
+            const isAdmin = await sessionAdministratesEvent(prisma, session, registration.event.id)
 
             if (registration.event.registrationEnd < new Date() && !isAdmin) {
                 throw new Smorekopp(
