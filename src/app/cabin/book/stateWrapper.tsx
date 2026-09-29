@@ -17,7 +17,7 @@ import {
     createBedBookingUserAttachedAction,
     createCabinBookingNoUserAction,
     createCabinBookingUserAttachedAction,
-} from '@/services/cabin/actions'
+} from '@/services/cabin/booking/actions'
 import { useEffect, useMemo, useState } from 'react'
 import type { CabinBookingReservation } from '@/components/Ledger/Modals/CabinBookingPaymentModal'
 import type { CabinProductExtended } from '@/services/cabin/product/constants'

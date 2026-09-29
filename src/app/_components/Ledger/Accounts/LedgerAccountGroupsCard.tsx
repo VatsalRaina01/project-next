@@ -2,7 +2,8 @@ import styles from './LedgerAccountGroupsCard.module.scss'
 import LedgerAccountGroupList from './LedgerAccountGroupList'
 import AddGroupToLedgerAccount from './AddGroupToLedgerAccount'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { readGroupsExpandedAction } from '@/services/groups/actions'
+import { readExpandedGroupsOfAllTypesAction } from '@/services/groups/actions'
+import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 
 type Props = {
     ledgerAccountId: number,
@@ -10,7 +11,7 @@ type Props = {
 }
 
 export default async function LedgerAccountGroupsCard({ ledgerAccountId, groupIds }: Props) {
-    const allGroups = unwrapActionReturn(await readGroupsExpandedAction())
+    const allGroups = flattenExpandedGroups(unwrapActionReturn(await readExpandedGroupsOfAllTypesAction()))
     const currentGroups = allGroups.filter(group => groupIds.includes(group.id))
     const availableGroups = allGroups.filter(group => !groupIds.includes(group.id))
 

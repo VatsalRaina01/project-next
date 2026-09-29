@@ -4,9 +4,12 @@ import { eventRegistrationOperations } from '@/services/events/registration/oper
 
 export const createEventRegistrationAction = makeAction(eventRegistrationOperations.create)
 export const createGuestEventRegistrationAction = makeAction(eventRegistrationOperations.createGuest)
-export const readManyEventRegistrationAction = makeAction(eventRegistrationOperations.readMany)
-export const eventRegistrationReadManyDetailedAction = makeAction(eventRegistrationOperations.readManyDetailed)
-export const eventRegistrationUpdateNotesAction = makeAction(eventRegistrationOperations.updateNotes)
-export const eventRegistrationDestroyAction = makeAction(eventRegistrationOperations.destroy)
-export const dotPunishmentOfUserAction = makeAction(eventRegistrationOperations.dotPunishmentOfUser)
+
+export const readDotPunishmentOfUserAction = makeAction(eventRegistrationOperations.readDotPunishmentOfUser)
+export const readEventRegistrationOfUserAction = makeAction(eventRegistrationOperations.readOfUser)
+export const readEventRegistrationsPageAction = makeAction(eventRegistrationOperations.readPage)
+export const readDetailedEventRegistrationsPageAction = makeAction(eventRegistrationOperations.readPageDetailed)
+
+export const updateEventRegistrationNotesAction = makeAction(eventRegistrationOperations.updateNotes)
+export const destroyEventRegistrationAction = makeAction(eventRegistrationOperations.destroy)
 export const createEventRegistrationPaymentAction = makeAction(eventRegistrationOperations.createPayment)

@@ -3,6 +3,7 @@ import ShowAndEditName from './ShowAndEditName'
 import RegistrationUI from './RegistrationUI'
 import RegistrationsList from './RegistrationsList'
 import ManualRegistrationForm from './ManualRegistrationForm'
+import EventVisibilityAdmin from './EventVisibilityAdmin'
 import Date from '@/components/Date/Date'
 import CreateOrUpdateEventForm from '@/app/events/CreateOrUpdateEventForm'
 import CmsImage from '@/components/Cms/CmsImage/CmsImage'
@@ -16,16 +17,22 @@ import { readEventTagsAction } from '@/services/events/tags/actions'
 import {
     destroyEventAction,
     readEventAction,
+    readEventDoubleLevelVisibilityAction,
     updateEventCmsCoverImageAction,
     updateEventParagraphContentAction
 } from '@/services/events/actions'
-import { dotPunishmentOfUserAction } from '@/services/events/registration/actions'
+import {
+    readDotPunishmentOfUserAction,
+    readEventRegistrationOfUserAction
+} from '@/services/events/registration/actions'
 import { calculateLedgerAccountBalanceAction } from '@/services/ledger/accounts/actions'
 import { createStripeCustomerSessionAction } from '@/services/stripeCustomers/actions'
 import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { eventAuth } from '@/services/events/auth'
+import { eventRegistrationAuth } from '@/services/events/registration/auth'
+import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import Link from 'next/link'
 import { faCalendar, faExclamation, faLocationDot, faUsers } from '@fortawesome/free-solid-svg-icons'
@@ -46,23 +53,50 @@ export default async function Event({ params }: PropTypes) {
 
     const tags = unwrapActionReturn(await readEventTagsAction())
 
-    const ownRegistration = event.eventRegistrations.length ? event.eventRegistrations[0] : undefined
-
     const session = await ServerSession.fromNextAuth()
-    const canEditCmsCoverImage = eventAuth.updateCmsCoverImage.dynamicFields({}).auth(
+
+    // Readable only by those who administrate the event, so a visitor without that access simply
+    // gets no editing tools - EMPTY_VISIBILITY then denies everyone but those bypassing with
+    // EVENT_ADMIN, which is the safe direction to fail in.
+    const readDoubleLevelVisibility = await readEventDoubleLevelVisibilityAction({ params: { id: event.id } })
+    const doubleLevelVisibility = readDoubleLevelVisibility.success ? readDoubleLevelVisibility.data : null
+    const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
+
+    const canEditCmsCoverImage = eventAuth.updateCmsCoverImage.dynamicFields({ doubleLevelMatrix }).auth(
         session
     ).toJsObject()
-    const canEditCmsParagraph = eventAuth.updateParagraphContent.dynamicFields({}).auth(
+    const canEditCmsParagraph = eventAuth.updateParagraphContent.dynamicFields({ doubleLevelMatrix }).auth(
         session
     ).toJsObject()
-    const canDestroy = eventAuth.destroy.dynamicFields({}).auth(
+    const canDestroy = eventAuth.destroy.dynamicFields({ doubleLevelMatrix }).auth(
         session
     ).toJsObject()
+
+    // Registering takes the regular level of the event, reading who is registered the same, and
+    // registering on behalf of others its admin level - offering any of it to someone without the
+    // level would only produce an error when they act on it.
+    const canRegister = session.user ? eventRegistrationAuth.create.dynamicFields({
+        userId: session.user.id,
+        doubleLevelMatrix,
+    }).auth(session).authorized : false
+    const canReadRegistrations = eventRegistrationAuth.readPage.dynamicFields({
+        doubleLevelMatrix
+    }).auth(session).authorized
+    const canRegisterOthers = eventRegistrationAuth.createGuest.dynamicFields({
+        doubleLevelMatrix
+    }).auth(session).authorized
 
     // What the dots of the one visiting hold them back from - nothing to tell a visitor without a
     // user, and nothing to hide either, as it is their own dots it is read from.
     const dotPunishment = event.takesRegistration && session.user ? unwrapActionReturn(
-        await dotPunishmentOfUserAction({ params: { userId: session.user.id } })
+        await readDotPunishmentOfUserAction({ params: { userId: session.user.id } })
+    ) : null
+
+    // The registration of the one visiting, if they are registered - the same holds as for the dots.
+    const ownRegistration = event.takesRegistration && session.user ? unwrapActionReturn(
+        await readEventRegistrationOfUserAction({
+            params: { eventId: event.id, userId: session.user.id }
+        })
     ) : null
 
     let eventPaymentBalance: number | undefined
@@ -108,11 +142,14 @@ export default async function Event({ params }: PropTypes) {
                     </ul>
                 </div>
                 <div className={styles.settings}>
-                    {event.takesRegistration && <UsersHeaderItemPopUp scale={30} popUpKey="Users">
-                        <ManualRegistrationForm eventId={event.id} />
-                    </UsersHeaderItemPopUp>}
+                    {event.takesRegistration && canRegisterOthers &&
+                        <UsersHeaderItemPopUp scale={30} popUpKey="Users">
+                            <ManualRegistrationForm eventId={event.id} />
+                        </UsersHeaderItemPopUp>
+                    }
                     <SettingsHeaderItemPopUp scale={30} popUpKey="EditEvent">
                         <CreateOrUpdateEventForm event={event} eventTags={tags} />
+                        <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
                         { canDestroy.authorized &&
                             <Form
                                 action={configureAction(destroyEventAction, { params: { id: event.id } })}
@@ -156,10 +193,10 @@ export default async function Event({ params }: PropTypes) {
                     <RegistrationUI
                         event={event}
                         registration={ownRegistration}
-                        onWaitingList={event.onWaitingList}
                         dotPunishment={dotPunishment}
                         availableBalance={eventPaymentBalance}
                         customerSessionClientSecret={eventPaymentCustomerSessionSecret}
+                        canRegister={canRegister}
                     />
                 </> : <p>
                     <FontAwesomeIcon icon={faExclamation} />
@@ -180,7 +217,7 @@ export default async function Event({ params }: PropTypes) {
                 />
             </main>
 
-            {event.takesRegistration && (
+            {event.takesRegistration && canReadRegistrations && (
                 <div className={styles.registrationList}>
                     <RegistrationsList event={event} />
                 </div>

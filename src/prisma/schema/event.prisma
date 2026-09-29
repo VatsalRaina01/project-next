@@ -38,6 +38,13 @@ model Event {
   screenPages ScreenPage[]
   cabinEvent  Booking[]
 
+  published Boolean @default(false)
+
+  visibilityAdmin     Visibility @relation(name: "EventAdminVisibility", fields: [visibilityAdminId], references: [id], onDelete: Restrict)
+  visibilityAdminId   Int        @unique
+  visibilityRegular   Visibility @relation(name: "EventRegularVisibility", fields: [visibilityRegularId], references: [id], onDelete: Restrict)
+  visibilityRegularId Int        @unique
+
   // Legacy from old database
   company     Boolean @default(false) // If a plus one is allowed
   lead        String?

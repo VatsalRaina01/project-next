@@ -2,7 +2,7 @@
 
 import LedgerTransactionModal from './LedgerTransactionModal'
 import { displayAmount } from '@/lib/currency/convert'
-import { createCabinBookingPaymentAction } from '@/services/cabin/actions'
+import { createCabinBookingPaymentAction } from '@/services/cabin/booking/actions'
 import type { LedgerTransactionPaymentMethod } from './LedgerTransactionModal'
 import type { ActionReturn } from '@/services/actionTypes'
 import type { ReactNode } from 'react'

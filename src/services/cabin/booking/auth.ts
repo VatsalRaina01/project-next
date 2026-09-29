@@ -51,5 +51,5 @@ export const cabinBookingAuth = {
         secret: booking.secret,
         providedSecret,
     }),
-}
+} as const
 

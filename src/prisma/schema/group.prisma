@@ -55,12 +55,24 @@ model Group {
 // Bellow are all the specific types of groups. These models should contain
 // the specific information that only that type of group requires.
 
+// The level a class group represents. A user holds at most one class membership per order, and a
+// class group is one per level - so there are exactly as many class groups as there are levels.
+// GRADUATED is terminal: a user keeps that membership active forever, at the order they got it.
+enum ClassLevel {
+  ONE
+  TWO
+  THREE
+  FOUR
+  FIVE
+  GRADUATED
+}
+
 model Class {
   group   Group @relation(fields: [groupId], references: [id])
   groupId Int   @unique
   id      Int   @id @default(autoincrement())
 
-  year Int @unique
+  level ClassLevel @unique
 }
 
 model Committee {
@@ -70,6 +82,8 @@ model Committee {
 
   name      String
   shortName String @unique
+
+  pensioned Boolean @default(false)
 
   committeeArticle       Article      @relation(fields: [committeeArticleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   committeeArticleId     Int          @unique
@@ -92,6 +106,10 @@ model InterestGroup {
 
   name String
 
+  /// A pensioned group is one that has been retired rather than migrated: it holds no active
+  /// memberships, cannot be changed, and does not hold omega back from incrementing.
+  pensioned Boolean @default(false)
+
   articleSection   ArticleSection @relation(fields: [articleSectionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   articleSectionId Int            @unique
 }
@@ -103,12 +121,16 @@ model ManualGroup {
 
   name      String
   shortName String @unique
+
+  /// A pensioned group is one that has been retired rather than migrated: it holds no active
+  /// memberships, cannot be changed, and does not hold omega back from incrementing.
+  pensioned Boolean @default(false)
 }
 
 enum OmegaMembershipLevel {
   SOELLE // Avsky!
-  MEMBER
-  EXTERNAL
+  SYSKEN
+  DEN_GEMENE_HOB
 }
 
 model OmegaMembershipGroup {
@@ -128,7 +150,11 @@ model StudyProgramme {
   code               String               @unique
   insititueCode      String?
   yearsLength        Int?
-  startYear          Int?
+  /// Which class a student of this programme starts in, i.e. a 2 year master starts in FOUR.
+  classLevel         ClassLevel?
   partOfOmega        Boolean              @default(false)
   CourseStudyProgram CourseStudyProgram[]
+
+  /// The users Feide has already reported this programme for - see the matching field on User.
+  usersFeideHasAlreadyReturnedItFor User[] @relation("StudyProgrammesFeideHasAlreadyReturned")
 }
