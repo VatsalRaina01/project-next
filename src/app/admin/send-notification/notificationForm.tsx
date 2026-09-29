@@ -37,15 +37,15 @@ export default function NotificaionForm({
                     label: channel.name,
                 }))}
                 className={styles.select}
-                label="Varlisngskanal"
+                label="Varslingskanal"
             />
 
             <TextInput name="title" label="Tittel" />
             <Textarea name="message" label="Melding" className={styles.textArea} />
 
             <p>
-                Dersom du ønser å gjøre varselet mer personlig kan man bruke brukerinformasjon i varselet.
-                Under er en liste med kommandoer. Dersom det kun er e-post varslingere så kan du skrive i markdwon.
+                Dersom du ønsker å gjøre varselet mer personlig kan man bruke brukerinformasjon i varselet.
+                Under er en liste med kommandoer. Dersom det kun er e-post varslingere så kan du skrive i markdown.
             </p>
             <table>
                 <tr>
@@ -54,7 +54,7 @@ export default function NotificaionForm({
                 </tr>
                 <tr>
                     <th>%N</th>
-                    <td>Fult navn</td>
+                    <td>Fullt navn</td>
                 </tr>
                 <tr>
                     <th>%u</th>

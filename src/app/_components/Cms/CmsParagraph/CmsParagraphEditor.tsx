@@ -19,7 +19,7 @@ const DynamicSimpleMDEditor = dynamic(
     () => import('react-simplemde-editor'),
     {
         ssr: false,
-        loading: () => <p className={styles.loader}>Loading...</p>
+        loading: () => <p className={styles.loader}>Laster...</p>
     }
 )
 

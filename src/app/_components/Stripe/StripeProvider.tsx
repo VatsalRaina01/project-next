@@ -9,7 +9,7 @@ import type { ReactNode } from 'react'
 // The publishable key might not be set during the build phase. To avoid build-time
 // errors, we skip the check during the build phase, mirroring src/lib/stripe.ts.
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && !isBuildPhase()) {
-    throw new Error('Stripe publishable key not set')
+    throw new Error('Stripe publishable key er ikke satt')
 }
 
 const stripe = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? 'fake-key')

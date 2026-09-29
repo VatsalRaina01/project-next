@@ -9,7 +9,7 @@ export default async function SendNotification() {
     const channels = unwrapActionReturn(await readNotificationChannelsAction())
 
     return <PageWrapper
-        title="Send Varsel"
+        title="Send varsel"
     >
         <NotificaionForm channels={channels}/>
     </PageWrapper>

@@ -217,6 +217,10 @@ const navigations = [
         },
         links: [
             {
+                title: 'Promo',
+                href: '/admin/promo'
+            },
+            {
                 title: 'Lisenser',
                 href: '/admin/licenses'
             },

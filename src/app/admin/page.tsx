@@ -6,7 +6,7 @@ export default function Admin() {
     return (
         <div className={styles.wrapper}>
             <FontAwesomeIcon icon={faScrewdriverWrench} className={styles.icon} />
-            <p>Velg en ting å administere i menyen</p>
+            <p>Velg en ting å administrere i menyen</p>
         </div>
     )
 }
