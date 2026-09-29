@@ -12,9 +12,11 @@ import type { Admission } from '@/prisma-generated-pn-types'
 export default function RegisterAdmissiontrial({
     admission,
     omegaIdPublicKey,
+    canSearchUsers,
 }: {
     admission: Admission,
     omegaIdPublicKey: string,
+    canSearchUsers: boolean,
 }) {
     return <div className={styles.registration}>
         <h4>Registrer med QR kode</h4>
@@ -41,23 +43,30 @@ export default function RegisterAdmissiontrial({
         />
 
         <h4>Søk opp soellen</h4>
-        <p className={styles.lead}>
-            Kun en soelle kan ta opptaksprøver. Filtrer på medlemskap for å finne dem.
-        </p>
-        {/* A button per row rather than a box to type an id into: who is being registered is then
-            something that was looked up and read back, not something that was remembered. */}
-        <UserList
-            displayForUser={user => (
-                <Form
-                    className={styles.registerForm}
-                    submitText="Registrer"
-                    submitColor="secondary"
-                    refreshOnSuccess
-                    action={configureAction(createAdmissionTrialAction, { params: { admission } })}
-                >
-                    <input type="hidden" name="userId" value={user.id} />
-                </Form>
-            )}
-        />
+        {canSearchUsers ? <>
+            <p className={styles.lead}>
+                Kun en soelle kan ta opptaksprøver. Filtrer på medlemskap for å finne dem.
+            </p>
+            {/* A button per row rather than a box to type an id into: who is being registered is then
+                something that was looked up and read back, not something that was remembered. */}
+            <UserList
+                displayForUser={user => (
+                    <Form
+                        className={styles.registerForm}
+                        submitText="Registrer"
+                        submitColor="secondary"
+                        refreshOnSuccess
+                        action={configureAction(createAdmissionTrialAction, { params: { admission } })}
+                    >
+                        <input type="hidden" name="userId" value={user.id} />
+                    </Form>
+                )}
+            />
+        </> : (
+            <p className={styles.lead}>
+                Du mangler tilgangen «Les bruker», og kan derfor ikke søke opp soellen.
+                Registrer med Omega-ID i stedet.
+            </p>
+        )}
     </div>
 }
