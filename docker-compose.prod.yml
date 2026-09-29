@@ -16,6 +16,23 @@ services:
         deploy:
             replicas: 2
         restart: always
+        depends_on:
+            migrate:
+                condition: service_completed_successfully
+
+    # Applies committed migrations, then exits.
+    migrate:
+        extends:
+            file: docker-compose.base.yml
+            service: projectnext
+        build:
+            target: tools
+        command: ["npm", "run", "migrate:deploy"]
+        healthcheck:
+            disable: true
+        networks:
+            - dokploy-network
+        restart: "no"
 
     imageworker:
         extends:
@@ -40,6 +57,9 @@ services:
         deploy:
             replicas: 1
         restart: always
+        depends_on:
+            migrate:
+                condition: service_completed_successfully
 
     # One-shot, never started with the stack. The migration/seed toolchain needs the
     # full dependency tree (see the tools stage in the Dockerfile), so it ships as its
@@ -47,8 +67,7 @@ services:
     #
     #   docker compose -f docker-compose.prod.yml --profile tools run --rm tools
     #
-    # The default command is DobbelOmega, which force-resets the database. Pass a
-    # different command for anything else.
+    # The default command is DobbelOmega, which resets the whole database.
     tools:
         extends:
             file: docker-compose.base.yml
