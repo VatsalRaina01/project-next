@@ -10,10 +10,10 @@ import type { ExpandedAdmissionTrail } from './types'
 
 export const admissionOperations = {
     readTrial: defineOperation({
-        authorizer: () => admissionAuth.readTrial.dynamicFields({}),
         paramsSchema: z.object({
             userId: z.number(),
         }),
+        authorizer: ({ params }) => admissionAuth.readTrial.dynamicFields({ userId: params.userId }),
         operation: async ({ prisma, params: { userId } }) => await prisma.admissionTrial.findMany({
             where: {
                 userId,
@@ -53,6 +53,7 @@ export const admissionOperations = {
                 params: {
                     userId: data.userId
                 },
+                bypassAuth: true,
             })
 
             if (Object.keys(Admission).length === userTrials.length) {
