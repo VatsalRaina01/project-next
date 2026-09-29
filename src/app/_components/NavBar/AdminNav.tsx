@@ -32,7 +32,7 @@ export default function AdminNav({ isAdmin, expanded = false }: PropTypes) {
     )
 
     return (
-        <nav className={styles.adminNav} aria-label="Admin navigation">
+        <nav className={styles.adminNav} aria-label="Adminnavigasjon">
             <EditModeNavIcon className={styles.navIcon} expanded={expanded} />
             {isAdmin && (
                 expanded ? adminLink : <NavTooltip content="Admin">{adminLink}</NavTooltip>

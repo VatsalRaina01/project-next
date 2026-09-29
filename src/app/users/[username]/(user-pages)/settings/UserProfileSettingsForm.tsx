@@ -39,7 +39,7 @@ export default function UserProfileSettingsForm({ user } : PropTypes) {
                 options={sexOptions}
                 defaultValue={user.sex ?? SEX.OTHER}
             />
-            <Textarea label="bio" name="bio" defaultValue={user.bio} />
+            <Textarea label="Bio" name="bio" defaultValue={user.bio} />
             <TextInput
                 label="Sivilstatus"
                 name="relationshipStatusText"

@@ -12,7 +12,7 @@ export default function SelectBedProducts({
     amounts: number[],
 }) {
     if (bedProducts.length === 0) {
-        throw new Error('No products of the given type')
+        throw new Error('Ingen produkter av den gitte typen')
     }
 
     return <>

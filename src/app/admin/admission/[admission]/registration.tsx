@@ -27,7 +27,7 @@ export default function RegisterAdmissiontrial({
 
                 let msg = results.success ?
                     `${results.data.user.firstname} ${results.data.user.lastname} er registrert` :
-                    'Kunne ikke regisrere bruker grunnet en ukjent feil.'
+                    'Kunne ikke registrere bruker grunnet en ukjent feil.'
 
                 if (!results.success && results.error) {
                     msg = results.error

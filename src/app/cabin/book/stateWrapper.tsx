@@ -42,7 +42,7 @@ export default function StateWrapper({
 
     const cabinProduct = cabinProducts.find(product => product.type === 'CABIN')
     if (!cabinProduct) {
-        throw new Error('No product with type CABIN.')
+        throw new Error('Ingen produkt med type CABIN.')
     }
     const bedProducts = cabinProducts.filter(product => product.type === 'BED')
 
@@ -95,10 +95,10 @@ export default function StateWrapper({
 
     function submitFormAction() {
         if (session.loading) {
-            throw new Error('Session is still loading')
+            throw new Error('Session laster fortsatt')
         }
         if (!cabinProduct) {
-            throw new Error('Could not find the cabin product.')
+            throw new Error('Fant ikke hytteproduktet.')
         }
 
         if (!user) {

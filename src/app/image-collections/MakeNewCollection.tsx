@@ -42,8 +42,8 @@ export default function MakeNewCollection() {
                     submitText="Lag album"
                     action={handleCreate}
                 >
-                    <TextInput label="navn" name="collectionName" />
-                    <TextInput label="beskrivelse" name="collectionDescription" />
+                    <TextInput label="Navn" name="collectionName" />
+                    <TextInput label="Beskrivelse" name="collectionDescription" />
                     <div className={styles.visibility}>
                         <h3>Hvem kan administrere albumet?</h3>
                         <VisibilityMatrixEditor

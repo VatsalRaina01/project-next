@@ -24,7 +24,7 @@ export default function CabinPriceCalculator({
     numberOfNonMembers: number,
 }) {
     if (products.length !== productAmounts.length) {
-        throw new Error('The products and product amounts must be the same length')
+        throw new Error('Produktene og produktantallene må ha samme lengde')
     }
     let priceData: CabinPriceCalculatorReturnType[] = []
     let totalPrice = 0

@@ -22,11 +22,11 @@ export default function CreateUserForm({ className }: PropTypes) {
                 action={createUserAction}
                 successCallback={refresh}
             >
-                <TextInput label="email" name="email" key={uuid()}/>
-                <TextInput label="username" name="username" key={uuid()}/>
-                <TextInput label="first name" name="firstname" key={uuid()}/>
-                <TextInput label="last name" name="lastname" key={uuid()}/>
-                <p>Når en bruker lages vil brukeren få tilsendt en epost, med en link for å fullføre registreringen.</p>
+                <TextInput label="E-post" name="email" key={uuid()}/>
+                <TextInput label="Brukernavn" name="username" key={uuid()}/>
+                <TextInput label="Fornavn" name="firstname" key={uuid()}/>
+                <TextInput label="Etternavn" name="lastname" key={uuid()}/>
+                <p>Når en bruker lages vil brukeren få tilsendt en e-post, med en link for å fullføre registreringen.</p>
             </Form>
         </div>
     )

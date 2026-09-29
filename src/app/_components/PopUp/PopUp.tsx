@@ -40,7 +40,7 @@ export default function PopUp({
     const ref = useClickOutsideRef(() => setIsOpen(false))
     const contentRef = useRef<ReactNode>(null)
 
-    if (!popUpContext) throw new Error('Pop up context needed for popups')
+    if (!popUpContext) throw new Error('Trenger PopUpContext for pop-up-vinduer')
 
     const { teleport, remove, keyOfCurrentNode } = popUpContext
 

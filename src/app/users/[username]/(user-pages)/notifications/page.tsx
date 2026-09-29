@@ -18,7 +18,7 @@ export default async function Notififcations({ params }: PropTypes) {
     ])
 
     if (!channels.success || !subscriptions.success) {
-        throw new Error('Failed to load channels or subscriptions')
+        throw new Error('Kunne ikke laste kanaler eller abonnementer')
     }
 
     return (

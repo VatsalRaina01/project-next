@@ -30,8 +30,8 @@ export default function AddNews() {
                 successCallback={handleCreate}
                 submitText="Lag nyhet"
             >
-                <TextInput label="navn" name="name" />
-                <Textarea label="beskrivelse" name="description" />
+                <TextInput label="Navn" name="name" />
+                <Textarea label="Beskrivelse" name="description" />
                 {/*
                   * The levels are collected here rather than after the fact: a news article created
                   * with an empty admin level would be administrable by anyone until it was narrowed.

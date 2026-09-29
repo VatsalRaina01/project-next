@@ -81,7 +81,7 @@ const makeInputArray = (children: ReactNode): Inputs =>
 export default function Form<GiveActionReturn>({
     children,
     title,
-    submitText = 'create',
+    submitText = 'Opprett',
     submitColor = 'primary',
     confirmation = {
         confirm: false,
