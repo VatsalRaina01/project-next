@@ -86,15 +86,15 @@ export const newsOperations = {
             const backupEndDateTime = new Date()
             backupEndDateTime.setDate(backupEndDateTime.getDate() + defaultNewsArticleOldCutoff)
 
+            assertAdminLevelIsSubOfRegularLevel({
+                regularLevel: { requirements: data.visibilityRegularRequirements },
+                adminLevel: { requirements: data.visibilityAdminRequirements },
+            })
+
             const article = await articleOperations.create.internalCall({
                 data: { name },
                 dataSchemaImplementationFields: { maxNameLength: 30 },
                 operationImplementationFields: { special: null }
-            })
-
-            assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: { requirements: data.visibilityRegularRequirements },
-                adminLevel: { requirements: data.visibilityAdminRequirements },
             })
 
             const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({

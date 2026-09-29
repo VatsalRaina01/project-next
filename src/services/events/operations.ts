@@ -141,25 +141,9 @@ export const eventOperations = {
         dataSchema: eventSchemas.create,
         authorizer: () => eventAuth.create.dynamicFields({}),
         operation: async ({ prisma, data, session }) => {
-            const cmsParagraph = await cmsParagraphOperations.create.internalCall({
-                data: {},
-                operationImplementationFields: { special: null }
-            })
-            const cmsImage = await cmsImageOperations.create.internalCall({
-                data: {},
-                operationImplementationFields: { special: null }
-            })
-
             assertAdminLevelIsSubOfRegularLevel({
                 regularLevel: { requirements: data.visibilityRegularRequirements },
                 adminLevel: { requirements: data.visibilityAdminRequirements },
-            })
-
-            const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
-                data: { requirements: data.visibilityRegularRequirements },
-            })
-            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
-                data: { requirements: data.visibilityAdminRequirements },
             })
 
             if (data.eventStart > data.eventEnd) {
@@ -173,6 +157,22 @@ export const eventOperations = {
             if (data.registrationStart && !data.registrationEnd || !data.registrationStart && data.registrationEnd) {
                 throw new ServerError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
             }
+
+            const cmsParagraph = await cmsParagraphOperations.create.internalCall({
+                data: {},
+                operationImplementationFields: { special: null }
+            })
+            const cmsImage = await cmsImageOperations.create.internalCall({
+                data: {},
+                operationImplementationFields: { special: null }
+            })
+
+            const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
+                data: { requirements: data.visibilityRegularRequirements },
+            })
+            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+                data: { requirements: data.visibilityAdminRequirements },
+            })
 
             const event = await prisma.event.create({
                 data: {
