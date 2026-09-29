@@ -65,11 +65,7 @@ export default async function User({ params }: PropTypes) {
     const interestGroupMembershipsByOrder = byOrderDescending(interestGroupMemberships)
     const activeCommitteeMemberships = committeeMemberships.filter(membership => membership.active)
 
-    const omegaMembership = byOrderDescending(profile.user.memberships
-        .filter(membership => membership.group.groupType === 'OMEGA_MEMBERSHIP_GROUP' && membership.active))[0]
-    if (!omegaMembership) {
-        throw new Error('Failed to load the omega membership level')
-    }
+    const omegaMembership = profile.omegaMembership
     const flairs = unwrapActionReturn(await readUserFlairsAction({ params: { userId: profile.user.id } })).sort(
         (a, b) => a.rank - b.rank
     )
@@ -91,7 +87,7 @@ export default async function User({ params }: PropTypes) {
     const canAssignFlairs = flairAuth.assignToUser.dynamicFields({}).auth(session)
 
     function memberhipTitle(): string {
-        switch (omegaMembership?.group.omegaMembershipGroup?.omegaMembershipLevel) {
+        switch (omegaMembership.level) {
             case 'SOELLE':
                 return 'Soelle Noviice (avsky!)'
             case 'SYSKEN':

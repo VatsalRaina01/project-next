@@ -10,15 +10,30 @@ import type { ExpandedAdmissionTrail } from './types'
 
 export const admissionOperations = {
     readTrial: defineOperation({
-        paramsSchema: z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: admissionSchemas.readTrial,
         authorizer: ({ params }) => admissionAuth.readTrial.dynamicFields({ userId: params.userId }),
         operation: async ({ prisma, params: { userId } }) => await prisma.admissionTrial.findMany({
             where: {
                 userId,
             }
         })
+    }),
+
+    /**
+     * Whether the user has sat every admission trial there is, which is what earns them their place
+     * as a sysken. A user holds at most one trial per admission, so counting them is enough.
+     */
+    userCompletedTrials: defineOperation({
+        paramsSchema: admissionSchemas.userCompletedTrials,
+        authorizer: ({ params }) => admissionAuth.userCompletedTrials.dynamicFields({ userId: params.userId }),
+        operation: async ({ prisma, params: { userId } }): Promise<boolean> => {
+            const trials = await prisma.admissionTrial.count({
+                where: {
+                    userId,
+                }
+            })
+            return trials >= Object.keys(Admission).length
+        }
     }),
     createTrial: defineOperation({
         authorizer: () => admissionAuth.createTrial.dynamicFields({}),
@@ -48,15 +63,14 @@ export const admissionOperations = {
                 }
             })
 
-            // check if user has taken all admissions
-            const userTrials = await admissionOperations.readTrial({
+            const completedTrials = await admissionOperations.userCompletedTrials({
                 params: {
                     userId: data.userId
                 },
                 bypassAuth: true,
             })
 
-            if (Object.keys(Admission).length === userTrials.length) {
+            if (completedTrials) {
                 await omegaMembershipGroupOperations.updateUserLevel({
                     params: {
                         userId: data.userId,
