@@ -104,7 +104,7 @@ export class UserMigrator {
         })
         this.memberGroup = await this.pnPrisma.omegaMembershipGroup.findUniqueOrThrow({
             where: {
-                omegaMembershipLevel: 'MEMBER'
+                omegaMembershipLevel: 'SYSKEN'
             },
             include: {
                 group: true

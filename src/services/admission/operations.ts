@@ -59,7 +59,7 @@ export const admissionOperations = {
                 await omegaMembershipGroupOperations.updateUserLevel({
                     params: {
                         userId: data.userId,
-                        omegaMembershipLevel: 'MEMBER',
+                        omegaMembershipLevel: 'SYSKEN',
                         onlyUpgrade: true,
                     },
                     bypassAuth: true,

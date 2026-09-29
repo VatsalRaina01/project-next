@@ -129,8 +129,8 @@ model ManualGroup {
 
 enum OmegaMembershipLevel {
   SOELLE // Avsky!
-  MEMBER
-  EXTERNAL
+  SYSKEN
+  DEN_GEMENE_HOB
 }
 
 model OmegaMembershipGroup {
