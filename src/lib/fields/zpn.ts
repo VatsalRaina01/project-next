@@ -60,6 +60,28 @@ export namespace Zpn {
         return filtered
     })
 
+    /**
+     * A field whose value is too nested for FormData to carry field by field - a form submits it as
+     * JSON in a single hidden input, while the backend passes the value itself.
+     */
+    export const json = <Schema extends z.ZodTypeAny>({ label, schema }: {
+        label: string,
+        schema: Schema,
+    }) => z.union([
+            schema, // mostly for the backend
+            z.string().transform((value, ctx) => { // mostly for the frontend (forms)
+                try {
+                    return JSON.parse(value) as unknown
+                } catch {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: `${label} er ikke gyldig JSON`,
+                    })
+                    return z.NEVER
+                }
+            }).pipe(schema),
+        ])
+
     export const date = ({ label }: { label: string }) =>
         z.union([
             z.string()

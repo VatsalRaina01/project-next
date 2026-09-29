@@ -8,7 +8,7 @@ import TextInput from '@/components/UI/TextInput'
 import { createEventRegistrationAction, createGuestEventRegistrationAction } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
 import { useContext } from 'react'
-import type { EventRegistration } from '@/prisma-generated-pn-types'
+import type { EventRegistrationWithWaitingList } from '@/services/events/registration/types'
 import type { ActionReturn } from '@/services/actionTypes'
 
 function ManualRegistrationFormInner({
@@ -19,9 +19,7 @@ function ManualRegistrationFormInner({
     const userSelectionContext = useContext(UserSelectionContext)
     if (!userSelectionContext) throw new Error('UserSelectionContext not found')
 
-    const action = async (): Promise<ActionReturn<{
-        result: EventRegistration
-    }>> => {
+    const action = async (): Promise<ActionReturn<EventRegistrationWithWaitingList>> => {
         if (!userSelectionContext.user) {
             return {
                 success: false,
