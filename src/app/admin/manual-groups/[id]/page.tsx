@@ -32,7 +32,9 @@ export default async function ManualGroupAdmin({ params }: PropTypes) {
     if (!Number.isInteger(id)) notFound()
 
     const session = await ServerSession.fromNextAuth()
-    manualGroupAuth.read.dynamicFields({}).auth(session)
+    // The page reads the group's members, so it guards on `readMembers` rather than `read`:
+    // `MANUAL_GROUP_READ` is a default permission, held by a visitor with no session at all.
+    manualGroupAuth.readMembers.dynamicFields({}).auth(session)
         .redirectOnUnauthorized({ returnUrl: `/admin/manual-groups/${id}` })
 
     const manualGroup = unwrapActionReturn(await readManualGroupAction({ params: { id } }))
@@ -91,18 +93,20 @@ export default async function ManualGroupAdmin({ params }: PropTypes) {
                     </div>
                 )}
 
-                {!manualGroup.pensioned && <div className={styles.section}>
-                    <h2>Medlemmer</h2>
-                    <ManageGroupMembers
-                        groupId={manualGroup.groupId}
-                        groupOrder={expanded.order}
-                        orders={groupMembersByOrder(members, expanded.order)}
-                        addMembersAction={canAddMembers ? addManualGroupMembersAction : undefined}
-                        setMemberAdminAction={canSetMemberAdmin ? setManualGroupMemberAdminAction : undefined}
-                        setMemberTitleAction={canSetMemberTitle ? setManualGroupMemberTitleAction : undefined}
-                        removeMembersAction={canRemoveMembers ? removeManualGroupMembersAction : undefined}
-                    />
-                </div>}
+                {!manualGroup.pensioned && (canAddMembers || canRemoveMembers) && (
+                    <div className={styles.section}>
+                        <h2>Medlemmer</h2>
+                        <ManageGroupMembers
+                            groupId={manualGroup.groupId}
+                            groupOrder={expanded.order}
+                            orders={groupMembersByOrder(members, expanded.order)}
+                            addMembersAction={canAddMembers ? addManualGroupMembersAction : undefined}
+                            setMemberAdminAction={canSetMemberAdmin ? setManualGroupMemberAdminAction : undefined}
+                            setMemberTitleAction={canSetMemberTitle ? setManualGroupMemberTitleAction : undefined}
+                            removeMembersAction={canRemoveMembers ? removeManualGroupMembersAction : undefined}
+                        />
+                    </div>
+                )}
 
                 {!manualGroup.pensioned && canMigrate && (
                     <div className={styles.section}>
