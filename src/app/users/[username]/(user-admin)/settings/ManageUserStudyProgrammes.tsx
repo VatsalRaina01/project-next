@@ -20,8 +20,14 @@ type PropTypes = {
     userId: number,
     /** Every study programme there is - what the user may be put into. */
     studyProgrammes: StudyProgrammeOption[],
-    /** The programmes the user is on now, as group ids. */
-    memberOfGroupIds: number[],
+    /**
+     * The user's active study programme memberships, each with the order it sits in.
+     *
+     * The order is needed to remove one: study programmes follow omega automatically, so the group
+     * moves on at an increment while the membership stays in the order it was granted. Removing
+     * without saying which order would address the group's current one, where there is nothing.
+     */
+    memberships: { groupId: number, order: number }[],
 }
 
 /**
@@ -34,10 +40,14 @@ type PropTypes = {
 export default function ManageUserStudyProgrammes({
     userId,
     studyProgrammes,
-    memberOfGroupIds,
+    memberships,
 }: PropTypes) {
-    const memberOf = studyProgrammes.filter(programme => memberOfGroupIds.includes(programme.groupId))
-    const available = studyProgrammes.filter(programme => !memberOfGroupIds.includes(programme.groupId))
+    const memberOf = memberships.flatMap(membership => {
+        const programme = studyProgrammes.find(option => option.groupId === membership.groupId)
+        return programme ? [{ ...programme, order: membership.order }] : []
+    })
+    const memberOfGroupIds = new Set(memberships.map(membership => membership.groupId))
+    const available = studyProgrammes.filter(programme => !memberOfGroupIds.has(programme.groupId))
     const [groupIdToAdd, setGroupIdToAdd] = useState(available[0]?.groupId)
 
     return (
@@ -49,14 +59,15 @@ export default function ManageUserStudyProgrammes({
             ) : (
                 <div className={styles.programmes}>
                     {memberOf.map(programme => (
-                        <div className={styles.programme} key={programme.id}>
+                        <div className={styles.programme} key={`${programme.id}-${programme.order}`}>
                             <span>{programme.name} ({programme.code})</span>
                             <Form
                                 className={styles.removeForm}
                                 submitText="Fjern"
                                 submitColor="red"
                                 action={() => configureAction(
-                                    removeStudyProgrammeMembersAction, { params: { groupId: programme.groupId } }
+                                    removeStudyProgrammeMembersAction,
+                                    { params: { groupId: programme.groupId, order: programme.order } }
                                 )({ data: { userIds: [userId] } })}
                                 refreshOnSuccess
                                 confirmation={{

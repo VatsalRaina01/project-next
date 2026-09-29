@@ -51,10 +51,13 @@ export default async function UserSettings({ params }: PropTypes) {
                     <ManageUserStudyProgrammes
                         userId={userDataFull.id}
                         studyProgrammes={studyProgrammes}
-                        memberOfGroupIds={profileRes.data.user.memberships
+                        memberships={profileRes.data.user.memberships
                             .filter(membership => membership.group.groupType === 'STUDY_PROGRAMME')
                             .filter(membership => membership.active)
-                            .map(membership => membership.group.id)}
+                            .map(membership => ({
+                                groupId: membership.group.id,
+                                order: membership.order,
+                            }))}
                     />
                 </UserProfileSettingsCard>
             )}
