@@ -8,6 +8,7 @@ import { admissionOperations } from '@/services/admission/operations'
 import { allAdmissions } from '@/services/admission/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
+import { ServerError } from '@/services/error'
 import logger from '@/lib/logger'
 import { GroupType } from '@/prisma-generated-pn-types'
 import type { OmegaMembershipLevel, Prisma } from '@/prisma-generated-pn-types'
@@ -228,6 +229,67 @@ const readUserLevel = defineOperation({
 })
 
 /**
+ * Moves the user's omega membership to the given order, leaving the level it is in alone.
+ *
+ * The order records when the membership was granted - which order someone was taken up in - and is
+ * what the profile reads back as "udaf den n'dis orden". It is set to the order that was current at
+ * the time, so correcting it is the only way to fix a membership that was granted late, or one
+ * carried over from omegaweb basic with the wrong year against it.
+ */
+const updateUserOrder = defineOperation({
+    paramsSchema: omegaMembershipGroupSchemas.updateUserOrderParams,
+    dataSchema: omegaMembershipGroupSchemas.updateUserOrder,
+    authorizer: () => omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}),
+    opensTransaction: true,
+    operation: async ({ prisma, params, data }) => {
+        // Read before the transaction is opened: a user whose memberships are in a broken state is
+        // put right first, and that writes.
+        const current = await readUserLevel({
+            params: { userId: params.userId },
+            bypassAuth: true,
+        })
+        if (current.order === data.order) return
+
+        const [group, order] = await Promise.all([
+            read({
+                params: { omegaMembershipLevel: current.level },
+                bypassAuth: true,
+            }),
+            prisma.omegaOrder.findUnique({ where: { order: data.order } }),
+        ])
+
+        if (!order) {
+            throw new ServerError('BAD DATA', `Den ${data.order}'dis orden finnes ikke.`)
+        }
+
+        await prisma.$transaction([
+            // The membership is unique on user, group and order, so anything already sitting where
+            // this one is moving to is the same membership recorded twice and makes way for it.
+            prisma.membership.deleteMany({
+                where: {
+                    userId: params.userId,
+                    groupId: group.groupId,
+                    order: data.order,
+                },
+            }),
+            prisma.membership.update({
+                where: {
+                    userId_groupId_order: {
+                        userId: params.userId,
+                        groupId: group.groupId,
+                        order: current.order,
+                    },
+                },
+                data: { order: data.order },
+            }),
+        ])
+
+        // The memberships a session carries hold the order they are of.
+        await invalidateOneUserSessionData(params.userId)
+    }
+})
+
+/**
  * Omega membership groups are neither created nor destroyed: there is one per `OmegaMembershipLevel`
  * and they always have to exist.
  */
@@ -237,6 +299,7 @@ export const omegaMembershipGroupOperations = {
     readUserLevel,
     inferUserLevel,
     updateUserLevel,
+    updateUserOrder,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
     migrateGroups: migration.migrateGroups,

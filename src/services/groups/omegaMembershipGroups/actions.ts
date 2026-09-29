@@ -8,4 +8,5 @@ export const readOmegaMembershipGroupsAction = makeAction(omegaMembershipGroupOp
 export const readOmegaMembershipGroupsExpandedAction = makeAction(omegaMembershipGroupOperations.readExpanded)
 export const readOmegaMembershipGroupMembersAction = makeAction(omegaMembershipGroupOperations.readMembers)
 export const updateOmegaMembershipUserLevelAction = makeAction(omegaMembershipGroupOperations.updateUserLevel)
+export const updateOmegaMembershipUserOrderAction = makeAction(omegaMembershipGroupOperations.updateUserOrder)
 export const migrateOmegaMembershipGroupsAction = makeAction(omegaMembershipGroupOperations.migrateGroups)

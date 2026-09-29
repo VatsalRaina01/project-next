@@ -1,7 +1,10 @@
 import styles from './page.module.scss'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { readAdmissionTrialsAction, createAdmissionTrialAction } from '@/services/admission/actions'
-import { updateOmegaMembershipUserLevelAction } from '@/services/groups/omegaMembershipGroups/actions'
+import {
+    updateOmegaMembershipUserLevelAction,
+    updateOmegaMembershipUserOrderAction,
+} from '@/services/groups/omegaMembershipGroups/actions'
 import { admissionAuth } from '@/services/admission/auth'
 import { omegaMembershipGroupAuth } from '@/services/groups/omegaMembershipGroups/auth'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
@@ -10,6 +13,7 @@ import { OMEGA_MEMBERSHIP_LEVEL_RANKING } from '@/services/groups/constants'
 import { sexConfig } from '@/services/users/constants'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
+import NumberInput from '@/components/UI/NumberInput'
 import type { OmegaMembershipLevel } from '@/prisma-generated-pn-types'
 import type { PropTypes } from '@/app/users/[username]/page'
 
@@ -29,6 +33,7 @@ export default async function MembershipStatus({ params }: PropTypes) {
     const canReadTrials = admissionAuth.readTrial.dynamicFields({ userId }).auth(session).authorized
     const canRegisterTrial = admissionAuth.createTrial.dynamicFields({}).auth(session).authorized
     const canChangeLevel = omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}).auth(session).authorized
+    const canChangeOrder = omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}).auth(session).authorized
 
     const currentLevel = profile.omegaMembership.level
     const sittedTrials = new Set(canReadTrials
@@ -107,6 +112,29 @@ export default async function MembershipStatus({ params }: PropTypes) {
                     </li>
                 ))}
             </ol>
+
+            <section className={styles.order}>
+                <h3>Orden</h3>
+                <p>
+                    Medlemskapet er udaf den {profile.omegaMembership.order}´dis orden.
+                </p>
+                {canChangeOrder && (
+                    <Form
+                        submitText="Endre orden"
+                        refreshOnSuccess
+                        action={configureAction(updateOmegaMembershipUserOrderAction, {
+                            params: { userId },
+                        })}
+                    >
+                        <NumberInput
+                            name="order"
+                            label="Orden"
+                            defaultValue={profile.omegaMembership.order}
+                            min={1}
+                        />
+                    </Form>
+                )}
+            </section>
         </div>
     )
 }

@@ -88,3 +88,13 @@
         flex-basis: 100%;
     }
 }
+
+.order {
+    margin-top: ohma.$cardPadding;
+    padding-top: ohma.$cardPadding;
+    border-top: 1px solid ohma.$colors-surface-hover;
+
+    h3 {
+        margin: 0 0 ohma.$gap;
+    }
+}
