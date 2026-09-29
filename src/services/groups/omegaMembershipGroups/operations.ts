@@ -105,73 +105,95 @@ async function readActiveOmegaMemberships(prisma: Prisma.TransactionClient, user
 }
 
 /**
+ * The writes that put a user into the omega membership group of the given level: any other omega
+ * membership is dropped, and the admission trials are brought into the state the level implies.
+ *
+ * The client to write with is handed in rather than opened here, so that a caller with more to
+ * record in the same breath - the trial that earned the promotion - can pass its own transaction
+ * and have the lot stand or fall together.
+ *
+ * Invalidating the user's session data is left to the caller, since that has to wait until the
+ * transaction has committed - it writes to the user row on the global client, which the transaction
+ * itself holds a lock on.
+ */
+export async function writeUserLevel(
+    prisma: Prisma.TransactionClient,
+    params: { userId: number, omegaMembershipLevel: OmegaMembershipLevel, onlyUpgrade: boolean },
+) {
+    const group = await read({
+        params: { omegaMembershipLevel: params.omegaMembershipLevel },
+        prisma,
+        bypassAuth: true,
+    })
+
+    if (params.onlyUpgrade) {
+        const current = await readActiveOmegaMemberships(prisma, params.userId)
+
+        if (current.length === 1 && omegaMembershipGTEQ(current[0].level, params.omegaMembershipLevel)) {
+            return
+        }
+    }
+
+    const currentOmegaOrder = await omegaOrderOperations.readCurrent({ prisma, bypassAuth: true })
+
+    const becomesSysken = omegaMembershipGTEQ(params.omegaMembershipLevel, 'SYSKEN')
+
+    if (becomesSysken) {
+        // Upserting by way of `skipDuplicates`, so a trial the user really did sit keeps
+        // the date and the registrar it was sat with.
+        await prisma.admissionTrial.createMany({
+            data: allAdmissions.map(admission => ({
+                userId: params.userId,
+                admission,
+            })),
+            skipDuplicates: true,
+        })
+    } else {
+        await prisma.admissionTrial.deleteMany({
+            where: {
+                userId: params.userId,
+            }
+        })
+    }
+
+    await prisma.membership.deleteMany({
+        where: {
+            userId: params.userId,
+            group: {
+                groupType: GroupType.OMEGA_MEMBERSHIP_GROUP,
+            },
+        }
+    })
+
+    await prisma.membership.create({
+        data: {
+            active: true,
+            user: {
+                connect: { id: params.userId },
+            },
+            group: {
+                connect: { id: group.groupId },
+            },
+            admin: false,
+            omegaOrder: {
+                connect: { order: currentOmegaOrder.order },
+            },
+        }
+    })
+}
+
+/**
  * Moves the user into the omega membership group of the given level, dropping any other omega
- * membership. This is the only way an omega membership changes - the admission system drives it.
+ * membership. This is the only way an omega membership changes on its own - the admission system
+ * drives it, and `createTrial` makes the same move as part of recording the trial that earned it.
  */
 const updateUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.updateUserLevel,
     authorizer: () => omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}),
     opensTransaction: true,
     operation: async ({ prisma, params }) => {
-        const group = await read({
-            params: { omegaMembershipLevel: params.omegaMembershipLevel },
-            bypassAuth: true,
-        })
+        await prisma.$transaction(tx => writeUserLevel(tx, params))
 
-        if (params.onlyUpgrade) {
-            const current = await readActiveOmegaMemberships(prisma, params.userId)
-
-            if (current.length === 1 && omegaMembershipGTEQ(current[0].level, params.omegaMembershipLevel)) {
-                return
-            }
-        }
-
-        const currentOmegaOrder = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-
-        const becomesSysken = omegaMembershipGTEQ(params.omegaMembershipLevel, 'SYSKEN')
-
-        await prisma.$transaction([
-            becomesSysken
-                // Upserting by way of `skipDuplicates`, so a trial the user really did sit keeps
-                // the date and the registrar it was sat with.
-                ? prisma.admissionTrial.createMany({
-                    data: allAdmissions.map(admission => ({
-                        userId: params.userId,
-                        admission,
-                    })),
-                    skipDuplicates: true,
-                })
-                : prisma.admissionTrial.deleteMany({
-                    where: {
-                        userId: params.userId,
-                    }
-                }),
-            prisma.membership.deleteMany({
-                where: {
-                    userId: params.userId,
-                    group: {
-                        groupType: GroupType.OMEGA_MEMBERSHIP_GROUP,
-                    },
-                }
-            }),
-            prisma.membership.create({
-                data: {
-                    active: true,
-                    user: {
-                        connect: { id: params.userId },
-                    },
-                    group: {
-                        connect: { id: group.groupId },
-                    },
-                    admin: false,
-                    omegaOrder: {
-                        connect: { order: currentOmegaOrder.order },
-                    },
-                }
-            })
-        ])
-
-        // The level decides which group permissions the user holds, and those sit in the JWT.
         await invalidateOneUserSessionData(params.userId)
     }
 })
