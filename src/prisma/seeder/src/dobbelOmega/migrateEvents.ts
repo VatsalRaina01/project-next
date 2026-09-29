@@ -6,12 +6,15 @@ import type { UserMigrator } from './migrateUsers'
 
 /**
  * The two visibility levels every event needs. Nothing in the old system restricted who could see
- * an event, so both are created without requirements - which checkVisibility reads as open to all.
+ * an event, so the regular level is created without requirements - which checkVisibility reads as
+ * open to all. Administration is another matter: the admin level gets one requirement with no
+ * conditions, which can never be satisfied, so migrated events are administrated by those who hold
+ * the EVENT_ADMIN permission and no one else.
  */
 async function createVisibilities(pnPrisma: PrismaClientPn) {
     const [visibilityRegular, visibilityAdmin] = await Promise.all([
         pnPrisma.visibility.create({ data: {} }),
-        pnPrisma.visibility.create({ data: {} }),
+        pnPrisma.visibility.create({ data: { requirements: { create: [{}] } } }),
     ])
     return {
         visibilityRegularId: visibilityRegular.id,
