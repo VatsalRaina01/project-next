@@ -1,4 +1,5 @@
 import { admissionOperations } from '@/services/admission/operations'
+import { allAdmissions } from '@/services/admission/constants'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { userOperations } from '@/services/users/operations'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -180,7 +181,7 @@ describe('updateUserLevel resets admission trials', () => {
         expect(await countTrials(user.id)).toBe(0)
     })
 
-    test('promoting to sysken keeps them', async () => {
+    test('promoting to sysken keeps the ones already sat', async () => {
         const user = await createTestUser('omegamembershipeight')
         await setLevel(user.id, 'SOELLE')
         await prisma.admissionTrial.createMany({
@@ -193,6 +194,35 @@ describe('updateUserLevel resets admission trials', () => {
         await setLevel(user.id, 'SYSKEN')
 
         expect(await countTrials(user.id)).toBe(2)
+    })
+
+    test('promoting to sysken credits the trials the user never sat', async () => {
+        const user = await createTestUser('omegamembershipthirteen')
+        await setLevel(user.id, 'SOELLE')
+        expect(await countTrials(user.id)).toBe(0)
+
+        await setLevel(user.id, 'SYSKEN')
+
+        // A sysken without the full set would read back as a soelle the next time the membership
+        // has to be worked out.
+        expect(await countTrials(user.id)).toBe(allAdmissions.length)
+        expect(await admissionOperations.userCompletedTrials({
+            params: { userId: user.id }, bypassAuth: true,
+        })).toBe(true)
+    })
+
+    test('a trial the user really sat is not re-dated by the promotion', async () => {
+        const user = await createTestUser('omegamembershipfourteen')
+        await setLevel(user.id, 'SOELLE')
+        const sat = await prisma.admissionTrial.create({
+            data: { userId: user.id, admission: 'PLIKTTIAENESTE', datetime: new Date('2020-01-01') },
+        })
+
+        await setLevel(user.id, 'SYSKEN')
+
+        const trials = await prisma.admissionTrial.findMany({ where: { userId: user.id } })
+        expect(trials).toHaveLength(allAdmissions.length)
+        expect(trials.find(trial => trial.admission === 'PLIKTTIAENESTE')?.datetime).toEqual(sat.datetime)
     })
 })
 
@@ -237,9 +267,12 @@ describe('createTrial only accepts a soelle', () => {
     test('a sysken may not', async () => {
         const user = await createTestUser('omegamembositeleven')
         await setLevel(user.id, 'SYSKEN')
+        // Becoming a sysken credits the full set, so what is checked is that the rejected call
+        // leaves them exactly as they were rather than that they hold none.
+        const before = await countTrials(user.id)
 
         await expect(createTrial(user.id)).rejects.toThrow(Smorekopp)
-        expect(await countTrials(user.id)).toBe(0)
+        expect(await countTrials(user.id)).toBe(before)
     })
 
     test('sitting the last trial makes the soelle a sysken', async () => {
