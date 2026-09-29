@@ -342,22 +342,28 @@ export const groupOperations = {
                 )
             }
 
-            await prisma.$transaction(async tx => {
+            const deactivatedUserIds = await prisma.$transaction(async tx => {
                 await setPensioned(tx, params.groupId, data.pensioned)
 
                 if (data.pensioned) {
+                    const endedMemberships = await tx.membership.findMany({
+                        where: { groupId: params.groupId, active: true },
+                        select: { userId: true },
+                    })
                     await tx.membership.updateMany({
                         where: { groupId: params.groupId, active: true },
                         data: { active: false },
                     })
-                    return
+                    return endedMemberships.map(membership => membership.userId)
                 }
 
                 await tx.group.update({
                     where: { id: params.groupId },
                     data: { order: currentOmegaOrder },
                 })
+                return []
             })
+            await invalidateManyUserSessionData(deactivatedUserIds)
         }
     }),
 

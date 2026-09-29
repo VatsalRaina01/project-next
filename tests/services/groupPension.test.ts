@@ -41,7 +41,7 @@ async function createGroupBehindCurrentOrder(shortName: string) {
         },
     })
 
-    return { ...manualGroup, currentOrder }
+    return { ...manualGroup, currentOrder, userId: user.id }
 }
 
 afterEach(async () => {
@@ -94,5 +94,27 @@ describe('pensioning groups', () => {
         expect(await prisma.group.findUniqueOrThrow({ where: { id: groupId } }))
             .toMatchObject({ order: currentOrder })
         expect(await prisma.membership.count({ where: { groupId, active: true } })).toEqual(0)
+    })
+
+    test('pensioning invalidates the sessions of the members it removes', async () => {
+        const { groupId, userId } = await createGroupBehindCurrentOrder('sesjoner')
+
+        const before = await prisma.user.findUniqueOrThrow({
+            where: { id: userId },
+            select: { updatedAt: true },
+        })
+
+        await manualGroupOperations.pension({
+            params: { groupId },
+            data: { pensioned: true },
+            session,
+        })
+
+        // A JWT issued before this carries the membership as active, so it has to be rejected.
+        const after = await prisma.user.findUniqueOrThrow({
+            where: { id: userId },
+            select: { updatedAt: true },
+        })
+        expect(after.updatedAt.getTime()).toBeGreaterThan(before.updatedAt.getTime())
     })
 })
