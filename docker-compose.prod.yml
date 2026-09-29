@@ -16,30 +16,18 @@ services:
         deploy:
             replicas: 2
         restart: always
-        # Nothing serves traffic until migrations have exited 0. A failed migration
-        # fails the deploy instead of bringing the app up on a half-applied schema.
         depends_on:
             migrate:
                 condition: service_completed_successfully
 
-    # Applies committed migrations, then exits. `migrate:deploy` only runs what has
-    # not been applied yet and is a no-op otherwise, so an ordinary deploy pays
-    # nothing for it. It runs while the previous release may still be serving, so
-    # keep each migration backward-compatible with the release before it.
+    # Applies committed migrations, then exits.
     migrate:
         extends:
             file: docker-compose.base.yml
             service: projectnext
         build:
-            # tools, not a stage of its own: the weight is all in the shared base layer
-            # (npm ci with devDependencies, both generated Prisma clients), so a
-            # leaner stage would save around 10 MB of a 2.8 GB image and cost an
-            # extra build. This reuses exactly the image imageworker already builds.
             target: tools
-        # tools defaults to DobbelOmega, which resets the whole database. Overriding the
-        # command is what makes this safe to run on every deploy.
         command: ["npm", "run", "migrate:deploy"]
-        # The inherited healthcheck probes :3000, which this one-shot never listens on.
         healthcheck:
             disable: true
         networks:
@@ -79,10 +67,7 @@ services:
     #
     #   docker compose -f docker-compose.prod.yml --profile tools run --rm tools
     #
-    # The default command is DobbelOmega, which resets the whole database. It resets
-    # through `prisma migrate reset` rather than `db push --force-reset`, so the
-    # _prisma_migrations table is rebuilt and the `migrate` service above still has a
-    # history to work from on the next deploy. Pass a different command for anything else.
+    # The default command is DobbelOmega, which resets the whole database.
     tools:
         extends:
             file: docker-compose.base.yml

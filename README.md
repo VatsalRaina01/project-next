@@ -105,7 +105,7 @@ To run it by hand against a database - the first deploy into an empty Dokploy Po
 docker compose -f docker-compose.prod.yml run --rm migrate
 ```
 
-Tracked history starts at `20260922000000_init`, which creates the whole schema from empty. It carries no history from the `db push` era: anything merged before migrations existed is simply part of that initial snapshot rather than a migration of its own. It therefore expects an **empty database** - the Dokploy Postgres resource before its first deploy, or a database about to be filled by DobbelOmega. Run it against a database that already has these tables and it will fail on the first `CREATE TABLE`.
+Tracked history starts at `20260922000000_init`, which creates the whole schema from empty. It carries no history from the `db push` era: anything merged before migrations existed is simply part of that initial snapshot rather than a migration of its own. It therefore expects an **empty database** - the Dokploy Postgres resource before its first deploy, or a database about to be filled by DobbelOmega. Run it against a database that already has these tables but no migration history and `migrate deploy` stops before applying anything, with P3005 ("the database schema is not empty").
 
 ### Rehearsing the production stack locally
 
