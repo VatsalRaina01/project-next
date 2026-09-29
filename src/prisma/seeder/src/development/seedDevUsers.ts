@@ -2,10 +2,37 @@ import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { userOperations } from '@/services/users/operations'
 import { standardStoreFiles } from '@/lib/standardStore/files'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
-import { OmegaMembershipLevel, type Prisma } from '@/prisma-generated-pn-types'
+import { Admission, OmegaMembershipLevel, type Prisma } from '@/prisma-generated-pn-types'
 import { v4 as uuid } from 'uuid'
 import { randomInt } from 'crypto'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
+
+const allAdmissions = Object.values(Admission)
+
+/**
+ * Which omega membership a dev user is seeded into, and the admission trials that go with it.
+ *
+ * The two have to agree, since that is the invariant the rest of the system upholds: a sysken is
+ * someone who has sat every trial, and anyone who has sat every trial is made a sysken. So only a
+ * soelle is given part of the set - never all of it - and den gemene hob none at all, having never
+ * been let in to start.
+ *
+ * It is derived from the user's position rather than drawn at random so that re-seeding puts every
+ * user back exactly where they were.
+ */
+function omegaStandingOf(index: number): { level: OmegaMembershipLevel, trials: Admission[] } {
+    switch (index % 3) {
+        case 0:
+            return { level: OmegaMembershipLevel.DEN_GEMENE_HOB, trials: [] }
+        case 1:
+            return {
+                level: OmegaMembershipLevel.SOELLE,
+                trials: allAdmissions.slice(0, index % allAdmissions.length),
+            }
+        default:
+            return { level: OmegaMembershipLevel.SYSKEN, trials: allAdmissions }
+    }
+}
 
 export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => {
     const firstNames = [
@@ -24,11 +51,12 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         },
     })
 
-    const memberGroup = await prisma.omegaMembershipGroup.findUniqueOrThrow({
-        where: {
-            omegaMembershipLevel: OmegaMembershipLevel.SYSKEN
-        }
+    const omegaMembershipGroups = await prisma.omegaMembershipGroup.findMany({
+        select: { groupId: true, omegaMembershipLevel: true },
     })
+    const omegaGroupIdOf = (level: OmegaMembershipLevel) => omegaMembershipGroups
+        .find(group => group.omegaMembershipLevel === level)!.groupId
+    const syskenGroupId = omegaGroupIdOf(OmegaMembershipLevel.SYSKEN)
 
     const allStudyProgrammes = await prisma.studyProgramme.findMany()
     const allCommittees = await prisma.committee.findMany()
@@ -103,12 +131,12 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         await Promise.all(profileImageJobs.slice(i, i + imageUploadBatchSize).map(job => job()))
     }
 
-    const memberships: Prisma.MembershipCreateManyInput[] = devUserSpecs.flatMap(spec => {
+    const memberships: Prisma.MembershipCreateManyInput[] = devUserSpecs.flatMap((spec, index) => {
         const userId = userIdByUsername.get(spec.username)!
 
         const specMemberships: Prisma.MembershipCreateManyInput[] = [
             {
-                groupId: memberGroup.groupId,
+                groupId: omegaGroupIdOf(omegaStandingOf(index).level),
                 userId,
                 admin: false,
                 active: true,
@@ -143,8 +171,31 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         return specMemberships
     })
 
+    // A user seeded before may sit at a different level this time round, and `skipDuplicates` would
+    // leave them holding both memberships - and whichever trials went with the old one. Clearing the
+    // pair out first is what keeps a re-seed from inventing a state the system says cannot exist.
+    const devUserIds = devUserSpecs.map(spec => userIdByUsername.get(spec.username)!)
+
+    await prisma.membership.deleteMany({
+        where: {
+            userId: { in: devUserIds },
+            group: { groupType: 'OMEGA_MEMBERSHIP_GROUP' },
+        },
+    })
+    await prisma.admissionTrial.deleteMany({
+        where: { userId: { in: devUserIds } },
+    })
+
     await prisma.membership.createMany({
         data: memberships,
+        skipDuplicates: true,
+    })
+
+    await prisma.admissionTrial.createMany({
+        data: devUserSpecs.flatMap((spec, index) => omegaStandingOf(index).trials.map(admission => ({
+            userId: userIdByUsername.get(spec.username)!,
+            admission,
+        }))),
         skipDuplicates: true,
     })
 
@@ -214,7 +265,7 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
     await prisma.membership.createMany({
         data: [
             {
-                groupId: memberGroup.groupId,
+                groupId: syskenGroupId,
                 userId: harambe.id,
                 admin: false,
                 active: true,
@@ -234,7 +285,8 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
                 active: true,
                 order: latestOrder.order
             }
-        ]
+        ],
+        skipDuplicates: true,
     })
 
     const existingVever = await prisma.user.findUnique({
@@ -268,7 +320,7 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
     await prisma.membership.createMany({
         data: [
             {
-                groupId: memberGroup.groupId,
+                groupId: syskenGroupId,
                 userId: vever.id,
                 admin: false,
                 active: true,
@@ -281,6 +333,16 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
                 active: true,
                 order: latestOrder.order
             },
-        ]
+        ],
+        skipDuplicates: true,
+    })
+
+    // Both are seeded as syskens, so both have to have sat every trial.
+    await prisma.admissionTrial.createMany({
+        data: [harambe.id, vever.id].flatMap(userId => allAdmissions.map(admission => ({
+            userId,
+            admission,
+        }))),
+        skipDuplicates: true,
     })
 })
