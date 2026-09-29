@@ -75,6 +75,8 @@ There is no nginx. Next serves `/store/` itself (`src/app/store/[...path]/route.
 6. In Dokploy's UI, set the domain on the `projectnext` service. Dokploy injects the Traefik labels itself. A liveness endpoint is available at `/api/health` (also used by the compose healthcheck) if Dokploy asks for one.
 7. Ingress goes through a Cloudflare Tunnel app in Dokploy, which forwards to Dokploy's built-in Traefik; Traefik then routes to `projectnext`. Nothing needs host ports 80/443 opened directly.
 
+Dokploy brings the stack up itself. To deploy by hand on a host that already has `dokploy-network` and the database resource, `npm run docker:prod-deploy` runs the same file detached and without the `localdb` profile.
+
 **Every service joins `dokploy-network` explicitly**, and the compose file declares it `external: true`. Dokploy attaches that network automatically only to the service a domain is configured on, so without the explicit `networks:` entries `imageworker` cannot resolve the database's hostname at all - which presents as the worker failing to connect while the web app looks perfectly healthy.
 
 Set `BUILDX_NO_DEFAULT_ATTESTATIONS=1` in the build environment. BuildKit otherwise attaches a provenance attestation and packs the result as a multi-platform manifest list, which nothing here consumes and which shows up as extra `exporting attestation manifest` work on every deploy.
@@ -82,7 +84,7 @@ Set `BUILDX_NO_DEFAULT_ATTESTATIONS=1` in the build environment. BuildKit otherw
 ### Rehearsing the production stack locally
 
 ```bash
-npm run docker:prod
+npm run docker:prod-local
 ```
 
 This creates the `dokploy-network` network if it is missing (compose refuses to start otherwise, since the file declares it external) and enables the `localdb` profile, which adds a `db` service standing in for the Dokploy resource. Production never enables that profile.
