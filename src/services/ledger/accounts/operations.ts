@@ -245,7 +245,7 @@ export const ledgerAccountOperations = {
         dataSchema: ledgerAccountSchemas.update,
         operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
             const account = await ledgerAccountOperations.read({ params })
-            const { groupIds, ...scalarData } = data
+            const { addGroupIds, removeGroupIds, ...scalarData } = data
 
             return prisma.ledgerAccount.update({
                 where: {
@@ -253,15 +253,21 @@ export const ledgerAccountOperations = {
                 },
                 data: {
                     ...scalarData,
-                    // groupIds isn't a real field on the model. It's the groups relation, via
-                    // the GroupLedgerAccount join table. Setting it replaces the account's
-                    // group membership with exactly this list.
-                    ...(groupIds && {
+                    // groups isn't a real field on the model. It's the groups relation, via the
+                    // GroupLedgerAccount join table. deleteMany/createMany only touch the given
+                    // group IDs, rather than replacing the whole relation, so that concurrent
+                    // updates to different groups on the same account don't clobber each other.
+                    ...((addGroupIds?.length || removeGroupIds?.length) && {
                         groups: {
-                            deleteMany: {},
-                            createMany: {
-                                data: groupIds.map(groupId => ({ groupId })),
-                            },
+                            ...(removeGroupIds?.length && {
+                                deleteMany: { groupId: { in: removeGroupIds } },
+                            }),
+                            ...(addGroupIds?.length && {
+                                createMany: {
+                                    data: addGroupIds.map(groupId => ({ groupId })),
+                                    skipDuplicates: true,
+                                },
+                            }),
                         },
                     }),
                 },

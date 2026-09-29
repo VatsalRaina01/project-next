@@ -10,11 +10,10 @@ import type { ExpandedGroup } from '@/services/groups/types'
 
 type Props = {
     ledgerAccountId: number,
-    groupIds: number[],
     availableGroups: ExpandedGroup[],
 }
 
-export default function AddGroupToLedgerAccount({ ledgerAccountId, groupIds, availableGroups }: Props) {
+export default function AddGroupToLedgerAccount({ ledgerAccountId, availableGroups }: Props) {
     const router = useRouter()
     const [selectedGroupId, setSelectedGroupId] = useState(availableGroups[0]?.id)
     const [error, setError] = useState<string | null>(null)
@@ -27,7 +26,7 @@ export default function AddGroupToLedgerAccount({ ledgerAccountId, groupIds, ava
         const result = await updateLedgerAccountAction({
             params: { ledgerAccountId },
         }, {
-            data: { groupIds: [...groupIds, selectedGroupId] },
+            data: { addGroupIds: [selectedGroupId] },
         })
 
         if (!result.success) {

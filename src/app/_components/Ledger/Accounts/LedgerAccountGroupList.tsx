@@ -10,11 +10,10 @@ import type { ExpandedGroup } from '@/services/groups/types'
 
 type Props = {
     ledgerAccountId: number,
-    groupIds: number[],
     groups: ExpandedGroup[],
 }
 
-export default function LedgerAccountGroupList({ ledgerAccountId, groupIds, groups }: Props) {
+export default function LedgerAccountGroupList({ ledgerAccountId, groups }: Props) {
     const router = useRouter()
     const [error, setError] = useState<string | null>(null)
 
@@ -22,7 +21,7 @@ export default function LedgerAccountGroupList({ ledgerAccountId, groupIds, grou
         const result = await updateLedgerAccountAction({
             params: { ledgerAccountId },
         }, {
-            data: { groupIds: groupIds.filter(id => id !== groupId) },
+            data: { removeGroupIds: [groupId] },
         })
 
         if (!result.success) {

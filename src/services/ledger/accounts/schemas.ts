@@ -50,7 +50,9 @@ export const ledgerAccountSchemas = {
         name: true,
         payoutAccountNumber: true,
         userId: true,
-        groupIds: true,
         frozen: true,
+    }).extend({
+        addGroupIds: z.number().array().optional(),
+        removeGroupIds: z.number().array().optional(),
     })
 }

@@ -17,7 +17,7 @@ export default async function LedgerAccountGroupsCard({ ledgerAccountId, groupId
 
     return <div className={styles.wrapper}>
         <h2>Grupper</h2>
-        <LedgerAccountGroupList ledgerAccountId={ledgerAccountId} groupIds={groupIds} groups={currentGroups} />
-        <AddGroupToLedgerAccount ledgerAccountId={ledgerAccountId} groupIds={groupIds} availableGroups={availableGroups} />
+        <LedgerAccountGroupList ledgerAccountId={ledgerAccountId} groups={currentGroups} />
+        <AddGroupToLedgerAccount ledgerAccountId={ledgerAccountId} availableGroups={availableGroups} />
     </div>
 }
