@@ -4,6 +4,21 @@ import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic
 import type { Limits } from './migrationLimits'
 import type { UserMigrator } from './migrateUsers'
 
+/**
+ * The two visibility levels every event needs. Nothing in the old system restricted who could see
+ * an event, so both are created without requirements - which checkVisibility reads as open to all.
+ */
+async function createVisibilities(pnPrisma: PrismaClientPn) {
+    const [visibilityRegular, visibilityAdmin] = await Promise.all([
+        pnPrisma.visibility.create({ data: {} }),
+        pnPrisma.visibility.create({ data: {} }),
+    ])
+    return {
+        visibilityRegularId: visibilityRegular.id,
+        visibilityAdminId: visibilityAdmin.id,
+    }
+}
+
 export default async function migrateEvents(
     pnPrisma: PrismaClientPn,
     owPrisma: PrismaClientOw,
@@ -62,6 +77,8 @@ export default async function migrateEvents(
                 company: event.company,
                 extraFields: event.extraFields ?? undefined,
                 createdById: event.CreatedByUserId ? await userMigrator.getPnUserId(event.CreatedByUserId) : undefined,
+                published: true,
+                ...(await createVisibilities(pnPrisma)),
             }
         })
 
@@ -128,6 +145,8 @@ export default async function migrateEvents(
                 coverImageId: coverIage.id,
                 cmsParagraphId: paragraph.id,
                 waitingList: false,
+                published: true,
+                ...(await createVisibilities(pnPrisma)),
             }
         })
     }))

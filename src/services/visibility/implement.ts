@@ -12,8 +12,11 @@ import type { DoubleLevelVisibilityMatrix, VisibilityMatrix } from './types'
  * The admin level must always be a sub-visibility of the regular level - an administrator who
  * cannot even see what they administrate is a broken state. Since either level can be updated on
  * its own, this is asserted on the pair that the update would result in, not on the stored pair.
+ *
+ * Exported so services that take both levels as part of creating the thing they guard can hold the
+ * pair to the same invariant from the start.
  */
-function assertAdminLevelIsSubOfRegularLevel(resultingMatrix: DoubleLevelVisibilityMatrix): void {
+export function assertAdminLevelIsSubOfRegularLevel(resultingMatrix: DoubleLevelVisibilityMatrix): void {
     if (!isSubVisibility(resultingMatrix.adminLevel, resultingMatrix.regularLevel)) {
         throw new ServerError(
             'BAD DATA',
