@@ -30,6 +30,7 @@ import { seedNews } from './standardContent/seedNews'
 import seedInterestGroups from './seedInterestGroups'
 import { withServiceContext } from '@/services/serviceOperation'
 import { Session } from '@/auth/session/Session'
+import { seedDevBullshit } from './development/seedDevBullshit'
 
 export default async function seed(
     shouldMigrate: boolean,
@@ -90,6 +91,7 @@ export default async function seed(
         await seedDevShop(prisma)
         await seedDevEvents(prisma)
         await seedDevApplicationsAndPeriods(prisma)
+        await seedDevBullshit(prisma)
         if (enableLogging) console.log('seed dev done')
     })
 }

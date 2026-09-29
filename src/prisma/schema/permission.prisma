@@ -166,6 +166,10 @@ enum Permission {
 
   //Flair/badge/cape
   FLAIR_ADMIN
+
+  //Bullshit
+  BULLSHIT_WRITE
+  BULLSHIT_READ
 }
 
 model GroupPermission {

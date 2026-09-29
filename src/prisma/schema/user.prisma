@@ -18,6 +18,7 @@ model User {
   firstname              String              @default("[Fjernet]")
   lastname               String              @default("[Fjernet]")
   bio                    String              @default("")
+  bullshit               Bullshit[]
   relationshipStatus     RelationshipStatus  @default(NOT_SPECIFIED)
   relationshipStatusText String              @default("")
   archived               Boolean             @default(false)
