@@ -22,7 +22,7 @@ export default async function EventArchive({
 
     const eventTagsResponse = await readEventTagsAction()
     if (!eventTagsResponse.success) {
-        throw new Error('Failed to read event tags')
+        throw new Error('Kunne ikke laste arrangement-tagger')
     }
     const { data: eventTags } = eventTagsResponse
 
@@ -35,7 +35,7 @@ export default async function EventArchive({
     const canDestroy = eventTagAuth.destroy.dynamicFields({}).auth(session)
 
     return (
-        <PageWrapper title="Hvad Der Har Hendt" headerItem={
+        <PageWrapper title="Hvad der har hendt" headerItem={
             <div className={styles.header}>
                 <div className={styles.tags}>
                     {currentTags.map(tag => {

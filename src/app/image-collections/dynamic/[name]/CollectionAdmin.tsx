@@ -115,7 +115,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                                 <Form
                                     refreshOnSuccess
                                     title="Rediger samling"
-                                    submitText="oppdater"
+                                    submitText="Oppdater"
                                     closePopUpOnSuccess="Edit"
                                     action={configureAction(
                                         updateDynamicImageCollectionAction,
@@ -125,13 +125,13 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                                     <TextInput
                                         defaultValue={collection.name}
                                         color="black"
-                                        label="navn"
+                                        label="Navn"
                                         name="collectionName"
                                     />
                                     <TextInput
                                         defaultValue={collection.description || ''}
                                         color="black"
-                                        label="beskrivelse"
+                                        label="Beskrivelse"
                                         name="collectionDescription"
                                     />
                                 </Form>
@@ -140,7 +140,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                         {
                             canDestroyCollection && (
                                 <Form
-                                    submitText="slett samling"
+                                    submitText="Slett samling"
                                     successCallback={() => router.push('/image-collections')}
                                     action={configureAction(
                                         destroyDynamicImageCollectionAction,

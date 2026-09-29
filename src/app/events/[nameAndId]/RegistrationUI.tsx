@@ -45,7 +45,7 @@ export default function RegistrationUI({
     canRegister: boolean,
 }) {
     if (!event.takesRegistration) {
-        throw new Error('Can only show registration button for event that take registration')
+        throw new Error('Kan bare vise påmeldingsknapp for arrangement som har påmelding')
     }
 
     // Dots hold the user back past the registration start of the event, so it is the delayed start

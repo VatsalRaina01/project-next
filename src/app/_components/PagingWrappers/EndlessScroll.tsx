@@ -37,7 +37,7 @@ export default function EndlessScroll<Data, Cursor, const PageSize extends numbe
     const context = useContext(pagingContext)
 
     //This component must be rendered inside ContextProvider
-    if (!context) throw new Error('No context')
+    if (!context) throw new Error('Ingen kontekst')
 
     const { loading, state, loadMore } = context
 

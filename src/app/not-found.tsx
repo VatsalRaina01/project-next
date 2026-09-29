@@ -5,7 +5,7 @@ import StandardImageServer from '@/components/Image/StandardImageServer'
 export default function Error404() {
     return (
         <div className={styles.wrapper}>
-            <PageTitleSetter title={'Page not found'} />
+            <PageTitleSetter title={'Side ikke funnet'} />
             <div className={styles.info}>
                 <div className={styles.imageContainer}>
                     <StandardImageServer
@@ -14,7 +14,7 @@ export default function Error404() {
                         tint="var(--text)"
                     />
                 </div>
-                <h3>404 - Page not found</h3>
+                <h3>404 - Side ikke funnet</h3>
             </div>
         </div>
     )

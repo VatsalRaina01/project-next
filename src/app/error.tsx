@@ -12,7 +12,7 @@ import StandardImageClient from '@/components/Image/StandardImageClient'
 export default function ErrorBoundary({ error, reset }: {error: unknown, reset: () => void}) {
     return (
         <div className={styles.wrapper}>
-            <PageTitleSetter title={'Error'} />
+            <PageTitleSetter title={'Feil'} />
             <div className={styles.info}>
                 <div className={styles.imageContainer}>
                     <StandardImageClient

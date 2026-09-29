@@ -8,9 +8,9 @@ import DateInput from '@/app/_components/UI/DateInput'
 export default function ReleasePeriodForm() {
     return <Form
         action={createReleasePeriodAction}
-        submitText="Lag ny splipp periode"
+        submitText="Lag ny slipp periode"
     >
         <DateInput name="releaseTime" label="Slipp dato" />
-        <DateInput name="releaseUntil" label="Slipp intil dato" />
+        <DateInput name="releaseUntil" label="Slipp inntil dato" />
     </Form>
 }

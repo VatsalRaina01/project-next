@@ -14,7 +14,7 @@ type Props = {
 
 function EmptyState() {
     const context = useContext(LedgerTransactionPagingContext)
-    if (!context) throw new Error('No context')
+    if (!context) throw new Error('Ingen kontekst')
 
     if (!context.state.allLoaded || context.state.data.length > 0) return null
 

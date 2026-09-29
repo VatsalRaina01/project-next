@@ -22,7 +22,7 @@ export default function ChangeImageForm({ cmsImageId, selectedImage, className, 
                     { params: { cmsImageId } }
                 ).bind(null, { data: { imageId: selectedImage.id } })
             }
-            submitText="change"
+            submitText="Endre"
             refreshOnSuccess
         />
     )

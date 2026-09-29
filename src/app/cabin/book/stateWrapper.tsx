@@ -87,7 +87,7 @@ export default function StateWrapper({
 }) {
     const cabinProduct = cabinProducts.find(product => product.type === 'CABIN')
     if (!cabinProduct) {
-        throw new Error('No product with type CABIN.')
+        throw new Error('Ingen produkt med type CABIN.')
     }
     const bedProducts = cabinProducts.filter(product => product.type === 'BED')
 

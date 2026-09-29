@@ -72,7 +72,7 @@ export default async function CabinBooking() {
     }
 
     return <PageWrapper
-        title="Heutte Booking"
+        title="Hyttebooking"
     >
         {nextReleasePeriod &&
             <p>
