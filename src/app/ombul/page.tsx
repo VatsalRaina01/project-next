@@ -14,7 +14,7 @@ export default async function Ombuls() {
     const latestOmbulRes = await readLatestOmbulAction()
     const latestOmbul = latestOmbulRes.success ? latestOmbulRes.data : null
     const ombulRes = await readOmbulsAction()
-    if (!ombulRes.success) throw new Error('Failed to read ombuls')
+    if (!ombulRes.success) throw new Error('Kunne ikke laste ombuler')
     const ombuls = ombulRes.data
 
     const yearsWithOmbul = Object.entries(ombuls.reduce((groups, ombul) => {

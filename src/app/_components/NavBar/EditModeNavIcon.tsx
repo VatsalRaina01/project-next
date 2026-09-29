@@ -28,5 +28,5 @@ export default function EditModeNavIcon({ className, expanded = false }: PropTyp
 
     if (expanded) return content
 
-    return <NavTooltip content="Edit mode">{content}</NavTooltip>
+    return <NavTooltip content="Redigeringsmodus">{content}</NavTooltip>
 }

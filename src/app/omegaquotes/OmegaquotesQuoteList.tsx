@@ -13,7 +13,7 @@ export default function OmegaquoteList({ serverRendered }: PropTypes) {
     const context = useContext(OmegaquotePagingContext)
 
     //This component must be rendered inside a OmegaquotePagingProvider
-    if (!context) throw new Error('No context')
+    if (!context) throw new Error('Ingen kontekst')
 
     return <>
         {serverRendered} {/* Rendered on server homefully in the right way*/}

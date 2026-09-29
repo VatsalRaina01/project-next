@@ -8,7 +8,7 @@ export default function CreateMailingList() {
     const { push } = useRouter()
 
     return <Form
-        title="Opprett ny mail liste"
+        title="Opprett ny e-postliste"
         submitText="Opprett"
         action={createMailingListAction}
         successCallback={data => {

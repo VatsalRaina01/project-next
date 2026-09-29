@@ -54,7 +54,7 @@ export default async function CabinBooking() {
     ).toJsObject()
 
     return <PageWrapper
-        title="Heutte Booking"
+        title="Hyttebooking"
     >
         {nextReleasePeriod &&
             <p>

@@ -45,7 +45,7 @@ export default async function FlairUpdatePage() {
     }))
 
     return (
-        <PageWrapper title="Adminitrer Flairs" headerItem={
+        <PageWrapper title="Administrer flairs" headerItem={
             <AddHeaderItemPopUp popUpKey="CreateFlair">
                 <Form
                     title="Opprett ny flair"

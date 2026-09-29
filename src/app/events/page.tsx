@@ -25,10 +25,10 @@ export default async function Events({
     const eventTagsResponse = await readEventTagsAction()
 
     if (!currentEventsResponse.success) {
-        throw new Error('Failed to read current events')
+        throw new Error('Kunne ikke laste kommende arrangementer')
     }
     if (!eventTagsResponse.success) {
-        throw new Error('Failed to read event tags')
+        throw new Error('Kunne ikke laste arrangement-tagger')
     }
     const { data: currentEvents } = currentEventsResponse
     const { data: eventTags } = eventTagsResponse
@@ -42,7 +42,7 @@ export default async function Events({
     const canDestroy = eventTagAuth.destroy.dynamicFields({}).auth(session)
 
     return (
-        <PageWrapper title="Hvad Der Hender" headerItem={
+        <PageWrapper title="Hvad der hender" headerItem={
             <div className={styles.header}>
                 <div className={styles.tags}>
                     {currentTags.map(tag => {

@@ -25,7 +25,7 @@ export default function EditUser({
     return <div>
         <h2>{`${focusedUser.firstname} ${focusedUser.lastname}`}</h2>
         { canAddToList && <Form
-            title="Legg til mailliste"
+            title="Legg til e-postliste"
             submitText="Legg til"
             action={createMailingListUserRelationAction}
         >
@@ -33,7 +33,7 @@ export default function EditUser({
             <SelectNumber
                 options={mailingLists.map(list => ({ value: list.id, label: list.name }))}
                 name="mailingListId"
-                label="Mailliste"
+                label="E-postliste"
             />
         </Form>}
     </div>

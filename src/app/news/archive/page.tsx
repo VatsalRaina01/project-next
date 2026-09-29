@@ -23,7 +23,7 @@ export default async function NewsArchive() {
             },
         }
     })
-    if (!res.success) throw new Error('Failed to read news')
+    if (!res.success) throw new Error('Kunne ikke laste nyheter')
     const serverRendered = res.data
 
     return (

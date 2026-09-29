@@ -106,7 +106,7 @@ const create = defineSubOperation({
         }
 
         if (params.bookingType === 'EVENT' && params.bookingProducts.length !== 0) {
-            throw new ServerError('BAD PARAMETERS', 'Hvad der hender bookinger kan ikke inneholde produkter.')
+            throw new ServerError('BAD PARAMETERS', 'Arrangementbookinger kan ikke inneholde produkter.')
         }
 
         if (params.bookingType === 'CABIN' &&

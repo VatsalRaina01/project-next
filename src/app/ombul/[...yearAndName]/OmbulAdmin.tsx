@@ -97,7 +97,7 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
                                 successCallback={handleChange}
                                 submitText="Oppdater fil"
                             >
-                                <FileInput name="ombulFile" label="ombul fil" color="primary" />
+                                <FileInput name="ombulFile" label="Ombul fil" color="primary" />
                             </Form>
                         </>
                     )

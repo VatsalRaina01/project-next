@@ -30,17 +30,17 @@ export default function ImageUploader({
         <Form
             className={className}
             title={title}
-            submitText="last opp"
+            submitText="Last opp"
             action={uploadImageAction}
             successCallback={successCallback}
             refreshOnSuccess={refreshOnSuccess}
             closePopUpOnSuccess={closePopUpOnSuccess}
         >
-            <TextInput color="black" label="navn" name="imageName" />
-            <TextInput color="black" label="alternativ tekst" name="imageAlt" />
-            <TextInput color="black" label="kreditert" name="imageCredit" />
+            <TextInput color="black" label="Navn" name="imageName" />
+            <TextInput color="black" label="Alternativ tekst" name="imageAlt" />
+            <TextInput color="black" label="Kreditert" name="imageCredit" />
             <LicenseChooser name="imageLicenseId" />
-            <FileInput label="fil" name="imageFile" color="primary" />
+            <FileInput label="Fil" name="imageFile" color="primary" />
         </Form>
     )
 }
