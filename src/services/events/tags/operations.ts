@@ -2,7 +2,6 @@ import '@pn-server-only'
 import { eventTagAuth } from './auth'
 import { specialEventTags } from './constants'
 import { eventTagSchemas } from './schemas'
-import { eventAuth } from '@/services/events/auth'
 import logger from '@/lib/logger'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServerError } from '@/services/error'
@@ -66,7 +65,7 @@ export const eventTagOperations = {
             id: z.number(),
         }),
         dataSchema: eventTagSchemas.update,
-        authorizer: () => eventAuth.update.dynamicFields({}),
+        authorizer: () => eventTagAuth.update.dynamicFields({}),
         operation: async ({ prisma, params: { id }, data: { color, ...data } }) => {
             const colorR = color ? color.red : undefined
             const colorG = color ? color.green : undefined
@@ -88,7 +87,7 @@ export const eventTagOperations = {
         paramsSchema: z.object({
             id: z.number(),
         }),
-        authorizer: () => eventAuth.destroy.dynamicFields({}),
+        authorizer: () => eventTagAuth.destroy.dynamicFields({}),
         operation: async ({ prisma, params }) => {
             const tag = await prisma.eventTag.findUniqueOrThrow({
                 where: { id: params.id }

@@ -21,12 +21,14 @@ import seedDevEvents from './development/seedDevEvents'
 import seedEvents from './seedEvent'
 import seedCabin from './seedCabin'
 import seedPermissions from './seedPermissions'
+import seedAdmin from './seedAdmin'
 import seedDevApplicationsAndPeriods from './development/seedDevApplicationsAndPeriods'
 import { seedArticleCategories } from './standardContent/seedArticleCategories'
 import { seedImages } from './standardContent/seedImages'
 import { seedSpecialCms } from './standardContent/seedSpecialCms'
 import { seedFlairs } from './standardContent/seedFlairs'
 import { seedNews } from './standardContent/seedNews'
+import { seedCompanies } from './standardContent/seedCompanies'
 import seedInterestGroups from './seedInterestGroups'
 import { createTimedStep } from './timedStep'
 import { withServiceContext } from '@/services/serviceOperation'
@@ -51,6 +53,7 @@ export default async function seed(
         await step('Upserting standard special CMS', () => seedSpecialCms())
         await step('Upserting standard article categories', () => seedArticleCategories())
         await step('Upserting standard news', () => seedNews())
+        await step('Upserting standard companies', () => seedCompanies())
         await step('Upserting standard mail', () => seedMail(prisma))
         await step('Upserting standard notification channels', () => seedNotificationChannels(prisma))
         await step('Upserting standard study programmes', () => seedStudyProgramme(prisma))
@@ -60,6 +63,7 @@ export default async function seed(
         await step('Upserting standard shops', () => seedShop(prisma))
         await step('Upserting standard events', () => seedEvents(prisma))
         await step('Upserting standard permissions', () => seedPermissions(prisma))
+        await step('Upserting admin user', () => seedAdmin(prisma))
         await step('Upserting standard flairs', () => seedFlairs())
         await step('Upserting standard interest groups', () => seedInterestGroups(prisma))
 
