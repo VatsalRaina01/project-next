@@ -5,6 +5,7 @@ import { implementGroupType, implementStraightAwayMigration } from '@/services/g
 import { OMEGA_MEMBERSHIP_LEVEL_RANKING } from '@/services/groups/constants'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { admissionOperations } from '@/services/admission/operations'
+import { allAdmissions } from '@/services/admission/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import logger from '@/lib/logger'
@@ -126,19 +127,24 @@ const updateUserLevel = defineOperation({
 
         const currentOmegaOrder = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
-        // Admission trials are what earns a soelle their place as a sysken, so a user being put
-        // anywhere below sysken has not earned it - and must not be left holding a completed set of
-        // trials, which is what `readUserLevel` reads to decide who a user is when it has to guess.
-        const keepsTrials = omegaMembershipGTEQ(params.omegaMembershipLevel, 'SYSKEN')
+        const becomesSysken = omegaMembershipGTEQ(params.omegaMembershipLevel, 'SYSKEN')
 
         await prisma.$transaction([
-            ...(keepsTrials ? [] : [
-                prisma.admissionTrial.deleteMany({
+            becomesSysken
+                // Upserting by way of `skipDuplicates`, so a trial the user really did sit keeps
+                // the date and the registrar it was sat with.
+                ? prisma.admissionTrial.createMany({
+                    data: allAdmissions.map(admission => ({
+                        userId: params.userId,
+                        admission,
+                    })),
+                    skipDuplicates: true,
+                })
+                : prisma.admissionTrial.deleteMany({
                     where: {
                         userId: params.userId,
                     }
                 }),
-            ]),
             prisma.membership.deleteMany({
                 where: {
                     userId: params.userId,
