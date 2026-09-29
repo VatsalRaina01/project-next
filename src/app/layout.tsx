@@ -10,6 +10,9 @@ import { PageTitleProvider } from '@/contexts/PageTitle'
 import { readDefaultPermissionsAction } from '@/services/permissions/actions'
 import { readAllStandardImagesAction } from '@/services/images/standard/actions'
 import { readUserProfileAction } from '@/services/users/actions'
+import { readReleaseCountdownIsActiveAction } from '@/services/releaseCountdown/actions'
+import { RELEASE_DATE } from '@/services/releaseCountdown/constants'
+import ReleaseCountdown from '@/components/ReleaseCountdown/ReleaseCountdown'
 import { ServerSession } from '@/auth/session/ServerSession'
 import ThemeEnabler from '@/UI/ThemeEnabler'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
@@ -76,6 +79,7 @@ export default async function RootLayout({ children }: PropTypes) {
     // so nothing beyond these reaches the client components among them.
     const navUser = profile?.user ?? null
     const navItems = visibleNavItems(serverSession)
+    const releaseCountdownIsActive = unwrapActionReturn(await readReleaseCountdownIsActiveAction())
 
     return (
         <html lang="en">
@@ -92,27 +96,31 @@ export default async function RootLayout({ children }: PropTypes) {
                         <EditModeProvider>
                             <PopUpProvider>
                                 <PageTitleProvider>
-                                    <div className={styles.wrapper}>
-                                        <div className={styles.navBar}>
-                                            <NavBar
-                                                isLoggedIn={navUser !== null}
-                                                profileImage={navUser?.image ?? null}
-                                                navItems={navItems}
-                                            />
+                                    {releaseCountdownIsActive ? (
+                                        <ReleaseCountdown releaseDate={RELEASE_DATE.getTime()} />
+                                    ) : (
+                                        <div className={styles.wrapper}>
+                                            <div className={styles.navBar}>
+                                                <NavBar
+                                                    isLoggedIn={navUser !== null}
+                                                    profileImage={navUser?.image ?? null}
+                                                    navItems={navItems}
+                                                />
+                                            </div>
+                                            <aside className={styles.sideBar}>
+                                                <DesktopSideBar navItems={navItems} />
+                                            </aside>
+                                            <main className={styles.content}>
+                                                {children}
+                                            </main>
+                                            <div className={styles.mobileNavBar}>
+                                                <MobileNavBar
+                                                    isLoggedIn={navUser !== null}
+                                                    navItems={navItems}
+                                                />
+                                            </div>
                                         </div>
-                                        <aside className={styles.sideBar}>
-                                            <DesktopSideBar navItems={navItems} />
-                                        </aside>
-                                        <main className={styles.content}>
-                                            {children}
-                                        </main>
-                                        <div className={styles.mobileNavBar}>
-                                            <MobileNavBar
-                                                isLoggedIn={navUser !== null}
-                                                navItems={navItems}
-                                            />
-                                        </div>
-                                    </div>
+                                    )}
                                 </PageTitleProvider>
                             </PopUpProvider>
                         </EditModeProvider>
