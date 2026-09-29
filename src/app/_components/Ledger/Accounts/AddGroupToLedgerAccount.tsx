@@ -17,17 +17,25 @@ type Props = {
 export default function AddGroupToLedgerAccount({ ledgerAccountId, groupIds, availableGroups }: Props) {
     const router = useRouter()
     const [selectedGroupId, setSelectedGroupId] = useState(availableGroups[0]?.id)
+    const [error, setError] = useState<string | null>(null)
 
     if (availableGroups.length === 0) return null
 
     const addGroup = async () => {
         if (selectedGroupId === undefined) return
 
-        await updateLedgerAccountAction({
+        const result = await updateLedgerAccountAction({
             params: { ledgerAccountId },
         }, {
             data: { groupIds: [...groupIds, selectedGroupId] },
         })
+
+        if (!result.success) {
+            setError(result.error?.[0]?.message ?? 'Kunne ikke legge til gruppen.')
+            return
+        }
+
+        setError(null)
         router.refresh()
     }
 
@@ -41,6 +49,7 @@ export default function AddGroupToLedgerAccount({ ledgerAccountId, groupIds, ava
                 onChange={setSelectedGroupId}
             />
             <Button onClick={addGroup} color="secondary">Legg til</Button>
+            {error && <p className={styles.error}>{error}</p>}
         </div>
     )
 }

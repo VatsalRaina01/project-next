@@ -1,4 +1,3 @@
-import { RequirePermissionAndUserId } from '@/auth/authorizer/RequirePermissionAndUserId'
 import { RequireLevelFromDoubleLevelVisibility } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibility'
 import { RequireUserIdOrPermission } from '@/auth/authorizer/RequireUserIdOrPermission'
 import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
@@ -60,5 +59,5 @@ export const eventRegistrationAuth = {
     // "spend someone else's ledger balance"). Provider/account-ownership rules are not this
     // operation's business - paymentOperations.create and ledgerTransactionOperations.create
     // already own those.
-    createPayment: RequirePermissionAndUserId.staticFields({ permission: 'EVENT_ADMIN' }),
+    createPayment: ownUserOrEventAdmin,
 } as const

@@ -471,6 +471,14 @@ export const cabinBookingOperations = {
             }
 
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
+                // Extends the reservation window to cover the full lifetime a pending attempt is
+                // allowed to stay open for (see stalePendingTransactionMs above), so cabinAvailable
+                // can't release these dates to another booker while this attempt can still succeed.
+                await tx.booking.update({
+                    where: { id: booking.id },
+                    data: { transactionTimeout: new Date(Date.now() + stalePendingTransactionMs) },
+                })
+
                 let paymentId: number | undefined
 
                 if (shortfall > 0) {

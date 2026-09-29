@@ -225,13 +225,17 @@ export default function StateWrapper({
             )
         if (!bookingResult.success) return bookingResult
 
+        if (bookingResult.data.transactionTimeout === null) {
+            return createActionError('SERVER ERROR', 'Reservasjonen fikk ingen utløpstid.')
+        }
+
         return {
             success: true,
             data: {
                 bookingId: bookingResult.data.id,
                 secret: bookingResult.data.secret,
                 totalPrice: bookingResult.data.totalPrice,
-                expiresAt: bookingResult.data.transactionTimeout!,
+                expiresAt: bookingResult.data.transactionTimeout,
             },
         }
     }

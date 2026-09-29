@@ -23,3 +23,7 @@
     justify-self: end;
     @include ohma.roundBtn;
 }
+
+.error {
+    color: ohma.$colors-error;
+}

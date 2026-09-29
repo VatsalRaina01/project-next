@@ -496,30 +496,6 @@ export const eventRegistrationOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
             }
 
-            const existingAttempt = await prisma.ledgerTransaction.findFirst({
-                where: {
-                    eventRegistrationId: registration.id,
-                    state: { in: ['PENDING', 'SUCCEEDED'] },
-                },
-            })
-            if (existingAttempt?.state === 'SUCCEEDED') {
-                throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
-            }
-            if (existingAttempt) {
-                const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
-                if (!isStale) {
-                    throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.')
-                }
-                // Stale (likely abandoned) attempt - cancel it (also cancels any Stripe payment
-                // intent, so a late webhook for it can never complete) and let this one proceed.
-                // Bypassed: the outer authorizer already established this caller may pay for
-                // this registration, which is the right bar for canceling a stale attempt on it.
-                await ledgerTransactionOperations.cancel({
-                    params: { id: existingAttempt.id },
-                    bypassAuth: true,
-                })
-            }
-
             if (!event.hostedByCommitee) {
                 throw new Smorekopp('SERVER ERROR', 'Arrangementet har ingen tilknyttet komité å betale til.')
             }
@@ -545,6 +521,35 @@ export const eventRegistrationOperations = {
             }
 
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
+                // Locks the registration row so concurrent payment attempts for it serialize
+                // instead of racing the existingAttempt check below.
+                await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${registration.id} FOR UPDATE`
+
+                const existingAttempt = await tx.ledgerTransaction.findFirst({
+                    where: {
+                        eventRegistrationId: registration.id,
+                        state: { in: ['PENDING', 'SUCCEEDED'] },
+                    },
+                })
+                if (existingAttempt?.state === 'SUCCEEDED') {
+                    throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
+                }
+                if (existingAttempt) {
+                    const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
+                    if (!isStale) {
+                        throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.')
+                    }
+                    // Stale (likely abandoned) attempt - cancel it (also cancels any Stripe payment
+                    // intent, so a late webhook for it can never complete) and let this one proceed.
+                    // Bypassed: the outer authorizer already established this caller may pay for
+                    // this registration, which is the right bar for canceling a stale attempt on it.
+                    await ledgerTransactionOperations.cancel({
+                        params: { id: existingAttempt.id },
+                        bypassAuth: true,
+                        prisma: tx,
+                    })
+                }
+
                 let paymentId: number | undefined
 
                 if (shortfall > 0) {
