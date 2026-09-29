@@ -1,14 +1,17 @@
 import { OmegaMembershipLevel } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
+const userRelation = z.object({
+    userId: z.number(),
+})
+
 export const omegaMembershipGroupSchemas = {
     read: z.union([
         z.object({ id: z.number() }),
         z.object({ omegaMembershipLevel: z.nativeEnum(OmegaMembershipLevel) }),
     ]),
-    readUserLevel: z.object({
-        userId: z.number(),
-    }),
+    readUserLevel: userRelation,
+    inferUserLevel: userRelation,
     updateUserLevel: z.object({
         userId: z.number(),
         omegaMembershipLevel: z.nativeEnum(OmegaMembershipLevel),

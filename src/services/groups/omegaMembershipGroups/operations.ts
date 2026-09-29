@@ -44,6 +44,38 @@ const read = defineOperation({
 })
 
 /**
+ * The level a user's study programmes put them at: someone on a programme that is part of omega is
+ * a soelle, and everyone else is part of den gemene hob. This is what places a user when they are
+ * created and each time feide tells us what they study.
+ *
+ * It never reaches sysken, because that is earned by sitting the admission trials rather than by
+ * what someone studies - which is why callers apply it with `onlyUpgrade`, so that a sysken is not
+ * put back down to a soelle the next time they log in.
+ *
+ * Every study programme membership counts, including inactive ones and ones no one heard about
+ * from feide: a programme an administrator granted by hand says as much about a user as one feide
+ * returned.
+ */
+const inferUserLevel = defineOperation({
+    paramsSchema: omegaMembershipGroupSchemas.inferUserLevel,
+    authorizer: () => omegaMembershipGroupAuth.inferUserLevel.dynamicFields({}),
+    operation: async ({ prisma, params }): Promise<OmegaMembershipLevel> => {
+        const partOfOmega = await prisma.membership.findFirst({
+            where: {
+                userId: params.userId,
+                group: {
+                    groupType: GroupType.STUDY_PROGRAMME,
+                    studyProgramme: { partOfOmega: true },
+                },
+            },
+            select: { groupId: true },
+        })
+
+        return partOfOmega ? 'SOELLE' : 'DEN_GEMENE_HOB'
+    }
+})
+
+/**
  * The active omega memberships of a user, with the level each one is in. There should be exactly
  * one - `readUserLevel` is what decides what to do when there is not.
  */
@@ -197,6 +229,7 @@ export const omegaMembershipGroupOperations = {
     read,
     readMany,
     readUserLevel,
+    inferUserLevel,
     updateUserLevel,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,

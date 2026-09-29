@@ -249,3 +249,80 @@ describe('createTrial only accepts a soelle', () => {
         expect(await countTrials(user.id)).toBe(2)
     })
 })
+
+describe('inferUserLevel', () => {
+    const inferLevel = (userId: number) => omegaMembershipGroupOperations.inferUserLevel({
+        params: { userId },
+        bypassAuth: true,
+    })
+
+    // Only omega programmes are seeded, so a programme outside omega has to be made here.
+    const addToStudyProgramme = async (userId: number, code: string, partOfOmega: boolean) => {
+        const { order } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+        const studyProgramme = await prisma.studyProgramme.upsert({
+            where: { code },
+            update: {},
+            create: {
+                name: code,
+                code,
+                partOfOmega,
+                group: { create: { groupType: 'STUDY_PROGRAMME', order } },
+            },
+            select: { groupId: true },
+        })
+        await prisma.membership.create({
+            data: {
+                userId,
+                groupId: studyProgramme.groupId,
+                order,
+                admin: false,
+                active: true,
+            },
+        })
+    }
+
+    test('a user on no study programme is part of den gemene hob', async () => {
+        const user = await createTestUser('omegainferone')
+        expect(await inferLevel(user.id)).toBe('DEN_GEMENE_HOB')
+    })
+
+    test('a user on a programme that is part of omega is a soelle', async () => {
+        const user = await createTestUser('omegainfertwo')
+        await addToStudyProgramme(user.id, 'TESTOMEGA', true)
+
+        expect(await inferLevel(user.id)).toBe('SOELLE')
+    })
+
+    test('a user on a programme outside omega is part of den gemene hob', async () => {
+        const user = await createTestUser('omegainferthree')
+        await addToStudyProgramme(user.id, 'TESTOTHER', false)
+
+        expect(await inferLevel(user.id)).toBe('DEN_GEMENE_HOB')
+    })
+
+    test('applying it upgrades den gemene hob but leaves a sysken alone', async () => {
+        const user = await createTestUser('omegainferfour')
+        await addToStudyProgramme(user.id, 'TESTOMEGA', true)
+
+        const applyInferred = async () => omegaMembershipGroupOperations.updateUserLevel({
+            params: {
+                userId: user.id,
+                omegaMembershipLevel: await inferLevel(user.id),
+                onlyUpgrade: true,
+            },
+            bypassAuth: true,
+        })
+
+        await applyInferred()
+        expect((await omegaMembershipGroupOperations.readUserLevel({
+            params: { userId: user.id }, bypassAuth: true,
+        })).level).toBe('SOELLE')
+
+        await setLevel(user.id, 'SYSKEN')
+        await applyInferred()
+
+        expect((await omegaMembershipGroupOperations.readUserLevel({
+            params: { userId: user.id }, bypassAuth: true,
+        })).level).toBe('SYSKEN')
+    })
+})
