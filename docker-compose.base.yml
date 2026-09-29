@@ -8,8 +8,6 @@ services:
             context: ${PROJECT_ROOT:-.}/
             dockerfile: ${PROJECT_ROOT:-.}/Dockerfile
             args:
-                # Must reach `next build` as a build arg, not just a runtime env var -
-                # see the Dockerfile builder stage for why.
                 NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
         environment:
             DB_URI: ${DB_URI}
@@ -41,19 +39,11 @@ services:
             JWT_SECRET: ${JWT_SECRET}
             SERVER_LINK_PREFIX: ${SERVER_LINK_PREFIX}
         healthcheck:
-            # 127.0.0.1 rather than localhost: alpine tries ::1 first, and the
-            # production server binds IPv4 only.
             test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
             interval: 10s
             timeout: 3s
             retries: 5
             start_period: 30s
-        # required: false, because prod keeps its db behind the localdb profile - the
-        # real database is an external Dokploy resource. Compose tolerates a dependency
-        # filtered out by a profile when it is not required, and still waits for it
-        # wherever it is enabled, so dev, test and a local prod rehearsal all order
-        # correctly off this one declaration. Inherited through extends, which matters
-        # most for the one-shots: they exit rather than retry if postgres is not up yet.
         depends_on:
             db:
                 condition: service_healthy

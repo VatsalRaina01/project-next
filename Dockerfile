@@ -55,12 +55,6 @@ FROM base AS builder
 
 ENV NODE_ENV=production
 
-# Next embeds this key into the build output and uses it to encrypt Server
-# Action IDs. Left unset, Next generates a random one per build, so every
-# redeploy invalidates Server Actions referenced by any page a client still
-# has open from the previous build ("Failed to find Server Action"). Must be
-# passed as a build arg (not just a runtime env var) and kept stable across
-# deploys - see NEXT_SERVER_ACTIONS_ENCRYPTION_KEY in .env.default.
 ARG NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
 ENV NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
 
@@ -68,10 +62,6 @@ COPY src src
 
 RUN npm run build
 
-# Next's tracer pulls standard_store into the standalone output too, so prod would
-# get the 78 MB of dev_profile_images back through that path. Drop the traced copy
-# entirely and let prod COPY the pruned tree explicitly - deterministic either way,
-# and deleting in prod instead would only bury the bytes in the layer below.
 RUN rm -rf .next/standalone/standard_store standard_store/dev_profile_images
 
 ############################################################
