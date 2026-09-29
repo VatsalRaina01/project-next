@@ -4,7 +4,8 @@ import { admissionAuth } from './auth'
 import { userFilterSelection } from '@/services/users/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServerError } from '@/services/error'
-import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
+import { omegaMembershipGroupOperations, writeUserLevel } from '@/services/groups/omegaMembershipGroups/operations'
+import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { Admission } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 import type { ExpandedAdmissionTrail } from './types'
@@ -50,7 +51,10 @@ export const admissionOperations = {
             admission: z.nativeEnum(Admission),
         }),
         dataSchema: admissionSchemas.createTrial,
+        opensTransaction: true,
         operation: async ({ prisma, session, params, data }): Promise<ExpandedAdmissionTrail> => {
+            // Read before the transaction is opened: a user whose omega memberships are in a broken
+            // state is put right first, and that writes.
             const omegaMembership = await omegaMembershipGroupOperations.readUserLevel({
                 params: {
                     userId: data.userId
@@ -65,43 +69,53 @@ export const admissionOperations = {
                 )
             }
 
-            const results = await prisma.admissionTrial.create({
-                data: {
-                    user: {
-                        connect: {
-                            id: data.userId,
+            // The trial and the promotion it earns are written together. Were the promotion to fail
+            // on its own, the user would be left holding every trial as a soelle - and unable to be
+            // put right by sitting the last one again, since they already hold it.
+            const { results, becameSysken } = await prisma.$transaction(async tx => {
+                const trial = await tx.admissionTrial.create({
+                    data: {
+                        user: {
+                            connect: {
+                                id: data.userId,
+                            },
                         },
-                    },
-                    registeredBy: {
-                        connect: {
-                            id: session.user?.id,
+                        registeredBy: {
+                            connect: {
+                                id: session.user?.id,
+                            },
                         },
+                        admission: params.admission,
                     },
-                    admission: params.admission,
-                },
-                include: {
-                    user: {
-                        select: userFilterSelection,
+                    include: {
+                        user: {
+                            select: userFilterSelection,
+                        }
                     }
-                }
-            })
+                })
 
-            const completedTrials = await admissionOperations.userCompletedTrials({
-                params: {
-                    userId: data.userId
-                },
-                bypassAuth: true,
-            })
-
-            if (completedTrials) {
-                await omegaMembershipGroupOperations.updateUserLevel({
+                // Counted on the same client, so that the trial just written is counted with them.
+                const completedTrials = await admissionOperations.userCompletedTrials({
                     params: {
+                        userId: data.userId
+                    },
+                    prisma: tx,
+                    bypassAuth: true,
+                })
+
+                if (completedTrials) {
+                    await writeUserLevel(tx, {
                         userId: data.userId,
                         omegaMembershipLevel: 'SYSKEN',
                         onlyUpgrade: true,
-                    },
-                    bypassAuth: true,
-                })
+                    })
+                }
+
+                return { results: trial, becameSysken: completedTrials }
+            })
+
+            if (becameSysken) {
+                await invalidateOneUserSessionData(data.userId)
             }
 
             return results
