@@ -69,11 +69,11 @@ export const OmegaMembershipLevelConfig = {
         name: 'Solle noice',
         description: 'Avsky!'
     },
-    MEMBER: {
+    SYSKEN: {
         name: 'Medlem',
         description: 'Broder udaf sct. Omega Broderskab'
     },
-    EXTERNAL: {
+    DEN_GEMENE_HOB: {
         name: 'Eksterne',
         description: 'Ekstern bruker ikke i omega'
     }
@@ -85,9 +85,9 @@ export const OmegaMembershipLevelConfig = {
 }
 
 export const OMEGA_MEMBERSHIP_LEVEL_RANKING: OmegaMembershipLevel[] = [
-    'EXTERNAL',
+    'DEN_GEMENE_HOB',
     'SOELLE',
-    'MEMBER',
+    'SYSKEN',
 ]
 
 export const groupsWithRelationsIncluder = {

@@ -36,7 +36,7 @@ export const userOperations = {
         authorizer: () => userAuth.create.dynamicFields({}),
         operation: async ({ prisma, data }) => {
             const omegaMembership = await omegaMembershipGroupOperations.read({
-                params: { omegaMembershipLevel: 'EXTERNAL' },
+                params: { omegaMembershipLevel: 'DEN_GEMENE_HOB' },
                 bypassAuth: true,
             })
             const omegaOrder = await omegaOrderOperations.readCurrent({ bypassAuth: true })
@@ -108,11 +108,23 @@ export const userOperations = {
         }),
         authorizer: ({ params }) => userAuth.readProfile.dynamicFields({ username: params.username }),
         operation: async ({ prisma, params }) => {
+            const { id: userId } = await prisma.user.findUniqueOrThrow({
+                where: { username: params.username.toLowerCase() },
+                select: { id: true },
+            })
+
+            const omegaMembership = await omegaMembershipGroupOperations.readUserLevel({
+                params: {
+                    userId
+                },
+                bypassAuth: true,
+            })
+
             const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
                 params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
             })
             const user = await prisma.user.findUniqueOrThrow({
-                where: { username: params.username.toLowerCase() },
+                where: { id: userId },
                 select: {
                     ...userFilterSelection,
                     bio: true,
@@ -161,25 +173,22 @@ export const userOperations = {
 
             const memberships = await groupOperations.readMembershipsOfUser.internalCall({
                 params: {
-                    userId: user.id,
+                    userId,
                 }
             })
             const permissions = await permissionOperations.readPermissionsOfUser.internalCall({
                 params: {
-                    userId: user.id
+                    userId
                 }
             })
-            // The class is resolved by the class service rather than dug out of the memberships
-            // above: a user has one class, and deciding which one that is when the data says
-            // otherwise is its job, not every reader's.
             const userClass = await classOperations.readClassOfUser({
                 params: {
-                    userId: user.id
+                    userId
                 },
                 bypassAuth: true,
             })
 
-            return { user, memberships, permissions, class: userClass }
+            return { user, memberships, permissions, class: userClass, omegaMembership }
         }
     }),
 
@@ -456,19 +465,6 @@ export const userOperations = {
                         },
                     },
                     emailVerified: true,
-                    memberships: {
-                        select: {
-                            group: {
-                                select: {
-                                    studyProgramme: {
-                                        select: {
-                                            partOfOmega: true,
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
                 },
             })
 
@@ -526,15 +522,19 @@ export const userOperations = {
                 }
             }
 
-            const partOfOmega = storedUser.memberships.reduce(
-                (acc, val) => acc || (val.group.studyProgramme?.partOfOmega === true),
-                false
-            )
+            // What someone studies is what decides where they come in; anything above that is
+            // earned through the admission system, so this only ever moves a user up.
+            const inferredLevel = await omegaMembershipGroupOperations.inferUserLevel({
+                params: {
+                    userId: params.id,
+                },
+                bypassAuth: true,
+            })
 
             await omegaMembershipGroupOperations.updateUserLevel({
                 params: {
                     userId: params.id,
-                    omegaMembershipLevel: partOfOmega ? 'SOELLE' : 'EXTERNAL',
+                    omegaMembershipLevel: inferredLevel,
                     onlyUpgrade: true,
                 },
                 bypassAuth: true,

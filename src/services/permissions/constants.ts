@@ -278,9 +278,9 @@ export const permissionConfig = {
         description: 'kan administrere epostliste og tilknyttede relasjoner',
         category: 'mail',
     },
-    ADMISSION_TRIAL_CREATE: {
-        name: 'Lage opptak prøve',
-        description: 'kan lage opptak prøve',
+    ADMISSION_TRIAL_ADMIN: {
+        name: 'Administrere opptaksprøver',
+        description: 'kan lage og lese opptaksprøver for alle brukere',
         category: 'brukere',
     },
     APIKEY_ADMIN: {

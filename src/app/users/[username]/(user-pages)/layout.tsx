@@ -1,10 +1,9 @@
 import styles from './layout.module.scss'
-import { flairAuth } from '@/services/flairs/auth'
 import { readUserProfileAction } from '@/services/users/actions'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { ServerSession } from '@/auth/session/ServerSession'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import UserAdminNavBar from '@/app/users/[username]/UserAdminNavBar'
+import UserNavBar from '@/app/users/[username]/UserNavBar'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 import type { PropTypes } from '@/app/users/[username]/page'
@@ -22,9 +21,8 @@ export default async function UserAdmin({ children, params }: PropTypes & { chil
         username = session.user.username
     }
 
-    const canAssignFlairs = flairAuth.assignToUser.dynamicFields({}).auth(session)
+    // Guards the whole section: a username nobody may read gets no layout and no nav.
     const { user } = unwrapActionReturn(await readUserProfileAction({ params: { username } }))
-    const isOwnProfile = user.id === session.user?.id
 
     return (
         <PageWrapper title={'Innstillinger'} fillHeight transparent hideTitle>
@@ -34,9 +32,7 @@ export default async function UserAdmin({ children, params }: PropTypes & { chil
                         {children}
                     </div>
                 </main>
-                {isOwnProfile && (
-                    <UserAdminNavBar username={username} canAssignFlairs={canAssignFlairs.authorized} />
-                )}
+                <UserNavBar username={username} userId={user.id} />
             </div>
         </PageWrapper>
     )

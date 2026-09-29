@@ -5,13 +5,12 @@ import ProfilePicture from '@/components/User/ProfilePicture'
 import UserDisplayName from '@/components/User/UserDisplayName'
 import { readUserProfileAction } from '@/services/users/actions'
 import { ServerSession } from '@/auth/session/ServerSession'
-import { flairAuth } from '@/services/flairs/auth'
 import { sexConfig } from '@/services/users/constants'
 import { readUserFlairsAction } from '@/services/flairs/actions'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
-import UserAdminNavBar from '@/app/users/[username]/UserAdminNavBar'
+import UserNavBar from '@/app/users/[username]/UserNavBar'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faMoneyBill,
@@ -65,11 +64,7 @@ export default async function User({ params }: PropTypes) {
     const interestGroupMembershipsByOrder = byOrderDescending(interestGroupMemberships)
     const activeCommitteeMemberships = committeeMemberships.filter(membership => membership.active)
 
-    const omegaMembership = byOrderDescending(profile.user.memberships
-        .filter(membership => membership.group.groupType === 'OMEGA_MEMBERSHIP_GROUP' && membership.active))[0]
-    if (!omegaMembership) {
-        throw new Error('Failed to load the omega membership level')
-    }
+    const omegaMembership = profile.omegaMembership
     const flairs = unwrapActionReturn(await readUserFlairsAction({ params: { userId: profile.user.id } })).sort(
         (a, b) => a.rank - b.rank
     )
@@ -88,19 +83,18 @@ export default async function User({ params }: PropTypes) {
             : 'transparent'
     } as React.CSSProperties
     const isOwnProfile = profile.user.id === session.user?.id
-    const canAssignFlairs = flairAuth.assignToUser.dynamicFields({}).auth(session)
 
     function memberhipTitle(): string {
-        switch (omegaMembership?.group.omegaMembershipGroup?.omegaMembershipLevel) {
+        switch (omegaMembership.level) {
             case 'SOELLE':
                 return 'Soelle Noviice (avsky!)'
-            case 'MEMBER':
+            case 'SYSKEN':
                 return `
                     ${sexConfig[profile.user.sex ?? 'OTHER'].title}
-                    uudaf ${omegaMembership.order}´dis orden i Sanctus Omega Broderskab
+                    uudaf den ${omegaMembership.order}´dis orden i Sanctus Omega Broderskab
                 `
-            case 'EXTERNAL':
-                return 'Ekstern'
+            case 'DEN_GEMENE_HOB':
+                return 'Fortabt uudi den gemene hob'
             default:
         }
         return 'Kunne ikke finne tittel'
@@ -252,12 +246,7 @@ export default async function User({ params }: PropTypes) {
                     </div>
                 </div>
 
-                {isOwnProfile && (
-                    <UserAdminNavBar
-                        username={profile.user.username}
-                        canAssignFlairs={canAssignFlairs.authorized}
-                    />
-                )}
+                <UserNavBar username={profile.user.username} userId={profile.user.id} />
             </div>
         </div>
     )

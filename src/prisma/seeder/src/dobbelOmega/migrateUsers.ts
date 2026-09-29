@@ -4,6 +4,7 @@ import manifest from '@/prisma/seeder/src/dobbelOmega/manifest'
 import { Prisma, type PrismaClient as PrismaClientPn, type SEX } from '@/prisma-generated-pn-client'
 import logger from '@/lib/logger'
 import { CLASS_LEVEL_ORDERING } from '@/services/groups/constants'
+import { allAdmissions } from '@/services/admission/constants'
 import { v4 as uuid } from 'uuid'
 import type { User } from '@/prisma-generated-pn-client'
 import type {
@@ -21,6 +22,12 @@ import type { Record } from '@prisma/client/runtime/client'
  * If a user has the soelle field true on Omegaweb-basic it will get a relation to the soelle group
  * - else it is assumed to be a member and an inactive relation to the soelle group.
  * i.e. no users are assumed to be external.
+ *
+ * A migrated member is also given every admission trial. Being a sysken and having sat all of them
+ * are the same statement in projectNext - the membership is read back from the trials when it has
+ * to be worked out again - so a member without them would fall back to a soelle. Omegaweb-basic
+ * does not record the trials themselves, so a migrated soelle is assumed to have sat none: it is
+ * the only thing the data supports.
  * @param pnPrisma - PrismaClientPn
  * @param owPrisma - PrismaClientOw
  * @param limits - Limits - used to limit the number of users to migrate
@@ -104,7 +111,7 @@ export class UserMigrator {
         })
         this.memberGroup = await this.pnPrisma.omegaMembershipGroup.findUniqueOrThrow({
             where: {
-                omegaMembershipLevel: 'MEMBER'
+                omegaMembershipLevel: 'SYSKEN'
             },
             include: {
                 group: true
@@ -375,6 +382,19 @@ export class UserMigrator {
                         admin: false,
                         order: membershipOrder.order,
                     }
+                })
+
+                // Dated to when the user was created rather than to now: the trials are inferred
+                // from the membership rather than migrated, and a sysken from an old order having
+                // sat their trials today would read as nonsense. Nobody registered them, which
+                // `registeredById` being nullable already allows for.
+                await this.pnPrisma.admissionTrial.createMany({
+                    data: allAdmissions.map(admission => ({
+                        userId: pnUser.id,
+                        admission,
+                        datetime: user.createdAt,
+                    })),
+                    skipDuplicates: true,
                 })
             }
 

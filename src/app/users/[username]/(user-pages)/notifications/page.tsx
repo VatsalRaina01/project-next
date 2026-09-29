@@ -1,12 +1,12 @@
 'use server'
 import styles from './page.module.scss'
 import NotificationSettings from './notificationSettings'
-import { getProfileForAdmin } from '@/app/users/[username]/(user-admin)/getProfileForAdmin'
+import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { readNotificationChannelsAction, readNotificationSubscriptionsAction } from '@/services/notifications/actions'
 import type { PropTypes } from '@/app/users/[username]/page'
 
 export default async function Notififcations({ params }: PropTypes) {
-    const { profile } = await getProfileForAdmin(await params, 'notifications')
+    const { profile } = await getProfileForUserPage(await params, 'notifications')
 
     const [channels, subscriptions] = await Promise.all([
         readNotificationChannelsAction(),

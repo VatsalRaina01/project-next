@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { fetchStudyProgrammesFromFeide } from './api'
 import { studyProgrammeOperations } from '@/services/groups/studyProgrammes/operations'
 import { classOperations } from '@/services/groups/classes/operations'
+import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { CLASS_LEVEL_ORDERING } from '@/services/groups/constants'
 import type { StudyProgramme } from '@/prisma-generated-pn-types'
 
@@ -93,6 +94,29 @@ export async function inferClassFromStudyProgrammes(
     await classOperations.changeClassOfUser({
         params: { userId },
         data: { level: highestLevel },
+        bypassAuth: true,
+    })
+}
+
+/**
+ * Places a user at the omega membership level their study programmes imply - a soelle if they study
+ * something that is part of omega, and part of den gemene hob if they do not.
+ *
+ * It only ever moves a user up. What someone studies says where they come in, not how far they have
+ * got: a sysken has earned that through the admission system, and is left where they are even if
+ * feide stops reporting an omega programme for them.
+ *
+ * Unlike the class, this is worth redoing on every login rather than only filling a blank, since a
+ * user who takes up an omega programme later should be let in when they do.
+ */
+export async function inferOmegaMembershipFromStudyProgrammes(userId: number): Promise<void> {
+    const level = await omegaMembershipGroupOperations.inferUserLevel({
+        params: { userId },
+        bypassAuth: true,
+    })
+
+    await omegaMembershipGroupOperations.updateUserLevel({
+        params: { userId, omegaMembershipLevel: level, onlyUpgrade: true },
         bypassAuth: true,
     })
 }

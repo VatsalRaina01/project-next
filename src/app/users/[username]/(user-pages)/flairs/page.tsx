@@ -7,14 +7,14 @@ import {
     unAssignFlairToUserAction
 } from '@/services/flairs/actions'
 import Form from '@/components/Form/Form'
-import { getProfileForAdmin } from '@/app/users/[username]/(user-admin)/getProfileForAdmin'
+import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import Flair from '@/components/Flair/Flair'
 import { configureAction } from '@/services/configureAction'
 import type { PropTypes } from '@/app/users/[username]/page'
 
 
 export default async function FlairAdmin({ params }: PropTypes) {
-    const { profile } = await getProfileForAdmin(await params, 'flairs')
+    const { profile } = await getProfileForUserPage(await params, 'flairs')
     const usersFlairs = unwrapActionReturn(await readUserFlairsAction({ params: { userId: profile.user.id } }))
     const flairs = unwrapActionReturn(await readAllFlairsAction()).map(flair => ({
         ...flair,
