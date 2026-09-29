@@ -1,6 +1,7 @@
 import RegisterAdmissiontrial from './registration'
 import { admissionDisplayNames, allAdmissions } from '@/services/admission/constants'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import { readOmegaJWTPublicKeyAction } from '@/services/omegaid/actions'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { type Admission as AdmissionType } from '@/prisma-generated-pn-types'
@@ -24,10 +25,15 @@ export default async function AdmissionTrials({ params }: PropTypes) {
     return <PageWrapper
         title={`Registrer opptak for ${admissionDisplayNames[admission]}`}
     >
-        <RegisterAdmissiontrial
-            admission={admission}
-            omegaIdPublicKey={publicKey}
-        />
-
+        <UserPagingProvider
+            startPage={{ page: 0, pageSize: 50 }}
+            serverRenderedData={[]}
+            details={{ partOfName: '', groups: [] }}
+        >
+            <RegisterAdmissiontrial
+                admission={admission}
+                omegaIdPublicKey={publicKey}
+            />
+        </UserPagingProvider>
     </PageWrapper>
 }
