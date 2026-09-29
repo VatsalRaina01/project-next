@@ -118,8 +118,10 @@ export default function StateWrapper({
     }>({ checked: false, reservation: null })
 
     // Caches the booking created by getReservation below, so a retried payment submission (e.g.
-    // after a declined card) reuses it instead of creating a second, competing booking.
-    const reservationCache = useRef<CabinBookingReservation | null>(null)
+    // after a declined card) reuses it instead of creating a second, competing booking. Keyed by
+    // a snapshot of the inputs it was created from, so changing dates/products/etc. before
+    // retrying invalidates it rather than paying for the old, no-longer-displayed booking.
+    const reservationCache = useRef<{ reservation: CabinBookingReservation, inputsKey: string } | null>(null)
 
     const session = useSession()
 
@@ -198,12 +200,10 @@ export default function StateWrapper({
     // submitted. cabinBookingOperations.createPayment (called next, inside
     // CabinBookingPaymentModal) never creates a booking itself - it only pays for one created
     // here. Caches the result so a retried payment submission (e.g. after a declined card)
-    // reuses the same booking instead of creating a second one that competes for the same dates.
+    // reuses the same booking instead of creating a second one that competes for the same dates,
+    // but only while the inputs it was created from - and the reservation itself - are still
+    // current. Otherwise the displayed price could stop matching what's actually paid for.
     const getReservation = async (): Promise<ActionReturn<CabinBookingReservation>> => {
-        if (reservationCache.current) {
-            return { success: true, data: reservationCache.current }
-        }
-
         if (!dateRange.start || !dateRange.end) {
             return createActionError('BAD PARAMETERS', 'Velg en periode.')
         }
@@ -222,6 +222,15 @@ export default function StateWrapper({
             // checked - the browser's own HTML5 validation blocks submission otherwise, the same
             // way LedgerTransactionModal's "iUseThisWithCare" checkbox already works elsewhere.
             acceptedTerms: true,
+        }
+
+        const inputsKey = JSON.stringify(user
+            ? { bookingProducts, baseData, numberOfMembers, numberOfNonMembers }
+            : { bookingProducts, baseData, firstname, lastname, email, mobile })
+
+        const cached = reservationCache.current
+        if (cached && cached.inputsKey === inputsKey && cached.reservation.expiresAt.getTime() > Date.now()) {
+            return { success: true, data: cached.reservation }
         }
 
         const bookingResult = user
@@ -245,7 +254,7 @@ export default function StateWrapper({
             totalPrice: bookingResult.data.totalPrice,
             expiresAt: bookingResult.data.transactionTimeout,
         }
-        reservationCache.current = reservationData
+        reservationCache.current = { reservation: reservationData, inputsKey }
 
         return { success: true, data: reservationData }
     }
