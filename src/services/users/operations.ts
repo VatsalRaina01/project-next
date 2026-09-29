@@ -461,19 +461,6 @@ export const userOperations = {
                         },
                     },
                     emailVerified: true,
-                    memberships: {
-                        select: {
-                            group: {
-                                select: {
-                                    studyProgramme: {
-                                        select: {
-                                            partOfOmega: true,
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
                 },
             })
 
@@ -531,15 +518,19 @@ export const userOperations = {
                 }
             }
 
-            const partOfOmega = storedUser.memberships.reduce(
-                (acc, val) => acc || (val.group.studyProgramme?.partOfOmega === true),
-                false
-            )
+            // What someone studies is what decides where they come in; anything above that is
+            // earned through the admission system, so this only ever moves a user up.
+            const inferredLevel = await omegaMembershipGroupOperations.inferUserLevel({
+                params: {
+                    userId: params.id,
+                },
+                bypassAuth: true,
+            })
 
             await omegaMembershipGroupOperations.updateUserLevel({
                 params: {
                     userId: params.id,
-                    omegaMembershipLevel: partOfOmega ? 'SOELLE' : 'DEN_GEMENE_HOB',
+                    omegaMembershipLevel: inferredLevel,
                     onlyUpgrade: true,
                 },
                 bypassAuth: true,
