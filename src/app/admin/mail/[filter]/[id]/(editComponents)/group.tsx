@@ -18,14 +18,14 @@ export default function EditGroup({
 }) {
     const focusedGroup = data.group[0]
     if (!focusedGroup) {
-        throw Error('Could not find group')
+        throw Error('Fant ikke gruppen')
     }
     const canAddToList = useAuthorizer({ authorizer: mailAuth.createMailingListGroupRelation.dynamicFields({}) }).authorized
 
     return <div>
         <h2>{focusedGroup.id}</h2>
         { canAddToList && <Form
-            title="Legg til mailliste"
+            title="Legg til e-postliste"
             submitText="Legg til"
             action={createMailingListGroupRelationAction}
         >
@@ -33,7 +33,7 @@ export default function EditGroup({
             <SelectNumber
                 options={mailingLists.map(list => ({ value: list.id, label: list.name }))}
                 name="mailingListId"
-                label="Mailliste"
+                label="E-postliste"
             />
         </Form>}
     </div>

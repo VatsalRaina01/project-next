@@ -144,7 +144,7 @@ export default function UserList({
         })
     }, [groupSelection])
 
-    if (!userPaging) throw new Error('UserPagingContext not found')
+    if (!userPaging) throw new Error('Fant ikke UserPagingContext')
 
     const currentSort = userPaging.details.sort
 

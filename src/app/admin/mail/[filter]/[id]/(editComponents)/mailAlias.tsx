@@ -23,7 +23,7 @@ export default function EditMailAlias({
 
     const focusedAlias = data.alias[0]
     if (!focusedAlias) {
-        throw Error('Could not find alias')
+        throw Error('Fant ikke aliaset')
     }
 
     const canAdmin = useAuthorizer({ authorizer: mailAliasAuth.update.dynamicFields({}) }).authorized
@@ -50,13 +50,13 @@ export default function EditMailAlias({
                 submitColor="red"
                 confirmation={{
                     confirm: true,
-                    text: 'Sikker på at du vil slette dette mailaliaset? Dette kan ikke angres.',
+                    text: 'Sikker på at du vil slette dette e-postaliaset? Dette kan ikke angres.',
                 }}
             />
         </div> }
         { canAddToList && <div>
             <Form
-                title="Legg til mailliste"
+                title="Legg til e-postliste"
                 submitText="Legg til"
                 action={createAliasMailingListRelationAction}
             >
@@ -64,7 +64,7 @@ export default function EditMailAlias({
                 <SelectNumber
                     options={mailingLists.map(list => ({ value: list.id, label: list.name }))}
                     name="mailingListId"
-                    label="Mailliste"
+                    label="E-postliste"
                 />
             </Form>
         </div>}

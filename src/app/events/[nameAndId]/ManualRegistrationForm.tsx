@@ -17,7 +17,7 @@ function ManualRegistrationFormInner({
     eventId: number,
 }) {
     const userSelectionContext = useContext(UserSelectionContext)
-    if (!userSelectionContext) throw new Error('UserSelectionContext not found')
+    if (!userSelectionContext) throw new Error('Fant ikke UserSelectionContext')
 
     const action = async (): Promise<ActionReturn<EventRegistrationWithWaitingList>> => {
         if (!userSelectionContext.user) {
@@ -57,7 +57,7 @@ export default function ManualRegistrationForm({
     return <div className={styles.ManualRegistrationForm}>
         <Form
             submitText="Registrer gjest"
-            title="Register gjest uten bruker"
+            title="Registrer gjest uten bruker"
             action={configureAction(createGuestEventRegistrationAction, { params: { eventId } })}
         >
             <TextInput name="name" label="Navn" />

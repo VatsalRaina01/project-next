@@ -41,7 +41,7 @@ export default function EditMailingList({
         <h2>{focusedMailingList.name}</h2>
         { canAdmin && <div>
             <Form
-                title="Mailliste"
+                title="E-postliste"
                 submitText="Oppdater"
                 action={updateMailingListAction}
             >
@@ -65,7 +65,7 @@ export default function EditMailingList({
         </div> }
         { canAddRelation && <div>
             <Form
-                title="Legg til mailalias"
+                title="Legg til e-postalias"
                 submitText="Legg til"
                 action={createAliasMailingListRelationAction}
             >
@@ -73,7 +73,7 @@ export default function EditMailingList({
                 <SelectNumber
                     options={mailaliases.map(address => ({ value: address.id, label: address.address }))}
                     name="mailAliasId"
-                    label="Mailalias"
+                    label="E-postalias"
                 />
             </Form>
         </div>}
@@ -84,7 +84,7 @@ export default function EditMailingList({
                 action={createMailingListGroupRelationAction}
             >
                 <input type="hidden" name="mailingListId" value={focusedMailingList.id} />
-                <TextInput type="text" name="groupId" label="Gruppe id" />
+                <TextInput type="text" name="groupId" label="Gruppe-ID" />
             </Form>
         </div>}
         { canAddRelation && <div>
@@ -94,12 +94,12 @@ export default function EditMailingList({
                 action={createMailingListUserRelationAction}
             >
                 <input type="hidden" name="mailingListId" value={focusedMailingList.id} />
-                <TextInput type="text" name="userId" label="Bruker id" />
+                <TextInput type="text" name="userId" label="Bruker-ID" />
             </Form>
         </div>}
         { canAddRelation && <div>
             <Form
-                title="Ekstern mailadresse"
+                title="Ekstern e-postadresse"
                 submitText="Legg til"
                 action={createMailingListExternalRelationAction}
             >
@@ -107,7 +107,7 @@ export default function EditMailingList({
                 <SelectNumber
                     options={mailAddressExternal.map(address => ({ value: address.id, label: address.address }))}
                     name="mailAddressExternalId"
-                    label="Ekstern mail adresse"
+                    label="Ekstern e-postadresse"
                 />
             </Form>
         </div>}

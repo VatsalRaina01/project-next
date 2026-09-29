@@ -7,7 +7,7 @@ import { useContext } from 'react'
 
 export default function LockerList() {
     const context = useContext(LockerPagingContext)
-    if (!context) throw new Error('No context')
+    if (!context) throw new Error('Ingen kontekst')
     return (
         <div className={styles.lockerList}>
             <div className={styles.lockerListHeader}>

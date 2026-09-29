@@ -13,7 +13,7 @@ export default function SelectUserForDots() {
     const userSelection = useContext(UserSelectionContext)
     const { push } = useRouter()
 
-    if (!userSelection) throw new Error('UserSelectionContext is needed to select a user for dots')
+    if (!userSelection) throw new Error('UserSelectionContext kreves for å velge en bruker for prikker')
 
     userSelection.onSelection(user => {
         if (!user) return

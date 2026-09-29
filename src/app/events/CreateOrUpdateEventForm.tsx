@@ -125,7 +125,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes)
                         defaultChecked={event?.waitingList}
                     />
                     <NumberInput
-                        label="plasser"
+                        label="Plasser"
                         name="places"
                         defaultValue={event?.places}
                     />
