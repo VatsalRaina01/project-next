@@ -3,11 +3,17 @@ import MembershipStatusUserSearch from './MembershipStatusUserSearch'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { admissionDisplayNames, allAdmissions } from '@/services/admission/constants'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
+import { ServerSession } from '@/auth/session/ServerSession'
+import { userAuth } from '@/services/users/auth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronRight, faScroll } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
 
 export default async function AdmissionTrials() {
+    const session = await ServerSession.fromNextAuth()
+
+    const canSearchUsers = userAuth.readPage.dynamicFields({}).auth(session).authorized
+
     return (
         <PageWrapper title="Opptak">
             <div className={styles.wrapper}>
@@ -36,13 +42,19 @@ export default async function AdmissionTrials() {
                     <p className={styles.lead}>
                         Søk opp en bruker for å se hvilke prøver de har tatt, og for å endre medlemskapet deres.
                     </p>
-                    <UserPagingProvider
-                        startPage={{ page: 0, pageSize: 50 }}
-                        serverRenderedData={[]}
-                        details={{ partOfName: '', groups: [] }}
-                    >
-                        <MembershipStatusUserSearch />
-                    </UserPagingProvider>
+                    {canSearchUsers ? (
+                        <UserPagingProvider
+                            startPage={{ page: 0, pageSize: 50 }}
+                            serverRenderedData={[]}
+                            details={{ partOfName: '', groups: [] }}
+                        >
+                            <MembershipStatusUserSearch />
+                        </UserPagingProvider>
+                    ) : (
+                        <p className={styles.lead}>
+                            Du mangler tilgangen «Les bruker», og kan derfor ikke søke opp brukere her.
+                        </p>
+                    )}
                 </section>
             </div>
         </PageWrapper>
