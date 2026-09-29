@@ -29,6 +29,9 @@ import type { ActionReturn } from '@/services/actionTypes'
 // Persists a reservation across page refreshes (e.g. mid-Stripe-confirmation), including for
 // guest bookings which have no session to resume from. Never stores anything but this booking's
 // own id/secret/price - the secret is what proves ownership without a login.
+// TODO: This key is browser-wide and not bound to a session, so a later user of the same browser
+// can see a pending reservation and its payment-authority secret. Bind it to the intended
+// browser-session or guest lifecycle instead.
 const RESERVATION_STORAGE_KEY = 'cabinBookingReservation'
 
 function readStoredReservation(): CabinBookingReservation | null {
@@ -190,6 +193,9 @@ export default function StateWrapper({
     const contactEmail = user?.email ?? email
     const contactMobile = user?.mobile ?? mobile
 
+    // TODO: This only clears browser state. The server-side reservation (transactionTimeout)
+    // keeps blocking these dates until it expires on its own. Cancel it server-side too so the
+    // dates free up immediately.
     const startOver = () => {
         reservationCache.current = null
         clearStoredReservation()

@@ -33,10 +33,12 @@ export const ledgerAccountOperations = {
      * @returns The created account.
      */
     create: defineOperation({
-        // A USER account is a caller creating their own account (LEDGER_USE is enough - see
-        // readOrCreate). A GROUP account has no such self-service angle, so it's admin-only.
+        // A USER account with no group links is a caller creating their own account (LEDGER_USE
+        // is enough - see readOrCreate). A GROUP account, and any create that also links groups
+        // (mirrors update's groupAccess check - see its comment), has no such self-service angle,
+        // so it's admin-only regardless of how `type` was supplied.
         authorizer: ({ data }) => (
-            resolveCreateType(data) === 'GROUP'
+            resolveCreateType(data) === 'GROUP' || (data.groupIds?.length ?? 0) > 0
                 ? ledgerAccountAuth.create.ledgerAdmin.dynamicFields({})
                 : ledgerAccountAuth.create.ledgerUse.dynamicFields({})
         ),
