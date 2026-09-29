@@ -2,8 +2,9 @@ import { admissionOperations } from '@/services/admission/operations'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { userOperations } from '@/services/users/operations'
 import { prisma } from '@/prisma-pn-client-instance'
+import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
-import { describe, expect, test } from '@jest/globals'
+import { beforeAll, describe, expect, test } from '@jest/globals'
 
 async function createTestUser(username: string) {
     return userOperations.create({
@@ -196,11 +197,24 @@ describe('updateUserLevel resets admission trials', () => {
 })
 
 describe('createTrial only accepts a soelle', () => {
-    const createTrial = (userId: number) => admissionOperations.createTrial({
-        params: { admission: 'PLIKTTIAENESTE' },
-        data: { userId },
-        bypassAuth: true,
+    // createTrial writes the acting user onto the trial as `registeredBy`, which is why its
+    // authorizer requires a session user - so the tests hand it one rather than bypassing auth.
+    let registrarSession: ReturnType<typeof Session.fromJsObject>
+
+    beforeAll(async () => {
+        registrarSession = Session.fromJsObject({
+            memberships: [],
+            permissions: ['ADMISSION_TRIAL_ADMIN'],
+            user: await createTestUser('omegaregistrar'),
+        })
     })
+
+    const createTrial = (userId: number, admission: 'PLIKTTIAENESTE' | 'PROEVELSEN' = 'PLIKTTIAENESTE') =>
+        admissionOperations.createTrial({
+            params: { admission },
+            data: { userId },
+            session: registrarSession,
+        })
 
     test('a soelle may sit a trial', async () => {
         const user = await createTestUser('omegamembershipnine')
@@ -232,16 +246,12 @@ describe('createTrial only accepts a soelle', () => {
         const user = await createTestUser('omegamembershiptwelve')
         await setLevel(user.id, 'SOELLE')
 
-        await admissionOperations.createTrial({
-            params: { admission: 'PLIKTTIAENESTE' }, data: { userId: user.id }, bypassAuth: true,
-        })
+        await createTrial(user.id, 'PLIKTTIAENESTE')
         expect((await omegaMembershipGroupOperations.readUserLevel({
             params: { userId: user.id }, bypassAuth: true,
         })).level).toBe('SOELLE')
 
-        await admissionOperations.createTrial({
-            params: { admission: 'PROEVELSEN' }, data: { userId: user.id }, bypassAuth: true,
-        })
+        await createTrial(user.id, 'PROEVELSEN')
 
         expect((await omegaMembershipGroupOperations.readUserLevel({
             params: { userId: user.id }, bypassAuth: true,
