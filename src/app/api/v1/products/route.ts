@@ -5,6 +5,6 @@ export const GET = apiHandler({
     serviceOperation: productOperations.readByBarCode,
     query: searchParams => ({
         barcode: searchParams.get('barcode') ?? undefined,
-        shopId: searchParams.get('shopId') ?? undefined,
+        shopId: Number(searchParams.get('shopId') ?? undefined),
     }),
 })
