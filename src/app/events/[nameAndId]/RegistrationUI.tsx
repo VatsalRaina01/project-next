@@ -91,7 +91,7 @@ export default function RegistrationUI({
         let timeoutId: ReturnType<typeof setTimeout>
         if (timeUntilRegistration > 0) {
             timeoutId = setTimeout(() => {
-                setBtnState(RegistrationButtonState.NOT_REGISTERED)
+                setBtnState(getInitialBtnState(registrationState))
             }, timeUntilRegistration)
         }
 
