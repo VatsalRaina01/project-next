@@ -10,6 +10,9 @@ import GlobalSearchProvider from '@/contexts/GlobalSearch'
 import { permissionOperations } from '@/services/permissions/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { userOperations } from '@/services/users/operations'
+import { releaseCountdownOperations } from '@/services/releaseCountdown/operations'
+import { RELEASE_DATE } from '@/services/releaseCountdown/constants'
+import ReleaseCountdown from '@/components/ReleaseCountdown/ReleaseCountdown'
 import { withFallback, withPageSession } from '@/app/serverPage'
 import ThemeEnabler from '@/UI/ThemeEnabler'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
@@ -66,11 +69,14 @@ export default async function RootLayout({ children }: PropTypes) {
     const nextAuthSession = await getServerSession(authOptions)
 
     const {
-        serverSession, defaultPermissions, standardImages, navUser,
+        serverSession, defaultPermissions, standardImages, navUser, releaseCountdownIsActive,
     } = await withPageSession(async (session) => {
-        const [defaultPermissions_, standardImages_] = await Promise.all([
+        const [defaultPermissions_, standardImages_, releaseCountdownIsActive_] = await Promise.all([
             withFallback(permissionOperations.readDefaultPermissions({}), undefined),
             withFallback(standardImageCollectionOperations.readAllStandardImages({}), undefined),
+            // Shown rather than hidden when the check cannot be made: the countdown must not leak the
+            // site before release, and once released the read answers before anything can fail.
+            withFallback(releaseCountdownOperations.readIsActive({}), true),
         ])
         const profileRead = session.user
             ? await withFallback(userOperations.readProfile({ params: { username: session.user.username } }), null)
@@ -82,6 +88,7 @@ export default async function RootLayout({ children }: PropTypes) {
             // The nav components get the fields they actually render rather than the whole
             // profile, so nothing beyond these reaches the client components among them.
             navUser: profileRead?.user ?? null,
+            releaseCountdownIsActive: releaseCountdownIsActive_,
         }
     })
     const navItems = visibleNavItems(serverSession)
@@ -102,27 +109,31 @@ export default async function RootLayout({ children }: PropTypes) {
                             <EditModeProvider>
                                 <PopUpProvider>
                                     <PageTitleProvider>
-                                        <div className={styles.wrapper}>
-                                            <div className={styles.navBar}>
-                                                <NavBar
-                                                    isLoggedIn={navUser !== null}
-                                                    profileImage={navUser?.image ?? null}
-                                                    navItems={navItems}
-                                                />
+                                        {releaseCountdownIsActive ? (
+                                            <ReleaseCountdown releaseDate={RELEASE_DATE.getTime()} />
+                                        ) : (
+                                            <div className={styles.wrapper}>
+                                                <div className={styles.navBar}>
+                                                    <NavBar
+                                                        isLoggedIn={navUser !== null}
+                                                        profileImage={navUser?.image ?? null}
+                                                        navItems={navItems}
+                                                    />
+                                                </div>
+                                                <aside className={styles.sideBar}>
+                                                    <DesktopSideBar navItems={navItems} />
+                                                </aside>
+                                                <main className={styles.content}>
+                                                    {children}
+                                                </main>
+                                                <div className={styles.mobileNavBar}>
+                                                    <MobileNavBar
+                                                        isLoggedIn={navUser !== null}
+                                                        navItems={navItems}
+                                                    />
+                                                </div>
                                             </div>
-                                            <aside className={styles.sideBar}>
-                                                <DesktopSideBar navItems={navItems} />
-                                            </aside>
-                                            <main className={styles.content}>
-                                                {children}
-                                            </main>
-                                            <div className={styles.mobileNavBar}>
-                                                <MobileNavBar
-                                                    isLoggedIn={navUser !== null}
-                                                    navItems={navItems}
-                                                />
-                                            </div>
-                                        </div>
+                                        )}
                                     </PageTitleProvider>
                                 </PopUpProvider>
                             </EditModeProvider>
