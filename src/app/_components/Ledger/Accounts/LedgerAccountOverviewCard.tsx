@@ -1,7 +1,6 @@
 import styles from './LedgerAccountOverviewCard.module.scss'
 import LedgerAccountBalance from './LedgerAccountBalance'
 import LedgerAccountFreezeButton from './LedgerAccountFreezeButton'
-import Card from '@/components/UI/Card'
 import DepositModal from '@/components/Ledger/Modals/DepositModal'
 import PayoutModal from '@/components/Ledger/Modals/PayoutModal'
 import { createStripeCustomerSessionAction } from '@/services/stripeCustomers/actions'
@@ -51,15 +50,15 @@ export default async function LedgerAccountOverview({
         ? await getCustomerSessionClientSecret()
         : undefined
 
-    return <Card heading="Kontooversikt">
+    return <div className={styles.wrapper}>
+        <h2>Kontooversikt</h2>
         <LedgerAccountBalance ledgerAccountId={ledgerAccount.id} showFees={showFees} />
-        <div className={styles.frozenStatus}>
-            {
-                <p className={ledgerAccount.frozen ? '' : styles.frozenWarningHidden}>
-                    <FontAwesomeIcon icon={faWarning}/> Kontoen er fryst; Ingen transaksjoner kan utføres.
-                </p>
-            }
-        </div>
+        {
+            ledgerAccount.frozen &&
+            <p className={styles.frozenWarning}>
+                <FontAwesomeIcon icon={faWarning}/> Kontoen er fryst; Ingen transaksjoner kan utføres.
+            </p>
+        }
         <div className={styles.ledgerAccountOverviewButtons}>
             {
                 showDepositButton &&
@@ -75,5 +74,5 @@ export default async function LedgerAccountOverview({
                 <LedgerAccountFreezeButton ledgerAccount={ledgerAccount} className={styles.rightAligned} />
             }
         </div>
-    </Card>
+    </div>
 }

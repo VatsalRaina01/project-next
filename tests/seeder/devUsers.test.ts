@@ -1,29 +1,18 @@
-import seedDevGroups from '@/prisma/seeder/src/development/seedDevGroups'
+import { seedDevGroups } from '@/prisma/seeder/src/development/seedDevGroups'
 import { seedDevImages } from '@/prisma/seeder/src/development/seedDevImages'
 import { seedDevUsers } from '@/prisma/seeder/src/development/seedDevUsers'
 import { prisma } from '@/prisma-pn-client-instance'
-import { withServiceContext } from '@/services/serviceOperation'
-import { Session } from '@/auth/session/Session'
 import { Admission } from '@/prisma-generated-pn-types'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 
-const inServiceContext = (work: () => Promise<void>) => withServiceContext(
-    { bypassAuth: true, session: Session.empty() },
-    true,
-    work,
-)
-
 describe('seedDevUsers leaves every user in a valid state', () => {
     beforeAll(async () => {
-        // seedDevGroups is not idempotent yet, so it only runs once; seedDevUsers is what is
-        // under test here and runs twice, since a re-seed must not leave anyone with two
-        // memberships or with trials from a level they no longer sit at.
-        await inServiceContext(async () => {
-            await seedDevImages()
-            await seedDevGroups(prisma)
-        })
-        await inServiceContext(async () => { await seedDevUsers() })
-        await inServiceContext(async () => { await seedDevUsers() })
+        // seedDevUsers is what is under test here and runs twice, since a re-seed must not
+        // leave anyone with two memberships or with trials from a level they no longer sit at.
+        await seedDevImages()
+        await seedDevGroups()
+        await seedDevUsers()
+        await seedDevUsers()
     }, 240 * 1000)
 
     test('every user holds exactly one omega membership', async () => {

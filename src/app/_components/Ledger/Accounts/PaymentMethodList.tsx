@@ -18,13 +18,13 @@ export default function PaymentMethodList({ userId, paymentMethods }: Params) {
     const displayPaymentMethod = ({ type, card }: FilteredPaymentMethod) => {
         switch (type) {
             case 'card':
-                return <>
+                return <span className={styles.label}>
                     <span>{card?.brand?.toUpperCase()}</span>
                     <span>**** **** **** {card?.last4}</span>
                     <span>(utløper {card?.exp_month}/{card?.exp_year})</span>
-                </>
+                </span>
             default:
-                return <><span>{type.toUpperCase()}</span></>
+                return <span className={styles.label}>{type.toUpperCase()}</span>
         }
     }
 

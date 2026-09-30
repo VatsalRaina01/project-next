@@ -1,25 +1,24 @@
+import { companyOperations } from '@/services/career/companies/operations'
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
+import { upsert } from '@/seeder/src/upsert'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
-// The first few companies get a sponsor tier and a website so the ordering of the career listings,
-// the badges that explain it, and the footer's sponsor strip are all visible in development without
-// having to promote anyone by hand.
-const SPONSORS_BY_INDEX = {
-    0: { sponsorTier: 'MAIN', website: 'https://www.nordicsemi.com' },
-    1: { sponsorTier: 'SPONSOR', website: 'https://www.kongsberg.com' },
-    2: { sponsorTier: 'SPONSOR', website: null },
-} as const
+const COMPANY_COUNT = 100
 
-export default async function seedDevCompanies(prisma: PrismaClient) {
-    await Promise.all(Array.from({ length: 100 }, (_, index) => prisma.company.create({
-        data: {
-            name: `Company ${index + 1}`,
-            description: `Company ${index + 1} description`,
-            ...(SPONSORS_BY_INDEX[index as keyof typeof SPONSORS_BY_INDEX] ?? { sponsorTier: 'NONE' }),
-            logo: {
-                create: {
-                    name: `Company ${index + 1} logo`,
-                }
+export const devCompanyName = (index: number) => `dev_companies_${index}`
+
+export const seedDevCompanies = defineSeedOperation(async (prisma: PrismaClient) => {
+    await Promise.all(Array.from({ length: COMPANY_COUNT }).map((_, index) => upsert({
+        checkExistance: () => prisma.company.findUnique({
+            where: { name: devCompanyName(index) },
+            select: { id: true },
+        }),
+        create: () => companyOperations.create({
+            data: {
+                name: devCompanyName(index),
+                description: `${devCompanyName(index)} description`,
             }
-        }
+        }),
+        update: () => Promise.resolve(),
     })))
-}
+})

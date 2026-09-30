@@ -13,10 +13,11 @@ export function convertAmount(amount: string | number): number {
 export function displayAmount(amount: number, short: boolean = true, withSign: boolean = false): string {
     const convertedAmount = amount / 100
     const amountString = convertedAmount.toFixed(2)
-    if (short) return amountString
 
     // For negative numbers '-' is already prefixed.
-    const sign = convertedAmount > 0 ? '+' : ''
+    const sign = withSign && convertedAmount > 0 ? '+' : ''
 
-    return `${withSign && convertedAmount !== 0 ? sign : ''}${amountString} ${currencySymbol}`
+    if (short) return `${sign}${amountString}`
+
+    return `${sign}${amountString} ${currencySymbol}`
 }
