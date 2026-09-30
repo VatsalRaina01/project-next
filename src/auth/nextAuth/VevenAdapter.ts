@@ -87,7 +87,30 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                 throw new Error()
             }
 
-            const username = await generateUsername(prisma, user.username, user.lastname)
+            const preferredUsername = user.username.toLowerCase()
+
+            // A user migrated from OW Basic has neither a Feide account nor credentials yet,
+            // and their migrated username is the Feide username they registered with back then.
+            // An exact match on an unclaimed user therefore means this first Feide login belongs
+            // to that user, so it is adopted instead of creating a duplicate.
+            const migratedUser = await prisma.user.findFirst({
+                where: {
+                    username: preferredUsername,
+                    feideAccount: null,
+                    credentials: null,
+                },
+                select: userFilterSelection,
+            })
+
+            if (migratedUser) {
+                logger.info(
+                    `Feide login matched the unclaimed migrated user '${migratedUser.username}' ` +
+                    `(id ${migratedUser.id}), adopting it instead of creating a new user.`
+                )
+                return convertToAdapterUser(migratedUser)
+            }
+
+            const username = await generateUsername(prisma, preferredUsername, user.lastname)
 
             const createdUser = await prisma.user.create({
                 data: {

@@ -44,9 +44,12 @@ export default function FeideProvider<P extends FeideProfile>(
             // so we have to fetch it from the extended user info Feide API endpoint.
             const extendedUserInfo = await fetchExtendedUserInfoFromFeide(tokens.access_token)
 
+            const [eppnUsername, eppnRealm] = extendedUserInfo.eduPersonPrincipalName?.toLowerCase().split('@') ?? []
+            const feideUsername = eppnRealm === 'ntnu.no' ? eppnUsername : undefined
+
             return {
                 id: profile.sub,
-                username: profile.email?.split('@')[0],
+                username: feideUsername ?? profile.email?.split('@')[0],
                 email: profile.email,
                 name: profile.name,
                 firstname: extendedUserInfo.givenName?.join(' '),

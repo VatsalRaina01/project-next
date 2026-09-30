@@ -10,6 +10,7 @@ type ExtendedUserInfo = Record<string, unknown> & {
     cn?: string[], // Common name
     displayName?: string,
     eduPersonAffiliation?: string[],
+    eduPersonPrincipalName?: string, // The Feide username, e.g. 'johanhst@ntnu.no'
     eduPersonPrimaryAffiliation?: string,
     eduPersonScopedAffiliation?: string[],
     givenName?: string[], // Aka firstname

@@ -7,3 +7,6 @@ export const verifyResetPasswordTokenAction = makeAction(authOperations.verifyRe
 export const resetPasswordAction = makeAction(authOperations.resetPassword)
 export const sendResetPasswordEmailAction = makeAction(authOperations.sendResetPasswordEmail)
 export const verifyEmailAction = makeAction(authOperations.verifyEmail)
+export const sendLinkFeideAccountEmailAction = makeAction(authOperations.sendLinkFeideAccountEmail)
+export const linkFeideAccountAction = makeAction(authOperations.linkFeideAccount)
+export const adminLinkFeideAccountAction = makeAction(authOperations.adminLinkFeideAccount)
