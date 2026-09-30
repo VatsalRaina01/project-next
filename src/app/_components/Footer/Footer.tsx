@@ -11,6 +11,8 @@ type PropTypes = {
 }
 
 async function Footer({ canEditSpecialCmsImage }: PropTypes) {
+    const emailDomain = process.env.EMAIL_DOMAIN
+
     return (
         <footer className={styles.Footer}>
             <div>
@@ -46,9 +48,9 @@ async function Footer({ canEditSpecialCmsImage }: PropTypes) {
                 <div className={styles.info}>
                     <p>Kontakt:</p>
                     <p>Bedrift: <a href="mailto:post@contactor.no">post@contactor.no</a></p>
-                    <p>Teknisk: <a href="mailto:vevcom@omega.ntnu.no">vevcom@omega.ntnu.no</a></p>
-                    <p>PR: <a href="mailto:blaest@omega.ntnu.no">blaest@omega.ntnu.no</a></p>
-                    <p>Annet: <a href="mailto:hs@omega.ntnu.no">hs@omega.ntnu.no</a></p>
+                    <p>Teknisk: <a href={`mailto:vevcom@${emailDomain}`}>vevcom@{emailDomain}</a></p>
+                    <p>PR: <a href={`mailto:blaest@${emailDomain}`}>blaest@{emailDomain}</a></p>
+                    <p>Annet: <a href={`mailto:hs@${emailDomain}`}>hs@{emailDomain}</a></p>
                     <p>Tlf: <a href="tel:73594211">73 59 42 11</a></p>
                 </div>
                 <div className={styles.info}>

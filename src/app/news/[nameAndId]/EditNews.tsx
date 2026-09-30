@@ -76,21 +76,21 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                         <Form
                             action={updateAction}
                             navigateOnSuccess={(data) => `/news/${data ? formatVevenUri(data.articleName, data.id) : ''}`}
-                            submitText="oppdater"
+                            submitText="Oppdater"
                         >
                             <TextInput
                                 color="white"
                                 defaultValue={news.articleName}
-                                label="navn"
+                                label="Navn"
                                 name="name"
                             />
                             <DateInput
                                 color="white"
                                 defaultValue={news.endDateTime}
-                                label="sluttdato"
+                                label="Sluttdato"
                                 name="endDateTime"
                             />
-                            <Textarea defaultValue={news.description || ''} label="beskrivelse" name="description" />
+                            <Textarea defaultValue={news.description || ''} label="Beskrivelse" name="description" />
                         </Form>
                     )
                 }
@@ -107,7 +107,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                                 push('/news')
                                 refresh()
                             }}
-                            submitText="slett nyhet"
+                            submitText="Slett nyhet"
                             confirmation={{
                                 confirm: true,
                                 text: 'Er du sikker på at du vil slette denne nyheten? Dette kan ikke angres.'
@@ -162,7 +162,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                         <Form
                             action={() => setPublishedAction({ data: { published: !news.published } })}
                             refreshOnSuccess
-                            submitText={news.published ? 'avpubliser' : 'publiser'}
+                            submitText={news.published ? 'Avpubliser' : 'Publiser'}
                             submitColor={news.published ? 'red' : 'green'}
                             confirmation={{
                                 confirm: true,

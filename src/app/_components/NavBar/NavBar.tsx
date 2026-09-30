@@ -28,7 +28,7 @@ export default async function NavBar({ username, profileImage }: PropTypes) {
         <nav className={styles.NavBar}>
             <ul className={styles.list}>
                 <li className={styles.logoContainer}>
-                    <Link aria-label={'Go to homepage'} href="/" className={styles.logo}>
+                    <Link aria-label={'Gå til hjemmesiden'} href="/" className={styles.logo}>
                         <div className={styles.logoWrapper}>
                             <StandardImageServer
                                 standardImage="LOGO_SIMPLE"

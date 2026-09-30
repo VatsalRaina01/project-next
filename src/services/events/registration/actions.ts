@@ -12,3 +12,4 @@ export const readDetailedEventRegistrationsPageAction = makeAction(eventRegistra
 
 export const updateEventRegistrationNotesAction = makeAction(eventRegistrationOperations.updateNotes)
 export const destroyEventRegistrationAction = makeAction(eventRegistrationOperations.destroy)
+export const createEventRegistrationPaymentAction = makeAction(eventRegistrationOperations.createPayment)

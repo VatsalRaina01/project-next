@@ -18,4 +18,8 @@ export const ledgerTransactionAuth = {
         ledgerUse: RequirePermission.staticFields({ permission: 'LEDGER_USE' }),
         accountAccess: RequireLedgerAccountAccess.staticFields({ permission: 'LEDGER_ADMIN' }),
     },
+
+    // mode: 'ANY' since being party to one side of the transaction is enough to cancel a stale
+    // attempt on it - same bar as read.
+    cancel: RequireLedgerAccountAccess.staticFields({ permission: 'LEDGER_ADMIN', mode: 'ANY' }),
 } as const

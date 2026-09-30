@@ -2,25 +2,24 @@ import 'server-only'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from './cabinPriceCalculator'
 import { cabinBookingSchemas } from './schemas'
 import { cabinBookingAuth } from './auth'
-import { cabinBookingFilerSelection, cabinBookingIncluder } from './constants'
+import { cabinReservationWindowMs, cabinBookingFilerSelection, cabinBookingIncluder } from './constants'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
 import { cabinProductPriceIncluder } from '@/services/cabin/product/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { Smorekopp, ServerError } from '@/services/error'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
-import { sendSystemMail } from '@/lib/email/send'
-import { notificationOperations } from '@/services/notifications/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import { BookingType } from '@/prisma-generated-pn-types'
+import { paymentOperations } from '@/services/ledger/payments/operations'
+import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { BookingType, PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
+import crypto from 'crypto'
 import type { CabinProductExtended } from '@/services/cabin/product/constants'
+import type { ExpandedPayment } from '@/services/ledger/payments/types'
+import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import logger from '@/lib/logger'
-
-const mailData = {
-    title: 'Bekreftelse på hyttebooking',
-    message: `Takk for din hyttebooking.
-Dette skal være en bookingbekreftelse, så det bør nok komme noe nyttig info her snart.`,
-}
 
 const cabinAvailable = defineSubOperation({
     paramsSchema: () => z.object({
@@ -36,6 +35,13 @@ const cabinAvailable = defineSubOperation({
                 end: {
                     gt: params.start,
                 },
+                canceled: null,
+                // An unpaid reservation stops blocking the calendar once its payment window
+                // (transactionTimeout) has passed. Confirmed bookings have it cleared to null.
+                OR: [
+                    { transactionTimeout: null },
+                    { transactionTimeout: { gt: new Date() } },
+                ],
             }
         })
         return results.length === 0
@@ -106,7 +112,7 @@ const create = defineSubOperation({
         }
 
         if (params.bookingType === 'EVENT' && params.bookingProducts.length !== 0) {
-            throw new ServerError('BAD PARAMETERS', 'Hvad der hender bookinger kan ikke inneholde produkter.')
+            throw new ServerError('BAD PARAMETERS', 'Arrangementbookinger kan ikke inneholde produkter.')
         }
 
         if (params.bookingType === 'CABIN' &&
@@ -143,6 +149,11 @@ const create = defineSubOperation({
                 tenantNotes: data.tenantNotes,
                 numberOfMembers: data.numberOfMembers,
                 numberOfNonMembers: data.numberOfNonMembers,
+                totalPrice,
+                secret: crypto.randomBytes(24).toString('hex'),
+                // The reservation must be paid within this window, or it stops blocking the
+                // calendar for others (see cabinAvailable). Cleared once payment succeeds.
+                transactionTimeout: new Date(Date.now() + cabinReservationWindowMs),
                 BookingProduct: {
                     create: params.bookingProducts.map(product => ({
                         cabinProductId: product.cabinProductId,
@@ -180,15 +191,12 @@ const createBookingWithUser = defineSubOperation({
             }
         })
 
-        await notificationOperations.createSpecial.internalCall({
-            params: {
-                special: 'CABIN_BOOKING_CONFIRMATION',
-            },
-            data: {
-                ...mailData,
-                userIdList: [params.userId],
-            },
-        })
+        return {
+            id: result.id,
+            secret: result.secret,
+            totalPrice: result.totalPrice,
+            transactionTimeout: result.transactionTimeout,
+        }
     }
 })
 
@@ -224,11 +232,12 @@ const createBookingNoUser = defineSubOperation({
             }
         })
 
-        await sendSystemMail(
-            data.email,
-            mailData.title,
-            mailData.message
-        )
+        return {
+            id: result.id,
+            secret: result.secret,
+            totalPrice: result.totalPrice,
+            transactionTimeout: result.transactionTimeout,
+        }
     }
 })
 
@@ -316,6 +325,10 @@ export const cabinBookingOperations = {
                     end: {
                         gte: new Date(),
                     },
+                    OR: [
+                        { transactionTimeout: null },
+                        { transactionTimeout: { gt: new Date() } },
+                    ],
                 },
             })
 
@@ -370,5 +383,160 @@ export const cabinBookingOperations = {
                     special: ['CABIN_CONTRACT']
                 },
             })
+    }),
+
+    /**
+     * Pays for a booking reserved separately via createCabinBooking* and createBedBooking* above.
+     * Never creates a booking itself. `secret` authorizes guest (no-session) bookings. Supports
+     * paying part of the price from the payer's own ledger balance (`amountFromBalance`) and the
+     * rest (`shortfall`) via `provider`; `provider` is only required when the balance doesn't
+     * cover the full price.
+     */
+    createPayment: defineOperation({
+        paramsSchema: z.object({
+            bookingId: z.number(),
+            secret: z.string().min(1),
+            provider: z.nativeEnum(PaymentProvider).optional(),
+            amountFromBalance: z.coerce.number().nonnegative().default(0),
+            manualFees: z.coerce.number().nonnegative().default(0),
+            description: z.string().optional(),
+        }),
+        authorizer: async ({ params, prisma }) => {
+            const booking = await prisma.booking.findUnique({
+                where: { id: params.bookingId },
+                select: { userId: true, secret: true },
+            })
+
+            return cabinBookingAuth.createPayment(
+                booking ?? { userId: null, secret: '' },
+                params.secret,
+            )
+        },
+        opensTransaction: true,
+        operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
+            const booking = await prisma.booking.findUniqueOrThrow({
+                where: { id: params.bookingId },
+                include: { guestUser: true },
+            })
+
+            if (booking.canceled !== null) {
+                throw new Smorekopp('BAD PARAMETERS', 'Reservasjonen er kansellert.')
+            }
+
+            if (booking.transactionTimeout !== null && booking.transactionTimeout < new Date()) {
+                throw new Smorekopp('BAD PARAMETERS', 'Reservasjonen er utløpt. Vennligst book på nytt.')
+            }
+
+            const existingAttempt = await prisma.ledgerTransaction.findFirst({
+                where: {
+                    bookingId: booking.id,
+                    state: { in: ['PENDING', 'SUCCEEDED'] },
+                },
+            })
+            if (existingAttempt?.state === 'SUCCEEDED') {
+                throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen er allerede betalt.')
+            }
+            if (existingAttempt) {
+                const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
+                if (!isStale) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen har allerede en betaling under behandling.')
+                }
+                // Stale (likely abandoned) attempt - cancel it (also cancels any Stripe payment
+                // intent, so a late webhook for it can never complete) and let this one proceed.
+                // Bypassed: the outer authorizer already established this caller may pay for
+                // this booking, which is the right bar for canceling a stale attempt on it.
+                await ledgerTransactionOperations.cancel({
+                    params: { id: existingAttempt.id },
+                    bypassAuth: true,
+                })
+            }
+
+            const cabinSettings = await prisma.cabinSettings.findFirst()
+            if (!cabinSettings?.ledgerAccountId) {
+                throw new Smorekopp('SERVER ERROR', 'Hyttebooking har ingen tilknyttet konto konfigurert.')
+            }
+            const destinationLedgerAccountId = cabinSettings.ledgerAccountId
+
+            const funds = booking.totalPrice
+            if (params.amountFromBalance > funds) {
+                throw new Smorekopp('BAD PARAMETERS', 'Beløpet fra kontosaldo kan ikke overstige prisen.')
+            }
+            if (params.amountFromBalance > 0 && booking.userId === null) {
+                throw new Smorekopp('BAD PARAMETERS', 'Bare innloggede brukere kan betale med kontosaldo.')
+            }
+            const shortfall = funds - params.amountFromBalance
+
+            if (shortfall > 0 && !params.provider) {
+                throw new Smorekopp('BAD PARAMETERS', 'Betalingsmetode må oppgis.')
+            }
+
+            const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
+                // Extends the reservation window to cover the full lifetime a pending attempt is
+                // allowed to stay open for (see stalePendingTransactionMs above), so cabinAvailable
+                // can't release these dates to another booker while this attempt can still succeed.
+                await tx.booking.update({
+                    where: { id: booking.id },
+                    data: { transactionTimeout: new Date(Date.now() + stalePendingTransactionMs) },
+                })
+
+                let paymentId: number | undefined
+
+                if (shortfall > 0) {
+                    const payment = await paymentOperations.create({
+                        params: {
+                            provider: params.provider!,
+                            funds: shortfall,
+                            manualFees: params.manualFees,
+                            descriptionLong: 'Betaling for hyttebooking',
+                            descriptionShort: 'Hytta',
+                        },
+                        prisma: tx,
+                    })
+                    paymentId = payment.id
+                }
+
+                // Outer authorizer (cabinBookingAuth.createPayment) already covers whether this
+                // caller may pay for this booking, which readOrCreate's own ownership check
+                // would otherwise re-reject an admin or a guest booking's owner for.
+                const payerAccount = params.amountFromBalance > 0
+                    ? await ledgerAccountOperations.readOrCreate({
+                        params: { userId: booking.userId! },
+                        bypassAuth: true,
+                        prisma: tx,
+                    })
+                    : undefined
+
+                return await ledgerTransactionOperations.create({
+                    params: {
+                        purpose: 'CABIN_BOOKING',
+                        ledgerEntries: [
+                            { ledgerAccountId: destinationLedgerAccountId, funds },
+                            ...(payerAccount
+                                ? [{ ledgerAccountId: payerAccount.id, funds: -params.amountFromBalance }]
+                                : []),
+                        ],
+                        paymentId,
+                        bookingId: booking.id,
+                        description: params.provider === 'MANUAL' ? params.description : undefined,
+                    },
+                    prisma: tx,
+                })
+            })
+
+            let payment = transaction.payment
+            if (payment?.state === 'PENDING') {
+                payment = await paymentOperations.initiate({
+                    params: { paymentId: payment.id },
+                })
+            }
+
+            // Clearing the reservation window and sending the confirmation once the transaction
+            // actually reaches SUCCEEDED is handled by cabinBookingPaymentCompletionHook (see
+            // ledger/transactions/paymentCompletionHooks.ts), dispatched from
+            // ledgerTransactionOperations.advance - called synchronously above via .create() for
+            // MANUAL/balance-only payments, or later from the Stripe webhook for STRIPE ones.
+
+            return { payment }
+        },
     })
 }

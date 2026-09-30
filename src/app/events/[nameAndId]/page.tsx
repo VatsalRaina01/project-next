@@ -25,6 +25,8 @@ import {
     readDotPunishmentOfUserAction,
     readEventRegistrationOfUserAction
 } from '@/services/events/registration/actions'
+import { calculateLedgerAccountBalanceAction } from '@/services/ledger/accounts/actions'
+import { createStripeCustomerSessionAction } from '@/services/stripeCustomers/actions'
 import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { ServerSession } from '@/auth/session/ServerSession'
@@ -96,6 +98,22 @@ export default async function Event({ params }: PropTypes) {
             params: { eventId: event.id, userId: session.user.id }
         })
     ) : null
+
+    let eventPaymentBalance: number | undefined
+    let eventPaymentCustomerSessionSecret: string | undefined
+
+    if (event.takesRegistration && event.price && session.user) {
+        eventPaymentBalance = unwrapActionReturn(
+            await calculateLedgerAccountBalanceAction({ params: { userId: session.user.id } })
+        ).amount
+
+        const customerSessionResult = await createStripeCustomerSessionAction({
+            params: { userId: session.user.id }
+        })
+        eventPaymentCustomerSessionSecret = customerSessionResult.success
+            ? customerSessionResult.data.customerSessionClientSecret
+            : undefined
+    }
 
     return (
         <div className={styles.wrapper}>
@@ -176,6 +194,8 @@ export default async function Event({ params }: PropTypes) {
                         event={event}
                         registration={ownRegistration}
                         dotPunishment={dotPunishment}
+                        availableBalance={eventPaymentBalance}
+                        customerSessionClientSecret={eventPaymentCustomerSessionSecret}
                         canRegister={canRegister}
                     />
                 </> : <p>

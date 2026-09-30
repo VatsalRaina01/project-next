@@ -60,11 +60,22 @@ export default async function seedCabin(prisma: PrismaClient) {
         }
     ]
 
+    const NEXT_PERIOD_PRICE_FACTOR = 1.5
+
+    const alreadySeeded = await prisma.cabinProduct.findFirst({ select: { id: true } })
+    if (alreadySeeded) return
+
     const now = new Date()
 
     const pricePeriod = await prisma.pricePeriod.create({
         data: {
             validFrom: now
+        }
+    })
+
+    const secondPricePeriod = await prisma.pricePeriod.create({
+        data: {
+            validFrom: new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate())
         }
     })
 
@@ -75,33 +86,21 @@ export default async function seedCabin(prisma: PrismaClient) {
                 amount: product.amount,
                 type: product.type,
                 CabinProductPrice: {
-                    create: product.CabinProductPrice.map(price => ({
-                        ...price,
-                        pricePeriodId: pricePeriod.id
-                    }))
+                    create: product.CabinProductPrice.flatMap(price => [
+                        {
+                            ...price,
+                            pricePeriodId: pricePeriod.id
+                        },
+                        {
+                            ...price,
+                            pricePeriodId: secondPricePeriod.id,
+                            price: Math.round(price.price * NEXT_PERIOD_PRICE_FACTOR)
+                        },
+                    ])
                 }
             }
         })
     ))
-
-    const secondPricePeriod = await prisma.pricePeriod.create({
-        data: {
-            validFrom: new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate())
-        }
-    })
-
-    const allProductPrices = await prisma.cabinProductPrice.findMany()
-    await Promise.all(allProductPrices.map(price =>
-        prisma.cabinProductPrice.create({
-            data: {
-                ...price,
-                id: undefined,
-                pricePeriodId: secondPricePeriod.id,
-                price: price.price * 1.5
-            }
-        })
-    ))
-
 
     await prisma.releasePeriod.create({
         data: {

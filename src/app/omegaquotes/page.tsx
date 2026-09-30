@@ -34,7 +34,7 @@ export default async function OmegaQuotes() {
     const quotes = readQuotes.data
 
     return (
-        <PageWrapper title="Omega Quotes" headerItem={
+        <PageWrapper title="Omegaquotes" headerItem={
             showCreateButton && <CreateOmegaquoteForm/>
         }>
             <OmegaquotePagingProvider

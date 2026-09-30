@@ -1,3 +1,4 @@
+import styles from './page.module.scss'
 import { redirectToErrorPage, unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { readLedgerAccountAction } from '@/services/ledger/accounts/actions'
 import TransactionList from '@/components/Ledger/Transactions/LedgerTransactionList'
@@ -10,5 +11,7 @@ export default async function Transactions() {
 
     const ledgerAccount = unwrapActionReturn(await readLedgerAccountAction({ params: { userId: session.user.id } }))
 
-    return <TransactionList accountId={ledgerAccount.id} showFees/>
+    return <div className={styles.wrapper}>
+        <TransactionList accountId={ledgerAccount.id} />
+    </div>
 }

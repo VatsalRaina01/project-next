@@ -29,7 +29,7 @@ export default function OmegaIdElement({ token }: {
                 const results = await generateOmegaIdAction({ params: { userId: session.session.user.id } })
                 if (!results.success) {
                     console.error(results)
-                    throw new Error('Failed to reload the qr code')
+                    throw new Error('Kunne ikke laste QR-koden på nytt')
                 }
 
                 setTokenState(results.data)
