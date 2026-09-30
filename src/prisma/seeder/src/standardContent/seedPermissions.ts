@@ -1,4 +1,5 @@
-import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
+import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { OmegaMembershipLevel, Permission } from '@/prisma-generated-pn-types'
 
 export function checkForPermissionDuplicates(arr: Permission[], failMessage: string) {
@@ -22,7 +23,13 @@ export const COMMITTEE_PERMISSIONS: Permission[] = [
 
 ]
 
-export default async function seedPermissions(prisma: PrismaClientPn) {
+/**
+ * Upserts the default permissions and the permissions of each omega membership group. This is
+ * additive: a permission added to the lists below is granted on the next run, and one that
+ * already exists is never removed. Note the flip side - a listed permission revoked through the
+ * admin pages is granted again on the next run, so revoke it here instead.
+ */
+export const seedPermissions = defineSeedOperation(async (prisma: PrismaClient) => {
     const defaultPermissions: Permission[] = [
         'MANUAL_GROUP_READ',
         'CLASS_READ',
@@ -40,7 +47,8 @@ export default async function seedPermissions(prisma: PrismaClientPn) {
     await prisma.defaultPermission.createMany({
         data: defaultPermissions.map(perm => ({
             permission: perm
-        }))
+        })),
+        skipDuplicates: true,
     })
 
     const membershipPermissions: Record<OmegaMembershipLevel, Permission[]> = {
@@ -88,7 +96,7 @@ export default async function seedPermissions(prisma: PrismaClientPn) {
     checkForPermissionDuplicates(membershipPermissions.SOELLE, 'SOELLE permissions')
     checkForPermissionDuplicates(membershipPermissions.DEN_GEMENE_HOB, 'DEN_GEMENE_HOB permissions')
 
-    for (const [level, permissions] of Object.entries(membershipPermissions)) {
+    await Promise.all(Object.entries(membershipPermissions).map(async ([level, permissions]) => {
         const membershipType = await prisma.omegaMembershipGroup.findUniqueOrThrow({
             where: {
                 omegaMembershipLevel: level as OmegaMembershipLevel,
@@ -99,8 +107,8 @@ export default async function seedPermissions(prisma: PrismaClientPn) {
             data: permissions.map(perm => ({
                 permission: perm,
                 groupId: membershipType.groupId
-            }))
+            })),
+            skipDuplicates: true,
         })
-    }
-}
-
+    }))
+})

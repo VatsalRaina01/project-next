@@ -1,4 +1,4 @@
-import { COMMITTEE_PERMISSIONS } from '@/seeder/src/seedPermissions'
+import { COMMITTEE_PERMISSIONS } from '@/seeder/src/standardContent/seedPermissions'
 import { Permission } from '@/prisma-generated-pn-types'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 

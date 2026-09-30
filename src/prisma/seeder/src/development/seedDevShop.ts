@@ -1,5 +1,5 @@
 
-import { FRIDGE_NAME } from '@/seeder/src/seedShop'
+import { FRIDGE_NAME } from '@/seeder/src/standardContent/seedShop'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 

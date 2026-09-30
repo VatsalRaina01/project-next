@@ -1,7 +1,12 @@
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
-
-export default async function seedMail(prisma: PrismaClient) {
+/**
+ * Upserts the standard mail aliases (keyed on address) and mailing lists (keyed on name). An
+ * existing mailing list is left untouched, including which aliases it holds - those are managed
+ * through the admin pages, and an alias removed there should stay removed.
+ */
+export const seedMail = defineSeedOperation(async (prisma: PrismaClient) => {
     const DOMAIN = `@${process.env.EMAIL_DOMAIN}`
 
     const otherAliases = [
@@ -50,32 +55,23 @@ export default async function seedMail(prisma: PrismaClient) {
     ]
 
     const allAliases = mailingLists.map(mailingList => mailingList.aliases).flat().concat(otherAliases)
-    const aliasSet = new Set(allAliases)
 
-    const aliasIdMap = new Map<string, number>()
+    await Promise.all(Array.from(new Set(allAliases)).map(alias => prisma.mailAlias.upsert({
+        where: { address: alias + DOMAIN },
+        update: {},
+        create: { address: alias + DOMAIN },
+    })))
 
-    await Promise.all(Array.from(aliasSet).map(async (alias) => {
-        const results = await prisma.mailAlias.create({
-            data: {
-                address: alias + DOMAIN
-            }
-        })
-
-        aliasIdMap.set(alias, results.id)
-    }))
-
-    await Promise.all(mailingLists.map(mailingList => prisma.mailingList.create({
-        data: {
+    await Promise.all(mailingLists.map(mailingList => prisma.mailingList.upsert({
+        where: { name: mailingList.name },
+        update: {},
+        create: {
             name: mailingList.name,
             mailAliases: {
-                createMany: {
-                    data: mailingList.aliases.map(alias => ({
-                        mailAliasId: aliasIdMap.get(alias),
-                    })).filter(aliasEntry => aliasEntry.mailAliasId !== undefined) as {
-                        mailAliasId: number
-                    }[],
-                }
-            }
-        }
+                create: mailingList.aliases.map(alias => ({
+                    mailAlias: { connect: { address: alias + DOMAIN } },
+                })),
+            },
+        },
     })))
-}
+})

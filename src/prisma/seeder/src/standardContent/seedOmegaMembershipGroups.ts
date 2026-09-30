@@ -1,4 +1,5 @@
 import { OmegaMembershipLevel } from '@/prisma-generated-pn-types'
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 /**
@@ -7,7 +8,7 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
  * These follow omega's order, so they are always seeded into - and brought up to - the current
  * order. One left behind in an earlier order would block omega from incrementing.
  */
-export default async function seedOmegaMembershipGroups(prisma: PrismaClient) {
+export const seedOmegaMembershipGroups = defineSeedOperation(async (prisma: PrismaClient) => {
     const { order } = await prisma.omegaOrder.findFirstOrThrow({
         orderBy: {
             order: 'desc',
@@ -31,4 +32,4 @@ export default async function seedOmegaMembershipGroups(prisma: PrismaClient) {
             }
         }
     })))
-}
+})

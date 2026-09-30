@@ -1,4 +1,4 @@
-import { checkForPermissionDuplicates, COMMITTEE_PERMISSIONS } from '@/seeder/src/seedPermissions'
+import { checkForPermissionDuplicates, COMMITTEE_PERMISSIONS } from '@/seeder/src/standardContent/seedPermissions'
 import { Permission } from '@/prisma-generated-pn-types'
 import logger from '@/lib/logger'
 import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
