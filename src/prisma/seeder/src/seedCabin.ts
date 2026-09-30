@@ -60,11 +60,28 @@ export default async function seedCabin(prisma: PrismaClient) {
         }
     ]
 
+    // A second price period starting a month out, so the switchover between periods is
+    // exercised without a second price list having to be written by hand.
+    const NEXT_PERIOD_PRICE_FACTOR = 1.5
+
+    // Seeded whole or not at all. The periods are dated relative to the run, so there is no
+    // stable key to match an existing row against, and a cabin product in the table means this
+    // has run before - its prices may have been edited through the admin pages since, which a
+    // re-seed has no business undoing.
+    const alreadySeeded = await prisma.cabinProduct.findFirst({ select: { id: true } })
+    if (alreadySeeded) return
+
     const now = new Date()
 
     const pricePeriod = await prisma.pricePeriod.create({
         data: {
             validFrom: now
+        }
+    })
+
+    const secondPricePeriod = await prisma.pricePeriod.create({
+        data: {
+            validFrom: new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate())
         }
     })
 
@@ -75,33 +92,24 @@ export default async function seedCabin(prisma: PrismaClient) {
                 amount: product.amount,
                 type: product.type,
                 CabinProductPrice: {
-                    create: product.CabinProductPrice.map(price => ({
-                        ...price,
-                        pricePeriodId: pricePeriod.id
-                    }))
+                    // Both periods are derived from the declared price. The second used to be
+                    // built by reading every price already in the table and multiplying it,
+                    // which made each run inflate the prices the run before it had written.
+                    create: product.CabinProductPrice.flatMap(price => [
+                        {
+                            ...price,
+                            pricePeriodId: pricePeriod.id
+                        },
+                        {
+                            ...price,
+                            pricePeriodId: secondPricePeriod.id,
+                            price: Math.round(price.price * NEXT_PERIOD_PRICE_FACTOR)
+                        },
+                    ])
                 }
             }
         })
     ))
-
-    const secondPricePeriod = await prisma.pricePeriod.create({
-        data: {
-            validFrom: new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate())
-        }
-    })
-
-    const allProductPrices = await prisma.cabinProductPrice.findMany()
-    await Promise.all(allProductPrices.map(price =>
-        prisma.cabinProductPrice.create({
-            data: {
-                ...price,
-                id: undefined,
-                pricePeriodId: secondPricePeriod.id,
-                price: price.price * 1.5
-            }
-        })
-    ))
-
 
     await prisma.releasePeriod.create({
         data: {
