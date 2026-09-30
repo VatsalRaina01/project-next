@@ -1,11 +1,13 @@
 @use "@/styles/ohma";
 
-.frozenStatus {
-    color: red;
+.wrapper {
+    background-color: ohma.$colors-surface-base;
+    border-radius: ohma.$rounding;
+    padding: ohma.$cardPadding;
+}
 
-    .frozenWarningHidden {
-        visibility: hidden;
-    }
+.frozenWarning {
+    color: ohma.$colors-error;
 }
 
 .ledgerAccountOverviewButtons {

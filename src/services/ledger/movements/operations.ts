@@ -24,7 +24,7 @@ export const ledgerMovementOperations = {
      * @return The created transaction representing the deposit operation.
      */
     createDeposit: defineOperation({
-        authorizer: ({ params }) => ledgerMovementAuth.createDeposit(params.provider),
+        authorizer: () => ledgerMovementAuth.createDeposit.dynamicFields({}),
         opensTransaction: true,
         paramsSchema: z.object({
             ledgerAccountId: z.number(),
