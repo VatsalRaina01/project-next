@@ -172,6 +172,65 @@ export const imageOperations = {
     }),
 
     /**
+     * Swaps the file behind an existing image in place, keeping its id - and with it every relation
+     * pointing at it - intact. The new original is stored the same way uploadImage stores one, the
+     * old variants are dropped so the background worker produces fresh ones, and the old files are
+     * removed once the row points at the new ones.
+     *
+     * Nothing is written when the new file is byte for byte the stored original, so this is cheap to
+     * call on every run for an image whose source of truth lives outside the database.
+     */
+    replaceImageFile: defineSubOperation({
+        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        dataSchema: () => imageSchemas.replaceImageFile,
+        opensTransaction: true,
+        operation: (
+            { allowedExtensions }: { allowedExtensions: readonly ImageExtension[] }
+        ) => async ({ prisma, params, data: { imageFile } }) => {
+            const image = await prisma.image.findUniqueOrThrow({
+                where: { id: params.imageId },
+                include: expandedImageIncluder,
+            })
+
+            const buffer = Buffer.from(await imageFile.arrayBuffer())
+            const storedOriginal = await imageStore.readStoredFile(image.fsLocationOriginal).catch(error => {
+                // A missing original is exactly what replacing it repairs.
+                if (error instanceof ServerError && error.errorCode === 'NOT FOUND') return null
+                throw error
+            })
+            if (storedOriginal?.equals(buffer)) return { replaced: false }
+
+            const original = await imageStore.createFile(imageFile, allowedExtensions)
+            const placeholderDataUrl = original.ext === 'svg'
+                ? null
+                : `data:image/avif;base64,${
+                    (await resizeToAvifBuffer(buffer, imageSizes.placeholder)).data.toString('base64')
+                }`
+
+            await prisma.$transaction(async (tx) => {
+                await tx.processedImageFiles.deleteMany({
+                    where: { imageId: image.id },
+                })
+                await tx.image.update({
+                    where: { id: image.id },
+                    data: {
+                        type: original.ext === 'svg' ? 'SVG' : 'RASTER',
+                        fsLocationOriginal: original.fsLocation,
+                        extOriginal: original.ext,
+                        placeholderDataUrl,
+                        processingStartedAt: null,
+                        processingAttempts: 0,
+                        processingError: null,
+                    }
+                })
+            })
+
+            await destroyStoredFiles(storedFileLocationsOfImage(image), 'image file replacement')
+            return { replaced: true }
+        }
+    }),
+
+    /**
      * Produces the real avif variants for an already-uploaded image.
      * See createRasterVariants for which tiers get skipped.
      * Called by the background worker container (src/lib/images/worker.ts), never directly from a request.

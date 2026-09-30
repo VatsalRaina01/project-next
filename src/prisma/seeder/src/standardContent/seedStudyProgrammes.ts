@@ -27,7 +27,8 @@ const standardStudyProgrammes = [
 ]
 
 /**
- * Upserts the study programmes that are always expected to exist.
+ * Upserts the study programmes that are always expected to exist, keyed on the unique code. The
+ * programme itself is left untouched once it exists - it is edited through the admin pages.
  *
  * Study programmes follow omega's order, so they are always seeded into - and brought up to - the
  * current order. One left behind in an earlier order would block omega from incrementing.
@@ -42,7 +43,6 @@ export const seedStudyProgrammes = defineSeedOperation(async (prisma: PrismaClie
     await Promise.all(standardStudyProgrammes.map(studyProgramme => prisma.studyProgramme.upsert({
         where: { code: studyProgramme.code },
         update: {
-            ...studyProgramme,
             group: {
                 update: { order },
             },
