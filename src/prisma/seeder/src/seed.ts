@@ -1,28 +1,28 @@
 import { seedDevUsers } from './development/seedDevUsers'
-import seedDevPermissions from './development/seedDevPermissions'
+import { seedDevPermissions } from './development/seedDevPermissions'
 import { seedDevImages } from './development/seedDevImages'
 import { seedDevNews } from './development/seedDevNews'
-import seedDevLockers from './development/seedDevLockers'
-import seedDevOmegaquotes from './development/seedDevOmegaquotes'
+import { seedDevLockers } from './development/seedDevLockers'
+import { seedDevOmegaquotes } from './development/seedDevOmegaquotes'
 import { seedOrders } from './standardContent/seedOrders'
 import dobbelOmega from './dobbelOmega/dobbelOmega'
 import { seedNotificationChannels } from './standardContent/seedNotificationChannels'
-import seedDevGroups from './development/seedDevGroups'
+import { seedDevGroups } from './development/seedDevGroups'
 import { seedClasses } from './standardContent/seedClasses'
 import { seedMail } from './standardContent/seedMail'
 import { seedStudyProgrammes } from './standardContent/seedStudyProgrammes'
 import { seedOmegaMembershipGroups } from './standardContent/seedOmegaMembershipGroups'
-import seedDevSchools from './development/seedDevSchools'
-import seedDevCompanies from './development/seedDevCompanies'
+import { seedDevSchools } from './development/seedDevSchools'
+import { seedDevCompanies } from './development/seedDevCompanies'
 import { seedShop } from './standardContent/seedShop'
-import seedDevShop from './development/seedDevShop'
-import seedDevJobAds from './development/seedDevJobAds'
-import seedDevEvents from './development/seedDevEvents'
+import { seedDevShop } from './development/seedDevShop'
+import { seedDevJobAds } from './development/seedDevJobAds'
+import { seedDevEvents } from './development/seedDevEvents'
 import { seedEventTags } from './standardContent/seedEventTags'
 import { seedCabin } from './standardContent/seedCabin'
 import { seedPermissions } from './standardContent/seedPermissions'
 import { seedAdmin } from './standardContent/seedAdmin'
-import seedDevApplicationsAndPeriods from './development/seedDevApplicationsAndPeriods'
+import { seedDevApplicationsAndPeriods } from './development/seedDevApplicationsAndPeriods'
 import { seedArticleCategories } from './standardContent/seedArticleCategories'
 import { seedImages } from './standardContent/seedImages'
 import { seedSpecialCms } from './standardContent/seedSpecialCms'
@@ -74,26 +74,21 @@ export default async function seed(
         return
     }
 
-    //TODO: Remove this outer withServiceContext once the development seeders use
-    //TODO: defineSeedOperation, which opens its own service context.
-    await step('Seeding development data', () => withServiceContext({
-        bypassAuth: true,
-        session: Session.empty(),
-    }, true, async ({ prisma }) => {
+    await step('Seeding development data', async () => {
         await step('Seeding development images', () => seedDevImages())
-        await step('Seeding development groups', () => seedDevGroups(prisma))
+        await step('Seeding development groups', () => seedDevGroups())
         await step('Seeding development users', () => seedDevUsers())
-        await step('Seeding development permissions', () => seedDevPermissions(prisma))
-        await step('Seeding development omega quotes', () => seedDevOmegaquotes(prisma))
+        await step('Seeding development permissions', () => seedDevPermissions())
+        await step('Seeding development omega quotes', () => seedDevOmegaquotes())
         await step('Seeding development news', () => seedDevNews())
-        await step('Seeding development lockers', () => seedDevLockers(prisma))
-        await step('Seeding development schools', () => seedDevSchools(prisma))
-        await step('Seeding development companies', () => seedDevCompanies(prisma))
-        await step('Seeding development job ads', () => seedDevJobAds(prisma))
-        await step('Seeding development shops', () => seedDevShop(prisma))
-        await step('Seeding development events', () => seedDevEvents(prisma))
-        await step('Seeding development applications and periods', () => seedDevApplicationsAndPeriods(prisma))
-    }))
+        await step('Seeding development lockers', () => seedDevLockers())
+        await step('Seeding development schools', () => seedDevSchools())
+        await step('Seeding development companies', () => seedDevCompanies())
+        await step('Seeding development job ads', () => seedDevJobAds())
+        await step('Seeding development shops', () => seedDevShop())
+        await step('Seeding development events', () => seedDevEvents())
+        await step('Seeding development applications and periods', () => seedDevApplicationsAndPeriods())
+    })
 
     finish()
 }

@@ -1,22 +1,17 @@
-
 import { FRIDGE_NAME } from '@/seeder/src/standardContent/seedShop'
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
-
-export default async function seedDevShop(prisma: PrismaClient) {
-    const fridge = await prisma.shop.findUnique({
+/**
+ * Upserts the dev products into the fridge shop, keyed on the unique product name. An existing
+ * product is left untouched - including its price and whether it is stocked in the fridge.
+ */
+export const seedDevShop = defineSeedOperation(async (prisma: PrismaClient) => {
+    const fridge = await prisma.shop.findUniqueOrThrow({
         where: {
             name: FRIDGE_NAME,
         },
     })
-
-    if (fridge === null) {
-        throw Error(
-            `Could not find a shop with name ${FRIDGE_NAME}. The ${FRIDGE_NAME} shop must be created before seeding products`
-        )
-    }
-
-    const shopId = fridge.id
 
     const products: {
         name: string,
@@ -52,8 +47,10 @@ export default async function seedDevShop(prisma: PrismaClient) {
         },
     ]
 
-    await Promise.all(products.map(product => prisma.product.create({
-        data: {
+    await Promise.all(products.map(product => prisma.product.upsert({
+        where: { name: product.name.toUpperCase() },
+        update: {},
+        create: {
             name: product.name.toUpperCase(),
             description: product.description,
             barcode: product.barcode,
@@ -62,11 +59,11 @@ export default async function seedDevShop(prisma: PrismaClient) {
                     price: product.price,
                     shop: {
                         connect: {
-                            id: shopId,
+                            id: fridge.id,
                         },
                     },
                 },
             },
         },
     })))
-}
+})
