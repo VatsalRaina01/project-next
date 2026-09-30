@@ -7,7 +7,7 @@ import type { Permission } from '@/prisma-generated-pn-types'
  * users behind the memberships, so it takes permission to read users on top of permission to read
  * the group type itself - a group type's own read permission is not enough on its own.
  *
- * `CLASS_READ` and `MANUAL_GROUP_READ` are default permissions (`seedPermissions.ts`), and
+ * `CLASS_READ` and `MANUAL_GROUP_READ` are default permissions (seeded in development by `seedDevPermissions.ts`), and
  * `ServerSession.fromNextAuth` falls back to the default permissions when there is no session, so a
  * `readMembers` gated on one of those alone is callable by a visitor who is not logged in at all.
  *

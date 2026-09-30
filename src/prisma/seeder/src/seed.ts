@@ -20,7 +20,6 @@ import { seedDevJobAds } from './development/seedDevJobAds'
 import { seedDevEvents } from './development/seedDevEvents'
 import { seedEventTags } from './standardContent/seedEventTags'
 import { seedCabin } from './standardContent/seedCabin'
-import { seedPermissions } from './standardContent/seedPermissions'
 import { seedAdmin } from './standardContent/seedAdmin'
 import { seedDevApplicationsAndPeriods } from './development/seedDevApplicationsAndPeriods'
 import { seedArticleCategories } from './standardContent/seedArticleCategories'
@@ -56,7 +55,6 @@ export default async function seed(
         await step('Upserting standard cabins', () => seedCabin())
         await step('Upserting standard shops', () => seedShop())
         await step('Upserting standard event tags', () => seedEventTags())
-        await step('Upserting standard permissions', () => seedPermissions())
         await step('Upserting admin user', () => seedAdmin())
         await step('Upserting standard flairs', () => seedFlairs())
         await step('Upserting standard interest groups', () => seedInterestGroups())
