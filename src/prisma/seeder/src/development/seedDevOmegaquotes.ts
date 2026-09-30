@@ -1,28 +1,30 @@
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
-export default async function seedDevOmegaquotes(prisma: PrismaClient) {
-    const user = await prisma.user.findFirst()
+const OMEGAQUOTE_COUNT = 40
 
-    if (!user) {
-        throw new Error('Failed to seed omegaquotes because no users exist')
-    }
+export const seedDevOmegaquotes = defineSeedOperation(async (prisma: PrismaClient) => {
+    const user = await prisma.user.findFirstOrThrow()
 
     const berries = ['blåbær', 'bringebær', 'bjørnebær', 'kake', 'multer', 'stikkelsbær', 'jordbær']
     const indexing = ['første', 'andre', 'tredje', 'fjerde', 'femte', 'sjette']
 
-    for (let i = 0; i < 40; i++) {
-        const index = (i >= indexing.length) ? `${i + 1}'ende` : indexing[i]
+    const quotes = Array.from({ length: OMEGAQUOTE_COUNT }).map((_, index) => ({
+        author: `Den ${index >= indexing.length ? `${index + 1}'ende` : indexing[index]} veveren på bærtur`,
+        quote: `Finnes det ${berries[index % berries.length]} her?`,
+    }))
 
-        await prisma.omegaQuote.create({
-            data: {
-                author: `Den ${index} veveren på bærtur`,
-                quote: `Finnes det ${berries[i % berries.length]} her?`,
-                userPoster: {
-                    connect: {
-                        id: user.id
-                    }
-                }
-            }
-        })
-    }
-}
+    // OmegaQuote has no unique key, but every seeded quote has its own author, so that is what an
+    // existing one is recognised by.
+    const existingAuthors = new Set((await prisma.omegaQuote.findMany({
+        where: { author: { in: quotes.map(quote => quote.author) } },
+        select: { author: true },
+    })).map(quote => quote.author))
+
+    // createMany keeps the insertion order, so the quotes are still listed in the order above.
+    await prisma.omegaQuote.createMany({
+        data: quotes
+            .filter(quote => !existingAuthors.has(quote.author))
+            .map(quote => ({ ...quote, userPosterId: user.id })),
+    })
+})

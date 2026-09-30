@@ -39,6 +39,8 @@ model LedgerAccount {
   payoutAccountNumber String? // For display only, only used for group accounts
 
   ledgerEntries LedgerEntry[]
+  shop          Shop?
+  cabinSettings CabinSettings?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -49,6 +51,7 @@ model LedgerAccount {
 enum LedgerTransactionPurpose {
   SHOP_PURCHASE
   EVENT_PAYMENT
+  CABIN_BOOKING
   DEPOSIT
   PAYOUT
   REFUND
@@ -80,14 +83,46 @@ model LedgerTransaction {
   payment       Payment?      @relation(fields: [paymentId], references: [id])
   paymentId     Int?          @unique
 
-  // Relevant relations to other tables based un purpose
-  // purchase Purchase
+  // Relevant relations to other tables based on purpose. Not unique: a failed payment attempt
+  // can be retried, leaving a new transaction referencing the same registration/booking/purchase.
+  eventRegistration   EventRegistration? @relation(fields: [eventRegistrationId], references: [id])
+  eventRegistrationId Int?
+  booking             Booking?           @relation(fields: [bookingId], references: [id])
+  bookingId           Int?
+  purchase            Purchase?          @relation(fields: [purchaseId], references: [id])
+  purchaseId          Int?
   // deposit Deposit
   // payout Payout
-  // refund 
+  // refund
+
+  // Present only for transactions migrated from OmegaWeb Basic (see LegacyLedgerTransaction).
+  legacy LegacyLedgerTransaction?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Identifies which OmegaWeb Basic (OW) table a migrated transaction originated from.
+enum LegacyTransactionSource {
+  MONEY_PAYMENT
+  MONEY_MANUAL_DEPOSIT
+  MONEY_STRIPE_DEPOSIT
+  MONEY_TRANSFER
+}
+
+// Side table holding everything needed to audit or rebuild a LedgerTransaction that was
+// migrated from OmegaWeb Basic. Never created for transactions originating in this system.
+model LegacyLedgerTransaction {
+  ledgerTransaction   LedgerTransaction       @relation(fields: [ledgerTransactionId], references: [id], onDelete: Cascade)
+  ledgerTransactionId Int                     @id
+  source              LegacyTransactionSource
+  originalId          Int // Primary key of the row in its OW source table.
+  data                Json // Raw snapshot of the OW row (+ directly related rows, e.g. commodity/confirmation) needed to rebuild it.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([source, originalId])
 }
 
 model LedgerEntry {

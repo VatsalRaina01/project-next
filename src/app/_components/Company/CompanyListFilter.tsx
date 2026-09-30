@@ -26,7 +26,7 @@ export default function CompanyListFilter({ currentName }: PropTypes) {
     return (
         <span className={styles.CompanyListFilter}>
             <FontAwesomeIcon icon={faSearch} />
-            <TextInput id={uuid()} onChange={(e) => setNameFilter(e.target.value)} defaultValue={currentName} label="navn" />
+            <TextInput id={uuid()} onChange={(e) => setNameFilter(e.target.value)} defaultValue={currentName} label="Navn" />
         </span>
     )
 }

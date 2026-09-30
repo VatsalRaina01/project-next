@@ -37,7 +37,7 @@ export default function CmsLinkEditor({ cmsLink, updateCmsLinkAction, canEdit }:
                         { params: { linkId: cmsLink.id } }
                     )
                 }
-                submitText="Endre Lenke"
+                submitText="Endre lenke"
                 successCallback={refresh}
             >
                 <TextInput defaultValue={cmsLink.text} name="text" label="Tekst" />

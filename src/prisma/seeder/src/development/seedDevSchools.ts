@@ -1,27 +1,30 @@
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
-export default async function seedDevSchools(prisma: PrismaClient) {
-    await Promise.all([0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(async i => {
-        await prisma.school.create({
-            data: {
-                name: `Skole ${i}`,
-                shortName: `sk${i}`,
-                cmsImage: {
-                    create: {
-                        name: `Skole ${i} bilde`
-                    }
-                },
-                cmsParagraph: {
-                    create: {
-                        name: `Skole ${i} paragraf`
-                    }
-                },
-                cmsLink: {
-                    create: {
-                        name: `Skole ${i} link`
-                    }
-                },
-            }
-        })
-    }))
-}
+const SCHOOL_COUNT = 15
+
+export const seedDevSchools = defineSeedOperation(async (prisma: PrismaClient) => {
+    await Promise.all(Array.from({ length: SCHOOL_COUNT }).map((_, index) => prisma.school.upsert({
+        where: { shortName: `dev_schools_${index}` },
+        update: {},
+        create: {
+            name: `dev_schools_${index}`,
+            shortName: `dev_schools_${index}`,
+            cmsImage: {
+                create: {
+                    name: `dev_schools_${index}`
+                }
+            },
+            cmsParagraph: {
+                create: {
+                    name: `dev_schools_${index}`
+                }
+            },
+            cmsLink: {
+                create: {
+                    name: `dev_schools_${index}`
+                }
+            },
+        }
+    })))
+})

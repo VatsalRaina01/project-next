@@ -18,9 +18,16 @@ import { eventOperations } from '@/services/events/operations'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { paymentOperations } from '@/services/ledger/payments/operations'
+import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma } from '@/prisma-generated-pn-types'
+import type { ExpandedPayment } from '@/services/ledger/payments/types'
+import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type {
     DotPunishment,
     EventRegistrationExpanded,
@@ -225,7 +232,9 @@ export const eventRegistrationOperations = {
             eventId: z.number().min(0),
             userId: z.number().min(0),
         }),
-        operation: async ({ prisma, params }): Promise<EventRegistrationWithWaitingList | null> => {
+        operation: async (
+            { prisma, params }
+        ): Promise<(EventRegistrationWithWaitingList & { ledgerTransactions: { id: number }[] }) | null> => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: {
                     id: params.eventId,
@@ -234,6 +243,14 @@ export const eventRegistrationOperations = {
                     places: true,
                     eventRegistrations: {
                         orderBy: eventRegistrationQueueOrder,
+                        include: {
+                            // Only need to know whether a successful payment exists, to gate the
+                            // "pay for registration" UI once it's already been paid for.
+                            ledgerTransactions: {
+                                where: { state: 'SUCCEEDED' },
+                                select: { id: true },
+                            },
+                        },
                     },
                 },
             })
@@ -428,7 +445,165 @@ export const eventRegistrationOperations = {
                 )
             }
         }
-    })
+    }),
+
+    /**
+     * Pays for a registration created separately via `create`/`createGuest`. Never creates a
+     * registration itself. Supports paying part of the price from the payer's own ledger
+     * balance (`amountFromBalance`) and the rest (`shortfall`) via `provider`; `provider` is
+     * only required when the balance doesn't cover the full price.
+     */
+    createPayment: defineOperation({
+        paramsSchema: z.object({
+            userId: z.number().min(0),
+            eventId: z.number().min(0),
+            provider: z.nativeEnum(PaymentProvider).optional(),
+            amountFromBalance: z.coerce.number().nonnegative().default(0),
+            manualFees: z.coerce.number().nonnegative().default(0),
+            description: z.string().optional(),
+        }),
+        authorizer: ({ params }) => eventRegistrationAuth.createPayment.dynamicFields({ userId: params.userId }),
+        opensTransaction: true,
+        operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
+            const registration = await prisma.eventRegistration.findUnique({
+                where: {
+                    eventId_userId: {
+                        eventId: params.eventId,
+                        userId: params.userId,
+                    },
+                },
+                include: {
+                    event: {
+                        include: {
+                            hostedByCommitee: true,
+                        },
+                    },
+                },
+            })
+
+            if (!registration) {
+                throw new Smorekopp('NOT FOUND', 'Fant ingen påmelding å betale for.')
+            }
+
+            const { event } = registration
+
+            if (!event.price) {
+                throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet krever ikke betaling.')
+            }
+
+            const now = new Date()
+            if (!event.paymentStart || !event.paymentEnd || now < event.paymentStart || now > event.paymentEnd) {
+                throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
+            }
+
+            if (!event.hostedByCommitee) {
+                throw new Smorekopp('SERVER ERROR', 'Arrangementet har ingen tilknyttet komité å betale til.')
+            }
+
+            // Crediting the destination account needs no ownership over it, only reading it -
+            // bypassed since the payer (our caller) is neither its owner nor LEDGER_ADMIN.
+            const [destinationAccount] = await ledgerAccountOperations.readMany({
+                params: { groupIds: [event.hostedByCommitee.groupId] },
+                bypassAuth: true,
+            })
+            if (!destinationAccount) {
+                throw new Smorekopp('SERVER ERROR', 'Komiteen som arrangerer har ingen tilknyttet konto.')
+            }
+
+            const funds = event.price
+            if (params.amountFromBalance > funds) {
+                throw new Smorekopp('BAD PARAMETERS', 'Beløpet fra kontosaldo kan ikke overstige prisen.')
+            }
+            const shortfall = funds - params.amountFromBalance
+
+            if (shortfall > 0 && !params.provider) {
+                throw new Smorekopp('BAD PARAMETERS', 'Betalingsmetode må oppgis.')
+            }
+
+            const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
+                // Locks the registration row so concurrent payment attempts for it serialize
+                // instead of racing the existingAttempt check below.
+                await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${registration.id} FOR UPDATE`
+
+                const existingAttempt = await tx.ledgerTransaction.findFirst({
+                    where: {
+                        eventRegistrationId: registration.id,
+                        state: { in: ['PENDING', 'SUCCEEDED'] },
+                    },
+                })
+                if (existingAttempt?.state === 'SUCCEEDED') {
+                    throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
+                }
+                if (existingAttempt) {
+                    const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
+                    if (!isStale) {
+                        throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.')
+                    }
+                    // Stale (likely abandoned) attempt - cancel it (also cancels any Stripe payment
+                    // intent, so a late webhook for it can never complete) and let this one proceed.
+                    // Bypassed: the outer authorizer already established this caller may pay for
+                    // this registration, which is the right bar for canceling a stale attempt on it.
+                    await ledgerTransactionOperations.cancel({
+                        params: { id: existingAttempt.id },
+                        bypassAuth: true,
+                        prisma: tx,
+                    })
+                }
+
+                let paymentId: number | undefined
+
+                if (shortfall > 0) {
+                    const payment = await paymentOperations.create({
+                        params: {
+                            provider: params.provider!,
+                            funds: shortfall,
+                            manualFees: params.manualFees,
+                            descriptionLong: `Betaling for påmelding til ${event.name}`,
+                            descriptionShort: 'Arrangement',
+                        },
+                        prisma: tx,
+                    })
+                    paymentId = payment.id
+                }
+
+                // Outer authorizer (eventRegistrationAuth.createPayment) already covers
+                // whether this caller may pay for params.userId's registration, which
+                // readOrCreate's own ownership check would otherwise re-reject an admin for.
+                const payerAccount = params.amountFromBalance > 0
+                    ? await ledgerAccountOperations.readOrCreate({
+                        params: { userId: params.userId },
+                        bypassAuth: true,
+                        prisma: tx,
+                    })
+                    : undefined
+
+                return await ledgerTransactionOperations.create({
+                    params: {
+                        purpose: 'EVENT_PAYMENT',
+                        ledgerEntries: [
+                            { ledgerAccountId: destinationAccount.id, funds },
+                            ...(payerAccount
+                                ? [{ ledgerAccountId: payerAccount.id, funds: -params.amountFromBalance }]
+                                : []),
+                        ],
+                        paymentId,
+                        eventRegistrationId: registration.id,
+                        description: params.provider === 'MANUAL' ? params.description : undefined,
+                    },
+                    prisma: tx,
+                })
+            })
+
+            let payment = transaction.payment
+            if (payment?.state === 'PENDING') {
+                payment = await paymentOperations.initiate({
+                    params: { paymentId: payment.id },
+                })
+            }
+
+            return { payment }
+        },
+    }),
 } as const
 
 async function preValidateRegistration(

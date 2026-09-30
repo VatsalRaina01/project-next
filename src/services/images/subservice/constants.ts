@@ -11,10 +11,12 @@ export const maxImageCountInOneBatch = 10
 
 export const imageSizes = {
     placeholder: 16,
-    tiny: 90,
-    small: 180,
-    medium: 360,
-    large: 720,
+    micro: 160,
+    tiny: 320,
+    small: 640,
+    medium: 960,
+    large: 1280,
+    huge: 1920,
 } as const
 
 export const imageProcessing = {

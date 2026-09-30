@@ -36,7 +36,7 @@ export default async function UserSettings({ params }: PropTypes) {
     return (
         <div className={styles.wrapper}>
             <UserProfileSettingsCard>
-                <UserSettingsForm user={userDataFull} />
+                <UserSettingsForm user={userDataFull} emailDomain={process.env.EMAIL_DOMAIN} />
             </UserProfileSettingsCard>
             {canChangeClass && (
                 <UserProfileSettingsCard>

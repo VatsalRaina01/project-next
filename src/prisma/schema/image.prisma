@@ -56,10 +56,27 @@ model ProcessedImageFiles {
   id                   Int      @id @default(autoincrement())
   image                Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
   imageId              Int      @unique
+  // Width and height are nullable including tiny: old rows have no recorded dimensions, so
+  // srcSetForImage falls back to plain src. Micro and small through huge are also skipped,
+  // and so null, for a small source. See createRasterVariants.
+  fsLocationMicroSize  String?  @unique
+  widthMicroSize       Int?
+  heightMicroSize      Int?
   fsLocationTinySize   String   @unique
-  fsLocationSmallSize  String   @unique
-  fsLocationMediumSize String   @unique
-  fsLocationLargeSize  String   @unique
+  widthTinySize        Int?
+  heightTinySize       Int?
+  fsLocationSmallSize  String?  @unique
+  widthSmallSize       Int?
+  heightSmallSize      Int?
+  fsLocationMediumSize String?  @unique
+  widthMediumSize      Int?
+  heightMediumSize     Int?
+  fsLocationLargeSize  String?  @unique
+  widthLargeSize       Int?
+  heightLargeSize      Int?
+  fsLocationHugeSize   String?  @unique
+  widthHugeSize        Int?
+  heightHugeSize       Int?
   createdAt            DateTime @default(now())
 }
 

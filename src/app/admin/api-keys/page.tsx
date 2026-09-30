@@ -11,7 +11,7 @@ const popUpKey = 'createApiKey'
 
 export default async function ApiKeysAdmin() {
     const res = await readApiKeysAction()
-    if (!res.success) throw new Error(res.error?.length ? res.error[0].message : 'An error occurred')
+    if (!res.success) throw new Error(res.error?.length ? res.error[0].message : 'En feil oppstod')
     const apiKeys = res.data
 
     return (

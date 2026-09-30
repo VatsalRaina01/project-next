@@ -90,7 +90,7 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
                 successCallback={handleCreate}
             >
                 <TextInput
-                    label="navn"
+                    label="Navn"
                     name="name"
                     onChange={handlePreviewChange.bind(null, 'pName')}
                 />
@@ -106,7 +106,7 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
                     onChange={handlePreviewChange.bind(null, 'pYear')}
                 />
                 <NumberInput
-                    label="nummer"
+                    label="Nummer"
                     name="issueNumber"
                     defaultValue={nextIssue}
                     onChange={handlePreviewChange.bind(null, 'pIssueNumber')}
