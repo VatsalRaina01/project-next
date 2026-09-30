@@ -23,11 +23,10 @@ export const eventAuth = {
     read: ({ level, doubleLevelMatrix }: {
         level: 'PUBLIC' | 'REGULAR' | 'ADMIN',
         doubleLevelMatrix: DoubleLevelVisibilityMatrix,
-    }) => (
-        level === 'PUBLIC'
-            ? Require.nothing()
-            : level === 'REGULAR' ? regularLevel(doubleLevelMatrix) : adminLevel(doubleLevelMatrix)
-    ),
+    }) => {
+        if (level === 'PUBLIC') return Require.nothing()
+        return level === 'REGULAR' ? regularLevel(doubleLevelMatrix) : adminLevel(doubleLevelMatrix)
+    },
     readManyCurrent: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
     readManyArchivedPage: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
     search: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
