@@ -8,12 +8,10 @@
     column-gap: calc(2 * #{ohma.$gap});
     white-space: nowrap;
     overflow: hidden;
-    
-    // @include ohma.screenMobile {
-    //     grid-template-columns: auto 1fr;
-    // }
-    // align-items: center;
-    // justify-content: space-between;
+
+    @include ohma.screenMobile {
+        grid-template-columns: auto 1fr;
+    }
 }
 
 .amountRow {
@@ -28,5 +26,13 @@
 
 .total {
     text-align: right;
-    // width: 100%; // ensures it stretches to the container
+}
+
+.currencySymbol {
+    color: ohma.$colors-text-muted;
+    font-size: ohma.$fonts-m;
+
+    @include ohma.screenMobile {
+        display: none;
+    }
 }

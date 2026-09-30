@@ -4,6 +4,7 @@ import { ServerError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
+import logger from '@/lib/logger'
 import { z } from 'zod'
 
 export const paymentOperations = {
@@ -13,7 +14,7 @@ export const paymentOperations = {
      * Call `initiate` to actually begin collecting the payment.
      */
     create: defineOperation({
-        authorizer: () => paymentAuth.create.dynamicFields({}),
+        authorizer: ({ params }) => paymentAuth.create({ provider: params.provider }),
         paramsSchema: z.object({
             funds: z.number(),
             descriptionLong: z.string().optional(),
@@ -151,6 +152,52 @@ export const paymentOperations = {
 
             // If we reach here, the payment provider is unknown.
             throw new ServerError('SERVER ERROR', 'Prøvde å forespørre betalingsleverandør som ikke er støttet.')
+        },
+    }),
+
+    /**
+     * Cancels a payment that is still awaiting completion (e.g. an abandoned Stripe checkout).
+     * If it's a STRIPE payment with a live payment intent, cancels that too, so a webhook that
+     * arrives late can never later mark it SUCCEEDED. A no-op if the payment already reached a
+     * terminal state (SUCCEEDED/FAILED/CANCELED) by the time this runs.
+     */
+    cancel: defineOperation({
+        authorizer: () => paymentAuth.cancel.dynamicFields({}),
+        paramsSchema: z.object({
+            paymentId: z.number(),
+        }),
+        operation: async ({ prisma, params }) => {
+            const payment = await prisma.payment.findUniqueOrThrow({
+                where: { id: params.paymentId },
+                include: { stripePayment: true },
+            })
+
+            if (payment.provider === 'STRIPE' && payment.stripePayment?.paymentIntentId) {
+                try {
+                    await stripe.paymentIntents.cancel(
+                        payment.stripePayment.paymentIntentId,
+                        {},
+                        { idempotencyKey: `project-next-payment-id-${params.paymentId}-cancel` },
+                    )
+                } catch (error) {
+                    // Tolerate it already being canceled, succeeded, or gone on Stripe's side -
+                    // our own state update below is guarded and will simply no-op if so.
+                    logger.error(`Failed to cancel Stripe payment intent for payment ${params.paymentId}`, { error })
+                }
+            }
+
+            await prisma.payment.updateMany({
+                where: {
+                    id: params.paymentId,
+                    state: { in: ['PENDING', 'PROCESSING'] },
+                },
+                data: { state: 'CANCELED' },
+            })
+
+            return await prisma.payment.findUniqueOrThrow({
+                where: { id: params.paymentId },
+                include: { stripePayment: true, manualPayment: true },
+            })
         },
     }),
 }

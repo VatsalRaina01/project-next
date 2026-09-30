@@ -16,6 +16,9 @@ export function getLimits() {
         images: 10,
         prikks: 50,
         lockers: 20,
+        moneyPayments: 100,
+        moneyDeposits: 100,
+        moneyTransfers: 100,
     }
     const nullObj: { [key in keyof typeof limits]: null } = {
         ombul: null,
@@ -28,6 +31,9 @@ export function getLimits() {
         images: null,
         prikks: null,
         lockers: null,
+        moneyPayments: null,
+        moneyDeposits: null,
+        moneyTransfers: null,
     }
 
     const limitsOn = process.env.MIGRATION_WITH_LIMITS !== 'false'

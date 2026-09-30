@@ -4,6 +4,7 @@ import CountDown from '@/components/countDown/CountDown'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import SubmitButton from '@/components/UI/SubmitButton'
+import EventPaymentModal from '@/components/Ledger/Modals/EventPaymentModal'
 import {
     createEventRegistrationAction,
     destroyEventRegistrationAction,
@@ -32,11 +33,15 @@ export default function RegistrationUI({
     event,
     registration,
     dotPunishment,
+    availableBalance,
+    customerSessionClientSecret,
     canRegister,
 }: {
     event: EventExpanded,
-    registration: EventRegistrationWithWaitingList | null,
+    registration: (EventRegistrationWithWaitingList & { ledgerTransactions: { id: number }[] }) | null,
     dotPunishment: DotPunishment | null,
+    availableBalance?: number,
+    customerSessionClientSecret?: string,
     canRegister: boolean,
 }) {
     if (!event.takesRegistration) {
@@ -78,7 +83,7 @@ export default function RegistrationUI({
     }
 
     const [errorText, setErrorText] = useState('')
-    const [registrationState, setRegistrationState] = useState(registration)
+    const [registrationState, setRegistrationState] = useState<EventRegistrationWithWaitingList | null>(registration)
 
     const [btnState, setBtnState] = useState(getInitialBtnState(registration))
     const [btnPending, setBtnPending] = useState(false)
@@ -149,6 +154,18 @@ export default function RegistrationUI({
         setBtnKey(btnKey + 1)
     }
 
+    // Payment only applies once registration is confirmed, not while waitlisted.
+    const now = new Date()
+    const paymentOpen = Boolean(event.price && event.paymentStart && event.paymentEnd) &&
+        event.paymentStart! <= now && now <= event.paymentEnd!
+    const paymentNotYetOpen = Boolean(event.price && event.paymentStart) && event.paymentStart! > now
+    const paymentClosed = Boolean(event.price && event.paymentEnd) && event.paymentEnd! < now
+    // registration (not registrationState) is used here since it reflects payment status as of
+    // the last full page load - any payment action refreshes the page (see refreshOnSuccess on
+    // EventPaymentModal), which re-fetches this from the server.
+    const alreadyPaid = Boolean(registration?.ledgerTransactions.length)
+    const showPayment = Boolean(event.price) && btnState === RegistrationButtonState.REGISTERED && !alreadyPaid
+
     return <>
         <SubmitButton
             success={false}
@@ -194,6 +211,23 @@ export default function RegistrationUI({
 
         {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && (
             <p>Påmeldingen åpner om <CountDown referenceDate={registrationStart} /></p>
+        )}
+
+        {showPayment && event.price && paymentOpen && (
+            <EventPaymentModal
+                eventId={event.id}
+                userId={session.data.user.id}
+                price={event.price}
+                availableBalance={availableBalance}
+                customerSessionClientSecret={customerSessionClientSecret}
+                triggerLabel="Betal for arrangementet"
+            />
+        )}
+        {showPayment && paymentNotYetOpen && (
+            <p>Betaling åpner om <CountDown referenceDate={event.paymentStart!} /></p>
+        )}
+        {showPayment && paymentClosed && (
+            <p>Betalingsperioden er over.</p>
         )}
 
         {dotPunishment?.type === 'ban' && (

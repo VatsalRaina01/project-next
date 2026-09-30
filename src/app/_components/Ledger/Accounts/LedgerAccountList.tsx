@@ -12,21 +12,27 @@ export default function LedgerAccountList() {
         details={{ accountType: 'GROUP' }}
         serverRenderedData={[]}
     >
-        <table className={styles.ledgerAccountListTable}>
-            <thead>
-                <tr>
-                    <th>Navn</th>
-                    <th>Saldo</th>
+        <EndlessScroll
+            pagingContext={LedgerAccountPagingContext}
+            renderer={account =>
+                <tr key={account.id}>
+                    <td><Link href={`accounts/${account.id}`}>{account.name}</Link></td>
+                    <td>{displayAmount(account.balance.amount, false)}</td>
                 </tr>
-            </thead>
-            <tbody>
-                <EndlessScroll pagingContext={LedgerAccountPagingContext} renderer={account =>
-                    <tr key={account.id}>
-                        <td><Link href={`accounts/${account.id}`}>{account.name}</Link></td>
-                        <td>{displayAmount(account.balance.amount, false)}</td>
-                    </tr>
-                }/>
-            </tbody>
-        </table>
+            }
+            wrapper={children =>
+                <table className={styles.ledgerAccountListTable}>
+                    <thead>
+                        <tr>
+                            <th>Navn</th>
+                            <th>Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {children}
+                    </tbody>
+                </table>
+            }
+        />
     </LedgerAccountPagingProvider>
 }
