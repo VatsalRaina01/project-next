@@ -18,7 +18,9 @@ export default async function migrateMailAliases(
         }
     })
 
-    await pnPrisma.mailAlias.deleteMany()
+    await pnPrisma.mailAlias.deleteMany({
+        where: { notificationChannel: { none: {} } },
+    })
     await pnPrisma.mailingList.deleteMany()
     await pnPrisma.mailAddressExternal.deleteMany()
 
@@ -28,7 +30,8 @@ export default async function migrateMailAliases(
             description: a.name,
             createdAt: a.createdAt,
             updatedAt: a.updatedAt,
-        }))
+        })),
+        skipDuplicates: true,
     })
 
 
