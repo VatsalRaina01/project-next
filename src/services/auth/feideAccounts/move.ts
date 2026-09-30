@@ -17,7 +17,12 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
  */
 export async function moveFeideAccountToUser(
     prisma: PrismaClient,
-    { fromUserId, toUserId }: { fromUserId: number, toUserId: number },
+    { fromUserId, toUserId, feideAccountId }: {
+        fromUserId: number,
+        toUserId: number,
+        // When given, the move only happens if this is the Feide account the source user holds.
+        feideAccountId?: string,
+    },
 ): Promise<void> {
     if (fromUserId === toUserId) {
         throw new ServerError('BAD PARAMETERS', 'Kan ikke flytte en Feide-konto til brukeren den allerede er på.')
@@ -35,6 +40,10 @@ export async function moveFeideAccountToUser(
 
         if (!fromUser.feideAccount) {
             throw new ServerError('BAD PARAMETERS', 'Brukeren har ingen Feide-konto å flytte.')
+        }
+
+        if (feideAccountId !== undefined && fromUser.feideAccount.id !== feideAccountId) {
+            throw new ServerError('BAD PARAMETERS', 'Brukeren har ikke lenger denne Feide-kontoen.')
         }
 
         if (fromUser.credentials || fromUser.acceptedTerms) {

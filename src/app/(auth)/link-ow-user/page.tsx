@@ -3,6 +3,7 @@ import LinkOwUserForm from './LinkOwUserForm'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { RequireUser } from '@/auth/authorizer/RequireUser'
+import { verifyLinkFeideAccountTokenAction } from '@/services/auth/actions'
 import { notFound } from 'next/navigation'
 import type { SearchParamsServerSide } from '@/lib/queryParams/types'
 
@@ -15,7 +16,16 @@ export default async function LinkOwUser({ searchParams }: PropTypes) {
     // the linking, so no session is required - the mail may well be opened in another browser
     // than the one that logged in with Feide.
     if (token) {
-        return <ConfirmLinkOwUserForm token={token} />
+        const linkRequest = await verifyLinkFeideAccountTokenAction({ params: { token } })
+
+        if (!linkRequest.success) {
+            return <>
+                <h1>Ops</h1>
+                <p>Lenken er ugyldig eller utløpt. Be om en ny kobling for å prøve igjen.</p>
+            </>
+        }
+
+        return <ConfirmLinkOwUserForm token={token} linkRequest={linkRequest.data} />
     }
 
     const { authorized } = RequireUser.staticFields({}).dynamicFields({}).auth(

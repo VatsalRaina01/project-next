@@ -1,13 +1,16 @@
 import '@pn-server-only'
 
 import { Html } from '@react-email/components'
+import type { FeideIdentity } from '@/services/auth/types'
 import type { UserFiltered } from '@/services/users/types'
 
 export function LinkFeideAccountTemplate({
     user,
+    feideIdentity,
     link,
 }: {
     user: UserFiltered,
+    feideIdentity: FeideIdentity,
     link: string,
 }) {
     return (
@@ -17,13 +20,19 @@ export function LinkFeideAccountTemplate({
             <p>Hei {user.firstname},</p>
 
             <p>
-                Noen (forhåpentligvis du) har logget inn med Feide på Veven og bedt om å koble
-                innloggingen til brukeren {user.username}.
-                Trykk på denne <a href={link}>lenken</a> for å bekrefte koblingen.
-                Lenken blir ugyldig etter 1 time.
+                Feide-innloggingen til <strong>{feideIdentity.name} ({feideIdentity.email})</strong> har
+                bedt om å bli koblet til brukeren din, {user.username}. Hvis du bekrefter, kan
+                denne Feide-innloggingen logge inn som deg.
             </p>
 
-            <p>Hvis dette ikke var deg kan du bare se bort i fra denne e-posten.</p>
+            <p>
+                <strong>Er ikke dette din Feide-innlogging, skal du ikke trykke på lenken.</strong>
+            </p>
+
+            <p>
+                Er det deg, trykker du på denne <a href={link}>lenken</a> for å bekrefte koblingen.
+                Lenken blir ugyldig etter 1 time.
+            </p>
 
             <p>
                 Med vennlig hilsen<br/>

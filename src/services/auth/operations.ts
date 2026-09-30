@@ -12,6 +12,28 @@ import { readJWTPayload } from '@/lib/jwt/jwtReadUnsecure'
 import logger from '@/lib/logger'
 import { z } from 'zod'
 
+const linkFeideAccountClaimsSchema = z.object({
+    sub: z.coerce.number(),
+    feideUserId: z.coerce.number(),
+    feideAccountId: z.string(),
+    feideName: z.string(),
+    feideEmail: z.string(),
+}).transform(({ sub, ...claims }) => ({ targetUserId: sub, ...claims }))
+
+/**
+ * Reads the claims of a link Feide account token. Must only be called after the
+ * token has been verified, which the authorizers of the operations using it do.
+ */
+function readLinkFeideAccountClaims(token: string) {
+    const claims = linkFeideAccountClaimsSchema.safeParse(readJWTPayload(token))
+
+    if (!claims.success) {
+        throw new ServerError('JWT INVALID', 'The JWT does not contain the mandatory fields')
+    }
+
+    return claims.data
+}
+
 export const authOperations = {
     verifyEmail: defineOperation({
         paramsSchema: z.object({
@@ -121,9 +143,11 @@ export const authOperations = {
                 where: { id: session.user.id },
                 select: {
                     id: true,
+                    firstname: true,
+                    lastname: true,
                     acceptedTerms: true,
                     credentials: { select: { userId: true } },
-                    feideAccount: { select: { id: true } },
+                    feideAccount: { select: { id: true, email: true } },
                 },
             })
 
@@ -150,13 +174,41 @@ export const authOperations = {
 
             if (targetUser) {
                 try {
-                    await sendLinkFeideAccountMail(targetUser, feideUser.id)
+                    await sendLinkFeideAccountMail(targetUser, {
+                        userId: feideUser.id,
+                        feideAccountId: feideUser.feideAccount.id,
+                        name: `${feideUser.firstname} ${feideUser.lastname}`,
+                        email: feideUser.feideAccount.email,
+                    })
                 } catch (err) {
                     logger.error(`Failed to send link feide account mail to user '${targetUser.username}'`, { error: err })
                 }
             }
 
             return data.usernameOrEmail
+        }
+    }),
+
+    verifyLinkFeideAccountToken: defineOperation({
+        paramsSchema: z.object({
+            token: z.string(),
+        }),
+        authorizer: ({ params }) => authAuth.verifyLinkFeideAccountToken.dynamicFields(params),
+        operation: async ({ prisma, params }) => {
+            const claims = readLinkFeideAccountClaims(params.token)
+
+            const targetUser = await prisma.user.findUniqueOrThrow({
+                where: { id: claims.targetUserId },
+                select: { username: true },
+            })
+
+            // What is shown comes from the signed claims, so it is exactly the identity the
+            // confirmation moves - not whatever the users look like now.
+            return {
+                targetUsername: targetUser.username,
+                feideName: claims.feideName,
+                feideEmail: claims.feideEmail,
+            }
         }
     }),
 
@@ -167,16 +219,12 @@ export const authOperations = {
         authorizer: ({ params }) => authAuth.linkFeideAccount.dynamicFields(params),
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
-            // INFO: Safe to parse unsafe since the authorizer has verified the token.
-            const payload = readJWTPayload(params.token)
-
-            if (!payload.sub || !payload.feideUserId) {
-                throw new ServerError('JWT INVALID', 'The JWT does not contain the mandatory fields')
-            }
+            const claims = readLinkFeideAccountClaims(params.token)
 
             await moveFeideAccountToUser(prisma, {
-                fromUserId: Number(payload.feideUserId),
-                toUserId: Number(payload.sub),
+                fromUserId: claims.feideUserId,
+                toUserId: claims.targetUserId,
+                feideAccountId: claims.feideAccountId,
             })
         }
     }),

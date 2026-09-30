@@ -6,10 +6,15 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 type PropTypes = {
-    token: string
+    token: string,
+    linkRequest: {
+        targetUsername: string,
+        feideName: string,
+        feideEmail: string,
+    },
 }
 
-export default function ConfirmLinkOwUserForm({ token }: PropTypes) {
+export default function ConfirmLinkOwUserForm({ token, linkRequest }: PropTypes) {
     const [linked, setLinked] = useState(false)
 
     if (linked) {
@@ -30,9 +35,17 @@ export default function ConfirmLinkOwUserForm({ token }: PropTypes) {
         successCallback={() => setLinked(true)}
     >
         <p>
-            Du er i ferd med å koble en Feide-innlogging til den gamle brukeren din fra
-            Omegaveven. Den midlertidige brukeren som ble opprettet ved Feide-innloggingen
-            blir slettet, og du må logge inn med Feide på nytt etterpå.
+            Du er i ferd med å koble Feide-innloggingen til
+            {' '}<strong>{linkRequest.feideName} ({linkRequest.feideEmail})</strong>{' '}
+            til den gamle brukeren din fra Omegaveven, <strong>{linkRequest.targetUsername}</strong>.
+            Etterpå kan denne Feide-innloggingen logge inn som deg.
+        </p>
+        <p>
+            <strong>Er ikke dette din Feide-innlogging, skal du ikke bekrefte.</strong>
+        </p>
+        <p>
+            Den midlertidige brukeren som ble opprettet ved Feide-innloggingen blir slettet,
+            og du må logge inn med Feide på nytt etterpå.
         </p>
     </Form>
 }

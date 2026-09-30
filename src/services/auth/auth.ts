@@ -8,6 +8,7 @@ export const authAuth = {
     resetPassword: RequireJWT.staticFields({ audience: 'resetpassword' }),
     sendResetPasswordEmail: RequireNothing.staticFields({}),
     sendLinkFeideAccountEmail: RequireUser.staticFields({}),
+    verifyLinkFeideAccountToken: RequireJWT.staticFields({ audience: 'linkfeideaccount' }),
     linkFeideAccount: RequireJWT.staticFields({ audience: 'linkfeideaccount' }),
     adminLinkFeideAccount: RequirePermission.staticFields({ permission: 'USERS_UPDATE' }),
 }
