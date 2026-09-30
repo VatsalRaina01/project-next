@@ -1,5 +1,7 @@
 import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
 import { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
+import { upsert } from '@/seeder/src/upsert'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { NotificationMethod } from '@/prisma-generated-pn-types'
 
@@ -12,7 +14,12 @@ type ChannelInfo = {
     alias?: string
 }
 
-export default async function seedNotificationChannels(prisma: PrismaClient) {
+/**
+ * Upserts the notification channels, keyed on special for the special channels and on the unique
+ * name for the rest. An existing channel is left untouched - its methods, alias and description are
+ * edited through the admin pages.
+ */
+export const seedNotificationChannels = defineSeedOperation(async (prisma: PrismaClient) => {
     const specialKeys = new Set(Object.keys(SpecialNotificationChannel) as SpecialNotificationChannel[])
 
     const channels: ChannelInfo[] = [
@@ -167,7 +174,9 @@ export default async function seedNotificationChannels(prisma: PrismaClient) {
     })
 
     if (specialKeys.size) {
-        throw new Error(`Not all special keys are present in the seeding data. Missing: ${specialKeys}`)
+        throw new Error(
+            `Not all special keys are present in the seeding data. Missing: ${Array.from(specialKeys).join(', ')}`
+        )
     }
 
     const DEFAULT_NOTIFCIATION_ALIAS = `noreply@${process.env.EMAIL_DOMAIN}`
@@ -178,60 +187,21 @@ export default async function seedNotificationChannels(prisma: PrismaClient) {
         throw new Error('No ROOT channel found')
     }
 
-    const seedSpecialChannels = new Set<SpecialNotificationChannel>()
-    const specialEnums = Object.keys(SpecialNotificationChannel)
-    for (const channel of channels) {
-        if (channel.special) {
-            if (!specialEnums.includes(channel.special)) {
-                throw new Error(`Invalid special channel type ${channel.special}`)
-            }
-            seedSpecialChannels.add(channel.special)
-        }
-    }
-
-    if (seedSpecialChannels.size !== specialEnums.length) {
-        throw new Error('Missing a least one special notification channel')
-    }
-
-    const rootAvailable = (await prisma.notificationMethod.create({
-        data: rChan.availableMethods
-    })).id
-
-    const rootDefault = (await prisma.notificationMethod.create({
-        data: rChan.defaultMethods
-    })).id
-
-    const rootMailAlias = (await prisma.mailAlias.findUniqueOrThrow({
-        where: {
-            address: DEFAULT_NOTIFCIATION_ALIAS,
-        }
-    })).id
-
-    // The root is its own parent so we need to set its id explicitly.
-    // To do so we find the next available id. This might not be safe in
-    // a highly concurrent environment, but for seeding it should be fine.
-    const availableId = (await prisma.notificationChannel.aggregate({
-        _max: {
-            id: true,
-        },
-    }))._max.id || 1
-
-    await prisma.notificationChannel.create({
-        data: {
-            parentId: availableId,
-            name: rChan.name,
-            description: rChan.description,
-            special: 'ROOT',
-            defaultMethodsId: rootDefault,
-            availableMethodsId: rootAvailable,
-            mailAliasId: rootMailAlias,
-        }
+    await upsert({
+        checkExistance: () => prisma.notificationChannel.findUnique({
+            where: { special: 'ROOT' },
+            select: { id: true },
+        }),
+        create: () => createRootChannel(prisma, rChan, DEFAULT_NOTIFCIATION_ALIAS),
+        update: () => Promise.resolve(),
     })
 
     await Promise.all(channels
         .filter(channel => channel.special !== 'ROOT')
-        .map(channel => prisma.notificationChannel.create({
-            data: {
+        .map(channel => prisma.notificationChannel.upsert({
+            where: channel.special ? { special: channel.special } : { name: channel.name },
+            update: {},
+            create: {
                 name: channel.name,
                 description: channel.description,
                 availableMethods: {
@@ -254,4 +224,38 @@ export default async function seedNotificationChannels(prisma: PrismaClient) {
             }
         }))
     )
+})
+
+async function createRootChannel(prisma: PrismaClient, rChan: ChannelInfo, mailAliasAddress: string) {
+    // The root is its own parent, so its id has to be known before it is inserted. Taking it from
+    // the sequence (rather than guessing max(id) + 1) reserves it, so a later autoincremented
+    // insert can never be handed the same id.
+    // The table is qualified with the same schema the prisma adapter is given (see client.ts): the
+    // adapter qualifies its own queries but leaves search_path alone, so an unqualified name in raw
+    // SQL resolves against public - which is not where the tables are in e.g. the test schemas.
+    const schema = (process.env.DB_SCHEMA ?? 'public').replace(/"/g, '""')
+    const [{ id }] = await prisma.$queryRaw<{ id: bigint }[]>`
+        SELECT nextval(pg_get_serial_sequence(${`"${schema}"."NotificationChannel"`}, 'id')) AS id
+    `
+
+    // Scalar foreign keys throughout, since parentId cannot be given as a connect - the parent
+    // does not exist until this very insert - and prisma will not mix scalar keys with nested writes.
+    const [defaultMethods, availableMethods, mailAlias] = await Promise.all([
+        prisma.notificationMethod.create({ data: rChan.defaultMethods }),
+        prisma.notificationMethod.create({ data: rChan.availableMethods }),
+        prisma.mailAlias.findUniqueOrThrow({ where: { address: mailAliasAddress } }),
+    ])
+
+    return prisma.notificationChannel.create({
+        data: {
+            id: Number(id),
+            parentId: Number(id),
+            name: rChan.name,
+            description: rChan.description,
+            special: 'ROOT',
+            defaultMethodsId: defaultMethods.id,
+            availableMethodsId: availableMethods.id,
+            mailAliasId: mailAlias.id,
+        }
+    })
 }

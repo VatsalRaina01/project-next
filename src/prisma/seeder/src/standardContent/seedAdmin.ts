@@ -2,7 +2,8 @@ import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershi
 import logger from '@/lib/logger'
 import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { Permission } from '@/prisma-generated-pn-types'
-import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
+import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 // The password .env.default ships, plus the obvious neighbours. A production
 // environment that inherited the example file unchanged is refused outright
@@ -16,7 +17,7 @@ const INSECURE_PASSWORDS = ['admin', 'password', 'passord', 'changeme', 'secret'
  * Skipped unless SEED_ADMIN_USERNAME/EMAIL/PASSWORD are all set, so it stays opt-in per
  * environment rather than creating a guessable account on every deployment.
  */
-export default async function seedAdmin(prisma: PrismaClientPn) {
+export const seedAdmin = defineSeedOperation(async (prisma: PrismaClient) => {
     // Lowercased to match the credentials provider, which looks the row up by
     // `credentials.username.toLowerCase()` - a username seeded with any uppercase in
     // it would otherwise never match the row it just wrote, and the account could not
@@ -153,4 +154,4 @@ export default async function seedAdmin(prisma: PrismaClientPn) {
     })
 
     logger.info(`Seeded admin user "${username}"`)
-}
+})

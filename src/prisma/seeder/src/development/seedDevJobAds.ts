@@ -1,8 +1,15 @@
+import { devCompanyName } from './seedDevCompanies'
 import { jobAdOperations } from '@/services/career/jobAds/operations'
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
+import { upsert } from '@/seeder/src/upsert'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { JobType } from '@/prisma-generated-pn-types'
 
-export default async function seedDevJobAds(prisma: PrismaClient) {
+/**
+ * Upserts the dev job ads, all posted by the first dev company. A job ad has no unique key of its
+ * own, so an existing one is recognised by its article name and left untouched.
+ */
+export const seedDevJobAds = defineSeedOperation(async (prisma: PrismaClient) => {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
 
@@ -50,31 +57,42 @@ export default async function seedDevJobAds(prisma: PrismaClient) {
         },
     ]
 
-    for (const jobAd of jobAdData) {
-        const restult = await jobAdOperations.create({
-            prisma,
-            data: {
-                ...jobAd,
-                companyId: 1,
-            },
-            bypassAuth: true,
-        })
+    const company = await prisma.company.findUniqueOrThrow({
+        where: { name: devCompanyName(0) },
+    })
 
-        await prisma.article.update({
-            where: {
-                id: restult.articleId
-            },
-            data: {
-                coverImage: {
-                    update: {
-                        image: {
-                            connect: {
-                                id: image.id
+    await Promise.all(jobAdData.map(jobAd => upsert({
+        checkExistance: () => prisma.jobAd.findFirst({
+            where: { articleName: jobAd.articleName },
+            select: { id: true },
+        }),
+        create: async () => {
+            const createdJobAd = await jobAdOperations.create({
+                data: {
+                    ...jobAd,
+                    companyId: company.id,
+                },
+            })
+
+            // jobAdOperations.create makes the cover CmsImage but has no way to point it at an
+            // actual image, so the image is connected here.
+            await prisma.article.update({
+                where: {
+                    id: createdJobAd.articleId
+                },
+                data: {
+                    coverImage: {
+                        update: {
+                            image: {
+                                connect: {
+                                    id: image.id
+                                }
                             }
                         }
                     }
                 }
-            }
-        })
-    }
-}
+            })
+        },
+        update: () => Promise.resolve(),
+    })))
+})
