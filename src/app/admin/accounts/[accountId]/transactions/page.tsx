@@ -1,3 +1,4 @@
+import styles from './page.module.scss'
 import TransactionList from '@/components/Ledger/Transactions/LedgerTransactionList'
 import { notFound } from 'next/navigation'
 
@@ -14,5 +15,7 @@ export default async function LedgerAccountTransactions({ params }: Props) {
         notFound()
     }
 
-    return <TransactionList accountId={accountId} />
+    return <div className={styles.wrapper}>
+        <TransactionList accountId={accountId} />
+    </div>
 }

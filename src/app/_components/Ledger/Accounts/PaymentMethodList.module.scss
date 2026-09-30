@@ -1,8 +1,10 @@
 @use '@/styles/ohma';
 
 .paymentMethodElement {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(2 * #{ohma.$gap});
 
     border-radius: ohma.$rounding;
     border-width: 2px;
@@ -13,7 +15,12 @@
     padding: calc(2 * #{ohma.$gap});
 
     font-size: ohma.$fonts-l;
-    align-items: center;
+}
+
+.label {
+    display: flex;
+    flex-wrap: wrap;
+    gap: ohma.$gap;
 }
 
 .deletePaymentMethodButton {

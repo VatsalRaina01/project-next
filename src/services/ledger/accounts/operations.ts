@@ -5,10 +5,17 @@ import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { defineOperation } from '@/services/serviceOperation'
 import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
+import { RequireNothing } from '@/auth/authorizer/RequireNothing'
 import { LedgerAccountType } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 import type { LedgerAccount, Prisma } from '@/prisma-generated-pn-types'
-import type { Balance, BalanceRecord } from './types'
+import type { Balance, BalanceRecord, ExpandedLedgerAccount } from './types'
+
+// Resolves the account type the same way `create` below actually persists it, so its
+// authorizer can gate on the type a caller who omitted it will really end up with.
+function resolveCreateType(data: { type?: LedgerAccountType, userId?: number }): LedgerAccountType {
+    return data.type ?? (data.userId !== undefined ? 'USER' : 'GROUP')
+}
 
 // Nested calls between these operations are not bypassed unless noted otherwise: the checks
 // involved are cheap (a session permission, or one indexed lookup), so checking access again
@@ -26,14 +33,23 @@ export const ledgerAccountOperations = {
      * @returns The created account.
      */
     create: defineOperation({
-        authorizer: () => ledgerAccountAuth.create.dynamicFields({}),
+        // A USER account with no group links is a caller creating their own account (LEDGER_USE
+        // is enough - see readOrCreate). A GROUP account, and any create that also links groups
+        // (mirrors update's groupAccess check - see its comment), has no such self-service angle,
+        // so it's admin-only regardless of how `type` was supplied.
+        authorizer: ({ data }) => (
+            resolveCreateType(data) === 'GROUP' || (data.groupIds?.length ?? 0) > 0
+                ? ledgerAccountAuth.create.ledgerAdmin.dynamicFields({})
+                : ledgerAccountAuth.create.ledgerUse.dynamicFields({})
+        ),
         dataSchema: ledgerAccountSchemas.create,
         operation: async ({ prisma, data }): Promise<LedgerAccount> => {
-            const type = data.type ?? (data.userId !== undefined ? 'USER' : 'GROUP')
+            const type = resolveCreateType(data)
 
             return prisma.ledgerAccount.create({
                 data: {
                     type,
+                    name: data.name,
                     userId: data.userId,
                     groups: data.groupIds ? {
                         createMany: {
@@ -71,12 +87,22 @@ export const ledgerAccountOperations = {
             ({ userId, ledgerAccountId }) => userId !== undefined || ledgerAccountId !== undefined,
             'Enten bruker ID eller konto ID må være oppgitt.',
         ),
-        operation: async ({ prisma, params }): Promise<LedgerAccount> => await prisma.ledgerAccount.findFirstOrThrow({
-            where: {
-                id: params.ledgerAccountId,
-                userId: params.userId,
-            },
-        }),
+        operation: async ({ prisma, params }): Promise<ExpandedLedgerAccount> => {
+            const account = await prisma.ledgerAccount.findFirstOrThrow({
+                where: {
+                    id: params.ledgerAccountId,
+                    userId: params.userId,
+                },
+                include: {
+                    groups: { select: { groupId: true } },
+                },
+            })
+
+            return {
+                ...account,
+                groupIds: account.groups.map(group => group.groupId),
+            }
+        },
     }),
 
     /**
@@ -206,11 +232,19 @@ export const ledgerAccountOperations = {
      * @returns The updated account.
      */
     update: defineOperation({
-        authorizer: async ({ params, prisma }) => andAuthorizers(
-            ledgerAccountAuth.update.ledgerUse.dynamicFields({}),
-            ledgerAccountAuth.update.accountAccess.dynamicFields({
-                accounts: [await resolveAccountOwnership(prisma, params)],
-            }),
+        authorizer: async ({ params, data, prisma }) => andAuthorizers(
+            andAuthorizers(
+                ledgerAccountAuth.update.ledgerUse.dynamicFields({}),
+                ledgerAccountAuth.update.accountAccess.dynamicFields({
+                    accounts: [await resolveAccountOwnership(prisma, params)],
+                }),
+            ),
+            // Group links decide who can access the account (RequireLedgerAccountAccess treats
+            // an owning group's members as owners), so changing them needs LEDGER_ADMIN even for
+            // a caller who already owns the account being changed.
+            (data.addGroupIds?.length || data.removeGroupIds?.length)
+                ? ledgerAccountAuth.update.groupAccess.dynamicFields({})
+                : RequireNothing.staticFields({}).dynamicFields({}),
         ),
         paramsSchema: z.object({
             userId: z.number().optional(),
@@ -222,7 +256,7 @@ export const ledgerAccountOperations = {
         dataSchema: ledgerAccountSchemas.update,
         operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
             const account = await ledgerAccountOperations.read({ params })
-            const { groupIds, ...scalarData } = data
+            const { addGroupIds, removeGroupIds, ...scalarData } = data
 
             return prisma.ledgerAccount.update({
                 where: {
@@ -230,15 +264,21 @@ export const ledgerAccountOperations = {
                 },
                 data: {
                     ...scalarData,
-                    // groupIds isn't a real field on the model. It's the groups relation, via
-                    // the GroupLedgerAccount join table. Setting it replaces the account's
-                    // group membership with exactly this list.
-                    ...(groupIds && {
+                    // groups isn't a real field on the model. It's the groups relation, via the
+                    // GroupLedgerAccount join table. deleteMany/createMany only touch the given
+                    // group IDs, rather than replacing the whole relation, so that concurrent
+                    // updates to different groups on the same account don't clobber each other.
+                    ...((addGroupIds?.length || removeGroupIds?.length) && {
                         groups: {
-                            deleteMany: {},
-                            createMany: {
-                                data: groupIds.map(groupId => ({ groupId })),
-                            },
+                            ...(removeGroupIds?.length && {
+                                deleteMany: { groupId: { in: removeGroupIds } },
+                            }),
+                            ...(addGroupIds?.length && {
+                                createMany: {
+                                    data: addGroupIds.map(groupId => ({ groupId })),
+                                    skipDuplicates: true,
+                                },
+                            }),
                         },
                     }),
                 },
