@@ -64,9 +64,10 @@ const SEEDED_CMS_IMAGES_COLLECTION_NAME = 'seeded cms images'
  *
  * 1. standard images, using the standardImageCollection api - note that this is actually not strictly necessary,
  * as the standard images are generated on the fly when requested, if one uses the
- * standardImageCollection api to request them (as one should always do when wanting standard images). Each one
- * is only generated if missing - never regenerated - since standard images can be replaced through the admin
- * image system and this should never overwrite one that already exists.
+ * standardImageCollection api to request them (as one should always do when wanting standard images). Standard
+ * images cannot be edited through the site, so the static config is their only source of truth: a missing one is
+ * generated, and an existing one is brought in line with its config - a changed file in the standard store is
+ * swapped in (keeping the image id), and name, alt, credit and license are overwritten.
  *
  * 2. A set of dynamic images, which are seeded into a dynamic collection. These are used for dynamic cms content
  * which is seeded later on. The collection and its images are likewise only created if missing.
@@ -97,7 +98,9 @@ async function upsertStandardImage(prisma: PrismaClient, standardImage: Standard
         create: () => standardImageCollectionOperations.generateStandardImageFromConfig.internalCall({
             params: { standardImage }
         }),
-        update: () => Promise.resolve(),
+        update: () => standardImageCollectionOperations.updateStandardImageFromConfig.internalCall({
+            params: { standardImage }
+        }),
     })
 }
 

@@ -22,6 +22,7 @@ export const eventAuth = {
     read: RequireLevelFromDoubleLevelVisibilityDynamic.staticFields({ bypassPermission: 'EVENT_ADMIN' }),
     readManyCurrent: RequireVisibilityFilter.staticFields({ bypassPermission: 'EVENT_ADMIN' }),
     readManyArchivedPage: RequireVisibilityFilter.staticFields({ bypassPermission: 'EVENT_ADMIN' }),
+    search: RequireVisibilityFilter.staticFields({ bypassPermission: 'EVENT_ADMIN' }),
 
     update: RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'EVENT_ADMIN' }),
     setPublished:

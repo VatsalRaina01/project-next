@@ -19,3 +19,5 @@ export const updateEventCmsCoverImageAction = makeAction(eventOperations.updateC
 export const readEventDoubleLevelVisibilityAction = makeAction(eventOperations.visibility.readDoubleLevelMatrix)
 export const updateEventRegularLevelVisibilityAction = makeAction(eventOperations.visibility.updateRegularLevel)
 export const updateEventAdminLevelVisibilityAction = makeAction(eventOperations.visibility.updateAdminLevel)
+
+export const searchEventsAction = makeAction(eventOperations.search)

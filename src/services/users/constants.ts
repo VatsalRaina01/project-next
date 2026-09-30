@@ -4,6 +4,8 @@ import type { Prisma, User, SEX } from '@/prisma-generated-pn-types'
 
 export const maxNumberOfGroupsInFilter = 7
 
+export const defaultSearchResultLimit = 5
+
 // TODO: This needs to be divived into seperate filters, depending on how much information is needed
 export const userFieldsToExpose = [
     'id',

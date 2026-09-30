@@ -12,6 +12,7 @@ export const userAuth = {
     read: RequireUserFieldOrPermission.staticFields({ permission: 'USERS_READ' }),
     readOrNull: RequireUserFieldOrPermission.staticFields({ permission: 'USERS_READ' }),
     readPage: RequirePermission.staticFields({ permission: 'USERS_READ' }),
+    search: RequirePermission.staticFields({ permission: 'USERS_READ' }),
     create: RequirePermission.staticFields({ permission: 'USERS_CREATE' }),
     connectStudentCard: RequireUser.staticFields({}),
     registerNewEmail: RequireUserIdOrPermission.staticFields({ permission: 'USERS_UPDATE' }),

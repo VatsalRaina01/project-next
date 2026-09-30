@@ -6,7 +6,10 @@ import useKeyPress from '@/hooks/useKeyPress'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import { useDebounce } from '@/hooks/useDebounce'
 import getNavItems from '@/components/NavBar/navDef'
-import { searchUsersAction, searchEventsAction } from '@/services/search/actions'
+import { searchEventsAction } from '@/services/events/actions'
+import { searchUsersAction } from '@/services/users/actions'
+import { userAuth } from '@/services/users/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { displayDate } from '@/lib/dates/displayDate'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -57,7 +60,10 @@ const categoryOptions: { value: Category, label: string }[] = [
 export default function GlobalSearch({ profile }: PropTypes) {
     const isLoggedIn = profile !== null
     const isAdmin = profile?.user.username === 'harambe'
-    const availableCategories = isLoggedIn ? categoryOptions : categoryOptions.slice(0, 2)
+    const canSearchUsers = useAuthorizer({ authorizer: userAuth.search.dynamicFields({}) }).authorized
+    const availableCategories = canSearchUsers
+        ? categoryOptions
+        : categoryOptions.filter(option => option.value !== 'users')
 
     const [isOpen, setIsOpen] = useState(false)
     const [category, setCategory] = useState<Category>('all')
@@ -106,17 +112,17 @@ export default function GlobalSearch({ profile }: PropTypes) {
     }, [isOpen])
 
     useEffect(() => {
-        if (!isLoggedIn || !debouncedQuery) return undefined
+        if (!debouncedQuery) return undefined
 
         let cancelled = false
         const limit = category === 'all' ? undefined : 20
 
         Promise.all([
-            searchUsersAction({ params: { query: debouncedQuery, limit } }),
+            canSearchUsers ? searchUsersAction({ params: { query: debouncedQuery, limit } }) : null,
             searchEventsAction({ params: { query: debouncedQuery, limit } }),
         ]).then(([usersResult, eventsResult]) => {
             if (cancelled) return
-            setUserResults(usersResult.success ? usersResult.data : [])
+            setUserResults(usersResult?.success ? usersResult.data : [])
             setEventResults(eventsResult.success ? eventsResult.data : [])
             setLoading(false)
         })
@@ -124,7 +130,7 @@ export default function GlobalSearch({ profile }: PropTypes) {
         return () => {
             cancelled = true
         }
-    }, [debouncedQuery, category, isLoggedIn])
+    }, [debouncedQuery, category, canSearchUsers])
 
     const navItems = useMemo(() => getNavItems(isLoggedIn, isAdmin, false), [isLoggedIn, isAdmin])
 
@@ -178,7 +184,7 @@ export default function GlobalSearch({ profile }: PropTypes) {
         setActiveIndex(0)
         updateDebouncedQuery(value)
         if (value.trim()) {
-            if (isLoggedIn) setLoading(true)
+            setLoading(true)
         } else {
             setDebouncedQuery('')
             setUserResults([])
@@ -190,7 +196,7 @@ export default function GlobalSearch({ profile }: PropTypes) {
     const handleCategoryChange = (value: Category) => {
         setCategory(value)
         setActiveIndex(0)
-        if (isLoggedIn && debouncedQuery) setLoading(true)
+        if (debouncedQuery) setLoading(true)
         // ModeSwitch's tab buttons take focus on click, which would otherwise leave the
         // arrow-key/Enter handling on the input dead until the user clicks back into it.
         inputRef.current?.focus()
