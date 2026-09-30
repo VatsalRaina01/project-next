@@ -11,4 +11,9 @@
         aspect-ratio: 1;
         object-fit: cover;
     }
+
+    .standardImage {
+        object-fit: contain;
+        padding: 12%;
+    }
 }
