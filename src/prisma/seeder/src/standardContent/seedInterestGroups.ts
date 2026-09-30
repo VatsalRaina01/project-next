@@ -1,3 +1,5 @@
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
+import { upsert } from '@/seeder/src/upsert'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 const interestGroups: {
@@ -82,34 +84,46 @@ const interestGroups: {
     },
 ]
 
-export default async function seedInterestGroups(prisma: PrismaClient) {
-    const order = await prisma.omegaOrder.findFirstOrThrow({
+/**
+ * Upserts the interest groups given by the config. InterestGroup.name is not unique, so an existing
+ * group is matched on name and left untouched - its article section, members and pensioned state
+ * are all edited through the site, and a seed run should not undo that.
+ */
+export const seedInterestGroups = defineSeedOperation(async (prisma: PrismaClient) => {
+    const { order } = await prisma.omegaOrder.findFirstOrThrow({
         orderBy: {
             order: 'desc'
         },
     })
 
-    await Promise.all(interestGroups.map(group => prisma.interestGroup.create({
-        data: {
-            name: group.name,
-            articleSection: {
-                create: {
-                    cmsImage: { create: {} },
-                    cmsParagraph: { create: {} },
-                    cmsLink: {
-                        create: {
-                            url: group.url,
-                            text: 'Facebookgruppe'
-                        }
-                    },
-                }
-            },
-            group: {
-                create: {
-                    groupType: 'INTEREST_GROUP',
-                    order: order.order,
+    await Promise.all(interestGroups.map(group => upsert({
+        checkExistance: () => prisma.interestGroup.findFirst({
+            where: { name: group.name },
+            select: { id: true },
+        }),
+        create: () => prisma.interestGroup.create({
+            data: {
+                name: group.name,
+                articleSection: {
+                    create: {
+                        cmsImage: { create: {} },
+                        cmsParagraph: { create: {} },
+                        cmsLink: {
+                            create: {
+                                url: group.url,
+                                text: 'Facebookgruppe'
+                            }
+                        },
+                    }
                 },
-            },
-        }
+                group: {
+                    create: {
+                        groupType: 'INTEREST_GROUP',
+                        order,
+                    },
+                },
+            }
+        }),
+        update: () => Promise.resolve(),
     })))
-}
+})

@@ -1,4 +1,5 @@
 import { ClassLevel } from '@/prisma-generated-pn-types'
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 const standardStudyProgrammes = [
@@ -31,7 +32,7 @@ const standardStudyProgrammes = [
  * Study programmes follow omega's order, so they are always seeded into - and brought up to - the
  * current order. One left behind in an earlier order would block omega from incrementing.
  */
-export default async function seedStudyProgramme(prisma: PrismaClient) {
+export const seedStudyProgrammes = defineSeedOperation(async (prisma: PrismaClient) => {
     const { order } = await prisma.omegaOrder.findFirstOrThrow({
         orderBy: {
             order: 'desc',
@@ -56,4 +57,4 @@ export default async function seedStudyProgramme(prisma: PrismaClient) {
             }
         }
     })))
-}
+})
