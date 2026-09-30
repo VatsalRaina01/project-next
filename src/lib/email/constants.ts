@@ -8,6 +8,13 @@ export const DEFAULT_NOTIFICATION_ALIAS = `noreply@${process.env.EMAIL_DOMAIN}`
 const port = Number(process.env.EMAIL_PORT) || 587
 const secure = process.env.EMAIL_SECURE === 'true'
 
+// The .env.default placeholder for unfilled-in secrets - treated the same as unset.
+const UNSET_PLACEHOLDER = '<INSERT>'
+const emailUser = process.env.EMAIL_USER
+const emailPassword = process.env.EMAIL_PASSWORD
+const hasAuth = Boolean(emailUser) && emailUser !== UNSET_PLACEHOLDER
+    && Boolean(emailPassword) && emailPassword !== UNSET_PLACEHOLDER
+
 // This configuration is only used in production. Otherwise ethereal is used.
 export const TRANSPORT_OPTIONS: SMTPPool.Options = {
     pool: true,
@@ -17,10 +24,10 @@ export const TRANSPORT_OPTIONS: SMTPPool.Options = {
     secure,
     // Only STARTTLS on non-implicit-TLS ports - secure:true (465) already encrypts from connect.
     ...(secure ? {} : { requireTLS: true }),
-    ...(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD ? {
+    ...(hasAuth ? {
         auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD,
+            user: emailUser,
+            pass: emailPassword,
         },
     } : {}),
 }
