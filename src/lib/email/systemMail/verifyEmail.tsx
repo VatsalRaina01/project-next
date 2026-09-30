@@ -15,7 +15,7 @@ export async function sendVerifyEmail(user: UserFiltered, email: string) {
         sub: user.id,
     }, emailValidationExpiration)
 
-    const link = `${process.env.SERVER_LINK_PREFIX}/verify-email?token=${jwt}`
+    const link = `${process.env.WEBSITE_URL}/verify-email?token=${jwt}`
 
     await sendSystemMail(parse.email, 'Bekreft e-post', <VerifyEmailTemplate user={user} link={link} />)
 }

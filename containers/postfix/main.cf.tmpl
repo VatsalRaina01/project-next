@@ -1,7 +1,7 @@
 # See /usr/share/postfix/main.cf.dist for a commented, more complete version
 
 # The hostname of the machine
-myhostname = {{ .Env.MY_HOSTNAME }}
+myhostname = {{ .Env.EMAIL_HOSTNAME }}
 
 # Debian specific:  Specifying a file name will cause the first
 # line of that file to be used as the name.  The Debian default
@@ -38,14 +38,14 @@ smtpd_use_tls=no
 #smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
 
 # The domain of the mails
-mydomain = {{ .Env.MY_DOMAIN }}
+mydomain = {{ .Env.WEBSITE_DOMAIN }}
 
 # Dette tror jeg bare gjelder hvis mailen skal hit
 alias_maps = pgsql:/etc/postfix/pgsql-aliases.cf  
 alias_database = pgsql:/etc/postfix/pgsql-aliases.cf 
 
 # Denne er veldig viktig
-relayhost = {{ .Env.RELAY_HOST }}
+relayhost = {{ .Env.EMAIL_RELAY_HOST }}
 
 # Dette er den viktige pekeren, som sorger for at mail blir videresendt
 virtual_alias_maps = pgsql:/etc/postfix/pgsql-aliases.cf

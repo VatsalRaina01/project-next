@@ -12,9 +12,10 @@ import type { UserFiltered } from '@/services/users/types'
 
 type PropTypes = {
     user: UserFiltered
+    emailDomain?: string
 }
 
-export default function UserProfileSettingsForm({ user } : PropTypes) {
+export default function UserProfileSettingsForm({ user, emailDomain } : PropTypes) {
     const sexOptions = Object.values(SEX).map(sex => ({
         value: sex,
         label: sexConfig[sex].label
@@ -31,7 +32,7 @@ export default function UserProfileSettingsForm({ user } : PropTypes) {
             submitText="Lagre"
             action={configureAction(updateUserProfileAction, { params: { username: user.username } })}
         >
-            <p>Har du andre brukerinstillinger du ønsker å endre? Kontakt HS på hs@omega.ntnu.no</p>
+            <p>Har du andre brukerinstillinger du ønsker å endre? Kontakt HS på hs@{emailDomain}</p>
             <TextInput label="Allergier / diett" name="allergies" defaultValue={user.allergies || ''} />
             <Dropdown
                 label="Kjønn"
