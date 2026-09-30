@@ -58,7 +58,7 @@ export const purchaseOperations = {
                 select: { ledgerAccountId: true },
             })
             if (!shop.ledgerAccountId) {
-                throw new ServerError('SERVER ERROR', 'Denne butikken har ingen tilknyttet konto.')
+                throw new ServiceError('SERVER ERROR', 'Denne butikken har ingen tilknyttet konto.')
             }
 
             // Find the price of the different products
@@ -135,7 +135,7 @@ export const purchaseOperations = {
                 })
 
                 if (transaction.state === 'FAILED') {
-                    throw new ServerError(
+                    throw new ServiceError(
                         'BAD PARAMETERS',
                         transaction.reason ?? 'Kjøpet kunne ikke fullføres.'
                     )
