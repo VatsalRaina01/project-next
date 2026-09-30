@@ -101,6 +101,9 @@ export const imageSchemas = {
         imageLicenseId: true,
         imageCredit: true,
     }),
+    replaceImageFile: baseSchema.pick({
+        imageFile: true,
+    }),
     updateImageMeta: baseSchema.partial().pick({
         imageName: true,
         imageAlt: true,
