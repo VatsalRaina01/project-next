@@ -27,6 +27,7 @@
     "dev-seed": "(if [ ! -d './node_modules/.prisma-dobbel-omega' ]; then npm run dobbelOmega:generate; fi) && npm run seed && npm run dev",
     "migrate:dev": "npx prisma migrate dev",
     "migrate:deploy": "npx prisma migrate deploy",
+    "migrate:deploy-and-seed": "npm run migrate:deploy && npm run seed:data",
     "prisma-studio": "DB_URI=\"postgresql://user:password@localhost/devdb\" npx prisma studio"
   },
   "dependencies": {
