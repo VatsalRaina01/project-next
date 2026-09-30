@@ -9,9 +9,15 @@ type PropTypes = {
 }
 
 export default function ProfilePicture({ profileImage, width, className }: PropTypes) {
+    const isStandardProfileImage = profileImage.standardImage === 'DEFAULT_PROFILE_IMAGE'
+
     return (
         <div className={styles.ProfilePicture}>
-            <Image className={`${styles.image} ${className ?? ''}`} image={profileImage} width={width}/>
+            <Image
+                className={`${styles.image} ${isStandardProfileImage ? styles.standardImage : ''} ${className ?? ''}`}
+                image={profileImage}
+                width={width}
+            />
         </div>
     )
 }
