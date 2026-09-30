@@ -126,7 +126,7 @@ It is separate because the two directions of mail need different things from the
 Deploying it:
 
 1. Create a Dokploy application built from `containers/postfix/`, attached to `dokploy-network` so it can reach the database resource.
-2. Give it `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (the alias lookups read the same database as the app), plus `MY_HOSTNAME` (`MAIL_DOMAIN`), `MY_DOMAIN` (`DOMAIN`) and `RELAY_HOST` (`MAIL_RELAY_HOST`).
+2. Give it `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (the alias lookups read the same database as the app), plus `EMAIL_HOSTNAME`, `WEBSITE_DOMAIN` and `EMAIL_RELAY_HOST`.
 3. Expose port 25 on the host and point the mail domain's MX record at it.
 4. Provision a certificate for the mail domain and turn `smtpd_use_tls` back on in `containers/postfix/main.cf.tmpl`. It is `no` there because the old certbot flow lived in the nginx container that this setup removed, and pointing Postfix at cert files that don't exist stops it from starting. Inbound SMTP on a published port should not stay plaintext.
 

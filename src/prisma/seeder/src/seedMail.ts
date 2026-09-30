@@ -2,7 +2,7 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 
 export default async function seedMail(prisma: PrismaClient) {
-    const DOMAIN = '@omega.ntnu.no'
+    const DOMAIN = `@${process.env.EMAIL_DOMAIN}`
 
     const otherAliases = [
         'noreply',

@@ -16,7 +16,7 @@ export async function sendUserInvitationEmail(user: UserFiltered) {
 
     await sendSystemMail(
         user.email,
-        `Invitasjon til ${process.env.DOMAIN}`,
+        `Invitasjon til ${process.env.WEBSITE_DOMAIN}`,
         <UserInvitationTemplate user={user} link={link} />
     )
 }

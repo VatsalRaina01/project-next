@@ -3,7 +3,7 @@ import '@pn-server-only'
 import type SMTPPool from 'nodemailer/lib/smtp-pool'
 
 
-export const DEFAULT_NOTIFICATION_ALIAS = 'noreply@omega.ntnu.no'
+export const DEFAULT_NOTIFICATION_ALIAS = `noreply@${process.env.EMAIL_DOMAIN}`
 
 const port = Number(process.env.MAIL_PORT) || 587
 const secure = process.env.MAIL_SECURE === 'true'

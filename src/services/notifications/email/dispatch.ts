@@ -41,7 +41,7 @@ export async function dispatchEmailNotifications(
             html: await wrapInHTML(user, parsed.text),
             list: {
                 unsubscribe: {
-                    url: `https://${process.env.DOMAIN}/users/${user.username}/unsubscribe`,
+                    url: `https://${process.env.WEBSITE_DOMAIN}/users/${user.username}/unsubscribe`,
                     comment: 'Comment'
                 },
             }

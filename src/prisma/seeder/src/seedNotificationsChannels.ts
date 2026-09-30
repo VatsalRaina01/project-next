@@ -170,7 +170,7 @@ export default async function seedNotificationChannels(prisma: PrismaClient) {
         throw new Error(`Not all special keys are present in the seeding data. Missing: ${specialKeys}`)
     }
 
-    const DEFAULT_NOTIFCIATION_ALIAS = 'noreply@omega.ntnu.no'
+    const DEFAULT_NOTIFCIATION_ALIAS = `noreply@${process.env.EMAIL_DOMAIN}`
 
     const rChan = channels.find(channel => channel.special === 'ROOT')
 
@@ -248,7 +248,7 @@ export default async function seedNotificationChannels(prisma: PrismaClient) {
                 },
                 mailAlias: {
                     connect: {
-                        address: channel.alias ? `${channel.alias}@omega.ntnu.no` : DEFAULT_NOTIFCIATION_ALIAS,
+                        address: channel.alias ? `${channel.alias}@${process.env.EMAIL_DOMAIN}` : DEFAULT_NOTIFCIATION_ALIAS,
                     }
                 }
             }
