@@ -1,3 +1,4 @@
+import PageTitleSetter from '@/contexts/PageTitleSetter'
 import Form from '@/components/Form/Form'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { configureAction } from '@/services/configureAction'
@@ -15,8 +16,8 @@ export default async function ConnectStucentCard({ params }: { params: Promise<{
 
 
     return <PageWrapper
-        title="Registrert Student Kort"
     >
+        <PageTitleSetter title="Registrert Student Kort" />
         <p>Trykk på knappen under for å registrere kortet ditt: <b>{cardParsed}</b></p>
 
         <Form

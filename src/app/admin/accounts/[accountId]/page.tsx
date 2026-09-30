@@ -1,34 +1,35 @@
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOverviewCard'
 import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
-import { readLedgerAccountAction } from '@/services/ledger/accounts/actions'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { serverPage } from '@/app/serverPage'
 import { notFound } from 'next/navigation'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type Props = {
-    params: Promise<{
-        accountId: string,
-    }>,
-}
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ accountId: string }>) => {
+        const accountId = Number(params.accountId)
 
-export default async function LedgerAccount({ params }: Props) {
-    const accountId = Number((await params).accountId)
+        if (!accountId) {
+            notFound()
+        }
 
-    if (!accountId) {
-        notFound()
-    }
+        return ledgerAccountOperations.read({ params: { ledgerAccountId: accountId } })
+    },
+    render: ({ data: ledgerAccount }) => (
+        <div>
+            <LedgerAccountOverview
+                ledgerAccount={ledgerAccount}
+                showDepositButton
+                depositPaymentMethods={['MANUAL']}
+                showPayoutButton
+                showDeactivateButton
+                showFees
+            />
+            {/* Add link to products overview */}
+            <LedgerAccountTransactionSummary transactionsHref={`${ledgerAccount.id}/transactions`} />
+        </div>
+    ),
+})
 
-    const ledgerAccount = unwrapActionReturn(await readLedgerAccountAction({ params: { ledgerAccountId: accountId } }))
-
-    return <div>
-        <LedgerAccountOverview
-            ledgerAccount={ledgerAccount}
-            showDepositButton
-            depositPaymentMethods={['MANUAL']}
-            showPayoutButton
-            showDeactivateButton
-            showFees
-        />
-        {/* Add link to products overview */}
-        <LedgerAccountTransactionSummary transactionsHref={`${accountId}/transactions`} />
-    </div>
-}
+export default page
+export { generateMetadata }

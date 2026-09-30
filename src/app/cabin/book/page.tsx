@@ -1,19 +1,18 @@
 import StateWrapper from './stateWrapper'
 import SpecialCmsParagraph from '@/app/_components/Cms/CmsParagraph/SpecialCmsParagraph'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { default as DateComponent } from '@/components/Date/Date'
 import {
-    readCabinAvailabilityAction,
     readSpecialCmsParagraphCabinContractAction,
     updateSpecialCmsParagraphCabinContractAction
 } from '@/services/cabin/booking/actions'
-import { readCabinProductsActiveAction } from '@/services/cabin/product/actions'
-import { readPublicPricePeriodsAction } from '@/services/cabin/pricePeriod/actions'
-import { readReleasePeriodsAction } from '@/services/cabin/releasePeriod/actions'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { cabinBookingOperations } from '@/services/cabin/booking/operations'
+import { cabinProductOperations } from '@/services/cabin/product/operations'
+import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
+import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { displayDate } from '@/lib/dates/displayDate'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
+import { serverPage } from '@/app/serverPage'
 import type { ReleasePeriod } from '@/prisma-generated-pn-types'
 
 function findCurrentReleasePeriod(releasePeriods: ReleasePeriod[]) {
@@ -36,51 +35,59 @@ function findNextReleasePeriod(releasePeriods: ReleasePeriod[]) {
     return filtered[0]
 }
 
-export default async function CabinBooking() {
-    const cabinAvailability = unwrapActionReturn(await readCabinAvailabilityAction())
-    const releasePeriods = unwrapActionReturn(await readReleasePeriodsAction())
-    const releaseUntil = findCurrentReleasePeriod(releasePeriods)
-    const nextReleasePeriod = findNextReleasePeriod(releasePeriods)
-    const pricePeriods = unwrapActionReturn(await readPublicPricePeriodsAction())
-    const cabinProducts = unwrapActionReturn(await readCabinProductsActiveAction())
+const { page, generateMetadata } = serverPage({
+    operation: async () => {
+        const [cabinAvailability, releasePeriods, pricePeriods, cabinProducts] = await Promise.all([
+            cabinBookingOperations.readAvailability({}),
+            cabinReleasePeriodOperations.readMany({}),
+            cabinPricePeriodOperations.readPublicPeriods({}),
+            cabinProductOperations.readActive({}),
+        ])
+        return { cabinAvailability, releasePeriods, pricePeriods, cabinProducts }
+    },
+    authCheckers: {
+        canBookCabin: () => cabinBookingAuth.createCabinBookingNoUser.dynamicFields({}),
+        canBookBed: () => cabinBookingAuth.createBedBookingNoUser.dynamicFields({}),
+        canEditSpecialCmsParagraphContract: () =>
+            cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract.dynamicFields({}),
+    },
+    metadata: () => ({ title: 'Heutte Booking' }),
+    render: ({ data, authChecks }) => {
+        const releaseUntil = findCurrentReleasePeriod(data.releasePeriods)
+        const nextReleasePeriod = findNextReleasePeriod(data.releasePeriods)
 
-    const session = await ServerSession.fromNextAuth()
-    const canBookCabin = cabinBookingAuth.createCabinBookingNoUser.dynamicFields({}).auth(session)
-    const canBookBed = cabinBookingAuth.createBedBookingNoUser.dynamicFields({}).auth(session)
-    const canEditSpecialCmsParagraphContract = cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract.dynamicFields(
-        {}
-    ).auth(
-        session
-    ).toJsObject()
+        return <PageWrapper>
+            {nextReleasePeriod &&
+                <p>
+                    Neste slipptid er <DateComponent date={nextReleasePeriod.releaseTime} />,
+                    da slippes bookinger fram til <DateComponent date={nextReleasePeriod.releaseUntil} />
+                </p>
+            }
+            {data.pricePeriods.length > 1 &&
+                <p>
+                    Nye priser fra: {
+                        data.pricePeriods.slice(1).map(period => displayDate(period.validFrom, false)).join(', ')
+                    }
+                </p>
+            }
+            <StateWrapper
+                cabinAvailability={data.cabinAvailability}
+                releaseUntil={releaseUntil}
+                cabinProducts={data.cabinProducts}
+                canBookCabin={authChecks.canBookCabin.authorized}
+                canBookBed={authChecks.canBookBed.authorized}
+                pricePeriods={data.pricePeriods}
+            />
 
-    return <PageWrapper
-        title="Heutte Booking"
-    >
-        {nextReleasePeriod &&
-            <p>
-                Neste slipptid er <DateComponent date={nextReleasePeriod.releaseTime} />,
-                da slippes bookinger fram til <DateComponent date={nextReleasePeriod.releaseUntil} />
-            </p>
-        }
-        {pricePeriods.length > 1 &&
-            <p>
-                Nye priser fra: {pricePeriods.slice(1).map(period => displayDate(period.validFrom, false)).join(', ')}
-            </p>
-        }
-        <StateWrapper
-            cabinAvailability={cabinAvailability}
-            releaseUntil={releaseUntil}
-            cabinProducts={cabinProducts}
-            canBookCabin={canBookCabin.authorized}
-            canBookBed={canBookBed.authorized}
-            pricePeriods={pricePeriods}
-        />
+            <SpecialCmsParagraph
+                canEdit={authChecks.canEditSpecialCmsParagraphContract.toJsObject()}
+                special="CABIN_CONTRACT"
+                readSpecialCmsParagraphAction={readSpecialCmsParagraphCabinContractAction}
+                updateCmsParagraphAction={updateSpecialCmsParagraphCabinContractAction}
+            />
+        </PageWrapper>
+    },
+})
 
-        <SpecialCmsParagraph
-            canEdit={canEditSpecialCmsParagraphContract}
-            special="CABIN_CONTRACT"
-            readSpecialCmsParagraphAction={readSpecialCmsParagraphCabinContractAction}
-            updateCmsParagraphAction={updateSpecialCmsParagraphCabinContractAction}
-        />
-    </PageWrapper>
-}
+export default page
+export { generateMetadata }

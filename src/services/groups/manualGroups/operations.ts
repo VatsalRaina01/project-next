@@ -9,9 +9,9 @@ import {
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { GroupType } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
+import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 const commonGroupOperations = implementGroupType({
     type: GroupType.MANUAL_GROUP,

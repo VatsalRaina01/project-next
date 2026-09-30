@@ -19,6 +19,17 @@ export type SearchParams = { [key: string]: string | string[] | undefined }
 
 export type ServerPageSession = Session<'HAS_USER'> | Session<'NO_USER'>
 
+/**
+ * The arguments a serverPage operation receives. Pages with route params annotate their
+ * operation callback with this to declare the params' shape:
+ * `operation: async ({ params }: PageOperationArgs<{ id: string }>) => ...`
+ */
+export type PageOperationArgs<Params extends object = object> = {
+    params: Params,
+    searchParams: SearchParams,
+    session: ServerPageSession,
+}
+
 type PageProps<Params extends object> = {
     params: Promise<Params>,
     searchParams: Promise<SearchParams>,
@@ -42,23 +53,29 @@ export type AuthChecks<CheckerKeys extends `can${string}`> = Record<
  * conventional treatment: NOT FOUND renders the not-found page and UNAUTHENTICATED sends
  * the user to login. Every other service error is returned for the caller to display.
  */
-async function handleServiceError(error: unknown): Promise<Smorekopp<ErrorCode | AuthStatus>> {
+export async function handleServiceError(error: unknown): Promise<Smorekopp<ErrorCode | AuthStatus>> {
     unstableRethrow(error)
     if (!(error instanceof Smorekopp)) throw error
     if (error.errorCode === 'NOT FOUND') notFound()
-    if (error.errorCode === 'UNAUTHENTICATED') redirect(await loginUrl())
+    if (error.errorCode === 'UNAUTHENTICATED') redirect(await urlWithCallback('/login'))
+    if (error.errorCode === 'UNAUTHORIZED') {
+        // A user who has not accepted the terms yet is not turned away but sent to finish
+        // registration - the same rule redirectOnUnauthorized enforced.
+        const session = await ServerSession.fromNextAuth()
+        if (session.user && !session.user.acceptedTerms) redirect(await urlWithCallback('/register'))
+    }
     return error
 }
 
 /**
- * The login url with the current page as callbackUrl, so the user lands back where they
- * were after logging in. The current path comes from the header stamped by the proxy
+ * The given url with the current page as callbackUrl, so the user lands back where they
+ * were once they are through it. The current path comes from the header stamped by the proxy
  * (src/proxy.ts) - a server component cannot read its own URL. Should the header be
- * missing, the plain login page is used.
+ * missing, the plain url is used.
  */
-async function loginUrl() {
+async function urlWithCallback(url: string) {
     const currentPath = (await headers()).get(CURRENT_PATH_HEADER)
-    return currentPath ? `/login?callbackUrl=${encodeURIComponent(currentPath)}` : '/login'
+    return currentPath ? `${url}?callbackUrl=${encodeURIComponent(currentPath)}` : url
 }
 
 /**
@@ -111,7 +128,7 @@ export function serverPage<
     Data,
     CheckerKeys extends `can${string}` = never,
 >({ operation, authCheckers, metadata, render }: {
-    operation: (args: { params: Params, searchParams: SearchParams, session: ServerPageSession }) => Promise<Data>,
+    operation: (args: PageOperationArgs<Params>) => Promise<Data>,
     authCheckers?: Record<CheckerKeys, (data: Data) => AuthCheckerBound>,
     metadata?: (data: Data) => Metadata,
     render: (args: {
@@ -119,7 +136,10 @@ export function serverPage<
         authChecks: AuthChecks<CheckerKeys>,
         session: ServerPageSession,
     }) => ReactNode | Promise<ReactNode>,
-}) {
+}): {
+    page: (props: PageProps<Params>) => Promise<ReactNode>,
+    generateMetadata: (props: PageProps<Params>) => Promise<Metadata>,
+} {
     // The operation must run at most once per request even though both the page and
     // generateMetadata need its result. React `cache` memoizes per request, but only on
     // argument identity - and Next does not guarantee that the page and generateMetadata
@@ -207,4 +227,18 @@ export async function withFallback<Data, Fallback>(
         if (error instanceof Smorekopp) return fallbackValue
         throw error
     }
+}
+
+/**
+ * For server components that are not pages (layouts, cards rendered inside a page's tree):
+ * loads the session of the request and runs the callback inside a service context seeded
+ * with it, so service operations called within pick the session up automatically - the same
+ * environment a serverPage operation runs in. Errors are not handled here; catch them with
+ * {@link handleServiceError} and render `ServiceErrorView`, or let them hit the error boundary.
+ */
+export async function withPageSession<Result>(
+    callback: (session: ServerPageSession) => Promise<Result>
+): Promise<Result> {
+    const session = await ServerSession.fromNextAuth()
+    return withServiceContext({ session }, false, () => callback(session))
 }

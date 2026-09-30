@@ -17,10 +17,10 @@ import { standardImageCollectionOperations } from '@/services/images/standard/op
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { ServiceError } from '@/services/error'
 import { GroupType } from '@/prisma-generated-pn-types'
-import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
-import type { Prisma } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { z } from 'zod'
+import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { Prisma } from '@/prisma-generated-pn-types'
 
 async function readDefaultCommitteeLogo() {
     return standardImageCollectionOperations.readStandardImage({

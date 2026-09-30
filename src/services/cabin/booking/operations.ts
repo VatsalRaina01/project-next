@@ -12,9 +12,9 @@ import { sendSystemMail } from '@/lib/email/send'
 import { notificationOperations } from '@/services/notifications/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { BookingType } from '@/prisma-generated-pn-types'
+import logger from '@/lib/logger'
 import { z } from 'zod'
 import type { CabinProductExtended } from '@/services/cabin/product/constants'
-import logger from '@/lib/logger'
 
 const mailData = {
     title: 'Bekreftelse på hyttebooking',
