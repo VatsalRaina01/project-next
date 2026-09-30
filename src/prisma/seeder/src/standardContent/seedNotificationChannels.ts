@@ -230,8 +230,12 @@ async function createRootChannel(prisma: PrismaClient, rChan: ChannelInfo, mailA
     // The root is its own parent, so its id has to be known before it is inserted. Taking it from
     // the sequence (rather than guessing max(id) + 1) reserves it, so a later autoincremented
     // insert can never be handed the same id.
+    // The table is qualified with the same schema the prisma adapter is given (see client.ts): the
+    // adapter qualifies its own queries but leaves search_path alone, so an unqualified name in raw
+    // SQL resolves against public - which is not where the tables are in e.g. the test schemas.
+    const schema = (process.env.DB_SCHEMA ?? 'public').replace(/"/g, '""')
     const [{ id }] = await prisma.$queryRaw<{ id: bigint }[]>`
-        SELECT nextval(pg_get_serial_sequence('"NotificationChannel"', 'id')) AS id
+        SELECT nextval(pg_get_serial_sequence(${`"${schema}"."NotificationChannel"`}, 'id')) AS id
     `
 
     // Scalar foreign keys throughout, since parentId cannot be given as a connect - the parent
