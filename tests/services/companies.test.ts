@@ -5,11 +5,8 @@ import { companyOperations } from '@/services/career/companies/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { CompanySponsorTier } from '@/prisma-generated-pn-types'
 
-/**
- * The company register is seeded with real sponsors before the tests run, so these tests cannot
- * assume they own the table. Every company they create carries this marker in its name, and every
- * read filters on it through the readPage name filter, which leaves the seeded companies out.
- */
+// The register is seeded with real sponsors, so these tests cannot assume they own the table.
+// Every company they create carries this marker, and every read filters on it.
 const NAME_MARKER = 'Tiertest'
 
 const COMPANY_NAMES = [
@@ -128,5 +125,18 @@ describe('company sponsor tiers', () => {
             `${NAME_MARKER} Gamma AS`,
             `${NAME_MARKER} Alfa AS`,
         ])
+    })
+
+    // Without serialization, two promotions can each miss the row the other is about to write.
+    test('two promotions racing for the main slot still leave one main sponsor', async () => {
+        await Promise.all([
+            setSponsorTier(`${NAME_MARKER} Alfa AS`, 'MAIN'),
+            setSponsorTier(`${NAME_MARKER} Beta AS`, 'MAIN'),
+        ])
+
+        const mainSponsors = await prisma.company.findMany({
+            where: { sponsorTier: 'MAIN', name: { contains: NAME_MARKER } },
+        })
+        expect(mainSponsors).toHaveLength(1)
     })
 })
