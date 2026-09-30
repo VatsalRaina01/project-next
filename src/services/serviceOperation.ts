@@ -229,12 +229,14 @@ const asyncLocalStorage = new AsyncLocalStorage<ServiceOperationContext>()
  * Runs a callback with a specific service operation context.
  *
  * @param contextOverride Partial context to override the current context with.
+ * @param opensTransaction Whether the context must be backed by a client that can open a
+ * transaction - passing true with a context whose prisma client can't throws SERVER ERROR.
  * @param callback The callback to run with the context.
  * @returns The return value of the callback.
  */
 export function withServiceContext<T, OpensTransaction extends boolean>(
     contextOverride: Partial<ServiceOperationContext<OpensTransaction>>,
-    opensTransaction: OpensTransaction | undefined,
+    { opensTransaction }: { opensTransaction?: OpensTransaction },
     callback: (context: ServiceOperationContext<OpensTransaction>) => T,
 ): T {
     const localContext = asyncLocalStorage.getStore()
@@ -464,7 +466,7 @@ export function defineSubOperation<
             // If there is no context in the async local storage, use global defaults.
             return withServiceContext(
                 context,
-                serviceOperationConfig.opensTransaction,
+                { opensTransaction: serviceOperationConfig.opensTransaction },
                 async ({ prisma, bypassAuth, session }) => {
                     // Then, authorize user.
                     // This has to be done after the validation because the

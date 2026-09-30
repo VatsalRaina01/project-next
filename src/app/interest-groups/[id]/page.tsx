@@ -36,27 +36,21 @@ const { page, generateMetadata } = serverPage({
 
         return { interestGroup, members, expanded, currentOrder }
     },
-    authCheckers: {
-        canMigrate: (data) => interestGroupAuth.migrateGroup.dynamicFields({
-            groupId: data.interestGroup.groupId,
-        }),
-        canAddMembers: (data) => interestGroupAuth.addMembers.dynamicFields({
-            groupId: data.interestGroup.groupId,
-        }),
-        canSetMemberAdmin: (data) => interestGroupAuth.setMemberAdmin.dynamicFields({
-            groupId: data.interestGroup.groupId,
-        }),
-        canSetMemberTitle: (data) => interestGroupAuth.setMemberTitle.dynamicFields({
-            groupId: data.interestGroup.groupId,
-        }),
-        canPension: () => interestGroupAuth.pension.dynamicFields({}),
-        canRemoveMembers: (data) => interestGroupAuth.removeMembers.dynamicFields({
-            groupId: data.interestGroup.groupId,
-        }),
-    },
     metadata: (data) => ({ title: data.interestGroup.name }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
         const { interestGroup, members, expanded, currentOrder } = data
+
+        const canMigrate = interestGroupAuth.migrateGroup
+            .dynamicFields({ groupId: interestGroup.groupId }).auth(session)
+        const canAddMembers = interestGroupAuth.addMembers
+            .dynamicFields({ groupId: interestGroup.groupId }).auth(session)
+        const canSetMemberAdmin = interestGroupAuth.setMemberAdmin
+            .dynamicFields({ groupId: interestGroup.groupId }).auth(session)
+        const canSetMemberTitle = interestGroupAuth.setMemberTitle
+            .dynamicFields({ groupId: interestGroup.groupId }).auth(session)
+        const canPension = interestGroupAuth.pension.dynamicFields({}).auth(session)
+        const canRemoveMembers = interestGroupAuth.removeMembers
+            .dynamicFields({ groupId: interestGroup.groupId }).auth(session)
 
         const activeMembersOfGroupOrder = members.filter(
             member => member.active && member.order === expanded?.order
@@ -75,7 +69,7 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper>
-                {authChecks.canPension.authorized && expanded && (
+                {canPension.authorized && expanded && (
                     <div className={styles.management}>
                         <h2>Pensjonering</h2>
                         <PensionGroup
@@ -88,7 +82,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 )}
                 {!interestGroup.pensioned && expanded
-                    && (authChecks.canAddMembers.authorized || authChecks.canRemoveMembers.authorized) && (
+                    && (canAddMembers.authorized || canRemoveMembers.authorized) && (
                     <div className={styles.management}>
                         <h2>Administrer medlemmer</h2>
                         <ManageGroupMembers
@@ -96,27 +90,27 @@ const { page, generateMetadata } = serverPage({
                             groupOrder={expanded.order}
                             orders={groupMembersByOrder(members, expanded.order)}
                             addMembersAction={
-                                authChecks.canAddMembers.authorized ? addInterestGroupMembersAction : undefined
+                                canAddMembers.authorized ? addInterestGroupMembersAction : undefined
                             }
                             setMemberAdminAction={
-                                authChecks.canSetMemberAdmin.authorized
+                                canSetMemberAdmin.authorized
                                     ? setInterestGroupMemberAdminAction
                                     : undefined
                             }
                             setMemberTitleAction={
-                                authChecks.canSetMemberTitle.authorized
+                                canSetMemberTitle.authorized
                                     ? setInterestGroupMemberTitleAction
                                     : undefined
                             }
                             removeMembersAction={
-                                authChecks.canRemoveMembers.authorized
+                                canRemoveMembers.authorized
                                     ? removeInterestGroupMembersAction
                                     : undefined
                             }
                         />
                     </div>
                 )}
-                {!interestGroup.pensioned && authChecks.canMigrate.authorized && expanded && (
+                {!interestGroup.pensioned && canMigrate.authorized && expanded && (
                     <div className={styles.migration}>
                         <h2>Migrering</h2>
                         <MigrateGroup

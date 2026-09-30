@@ -34,33 +34,33 @@ const { page, generateMetadata } = serverPage({
 
         return { collections, details, showOnlyCollectionsSessionAdministrates }
     },
-    authCheckers: {
-        canCreateCollection: () => dynamicImageAuth.createCollection.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Fotogalleri' }),
-    render: ({ data, authChecks }) => (
-        <PageWrapper headerItem={authChecks.canCreateCollection.authorized && <MakeNewCollection />}>
-            <DynamicImageCollectionPagingProvider
-                startPage={{
-                    pageSize,
-                    page: 1,
-                }}
-                details={data.details}
-                serverRenderedData={data.collections}
-            >
-                <ImageCollectionList
-                    toggle={
-                        <ToggleShowAdminCollections
-                            showOnlyCollectionsSessionAdministrates={data.showOnlyCollectionsSessionAdministrates}
-                        />
-                    }
-                    serverRendered={data.collections.map(collection => (
-                        <CollectionCardLink key={collection.id} collection={collection} />
-                    ))}
-                />
-            </DynamicImageCollectionPagingProvider>
-        </PageWrapper>
-    ),
+    render: ({ data, session }) => {
+        const canCreateCollection = dynamicImageAuth.createCollection.dynamicFields({}).auth(session)
+        return (
+            <PageWrapper headerItem={canCreateCollection.authorized && <MakeNewCollection />}>
+                <DynamicImageCollectionPagingProvider
+                    startPage={{
+                        pageSize,
+                        page: 1,
+                    }}
+                    details={data.details}
+                    serverRenderedData={data.collections}
+                >
+                    <ImageCollectionList
+                        toggle={
+                            <ToggleShowAdminCollections
+                                showOnlyCollectionsSessionAdministrates={data.showOnlyCollectionsSessionAdministrates}
+                            />
+                        }
+                        serverRendered={data.collections.map(collection => (
+                            <CollectionCardLink key={collection.id} collection={collection} />
+                        ))}
+                    />
+                </DynamicImageCollectionPagingProvider>
+            </PageWrapper>
+        )
+    },
 })
 
 export default page

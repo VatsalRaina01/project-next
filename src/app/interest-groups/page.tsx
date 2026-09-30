@@ -14,45 +14,47 @@ import { serverPage } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => interestGroupOperations.readMany({}),
-    authCheckers: {
-        canCreate: () => interestGroupAuth.create.dynamicFields({}),
-        canEditGeneralInfo: () => interestGroupAuth.updateSpecialCmsParagraphContentGeneralInfo.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Interessegrupper' }),
-    render: ({ data: interestGroups, authChecks, session }) => (
-        <PageWrapper transparent>
-            <div className={styles.content}>
-                <div className={styles.generalInfo}>
-                    {authChecks.canCreate.authorized && (
-                        <AddHeaderItemPopUp popUpKey="Create interest group">
-                            <CreateInterestGroupForm/>
-                        </AddHeaderItemPopUp>
-                    )}
-                    <SpecialCmsParagraph
-                        canEdit={authChecks.canEditGeneralInfo.toJsObject()}
-                        special="INTEREST_GROUP_GENERAL_INFO"
-                        readSpecialCmsParagraphAction={readSpecialCmsParagraphGeneralInfoAction}
-                        updateCmsParagraphAction={updateSpecialCmsParagraphContentGeneralInfoAction}
-                    />
+    render: ({ data: interestGroups, session }) => {
+        const canCreate = interestGroupAuth.create.dynamicFields({}).auth(session)
+        const canEditGeneralInfo = interestGroupAuth
+            .updateSpecialCmsParagraphContentGeneralInfo.dynamicFields({}).auth(session)
+
+        return (
+            <PageWrapper transparent>
+                <div className={styles.content}>
+                    <div className={styles.generalInfo}>
+                        {canCreate.authorized && (
+                            <AddHeaderItemPopUp popUpKey="Create interest group">
+                                <CreateInterestGroupForm/>
+                            </AddHeaderItemPopUp>
+                        )}
+                        <SpecialCmsParagraph
+                            canEdit={canEditGeneralInfo.toJsObject()}
+                            special="INTEREST_GROUP_GENERAL_INFO"
+                            readSpecialCmsParagraphAction={readSpecialCmsParagraphGeneralInfoAction}
+                            updateCmsParagraphAction={updateSpecialCmsParagraphContentGeneralInfoAction}
+                        />
+                    </div>
+                    <main className={styles.islands}>
+                        {
+                            // Pensioned groups are part of the history rather than something to join, so
+                            // they are listed after the ones that still run.
+                            [...interestGroups]
+                                .sort((one, two) => Number(one.pensioned) - Number(two.pensioned))
+                                .map(interestGroup => (
+                                    <InterestGroup
+                                        session={session}
+                                        key={interestGroup.id}
+                                        interestGroup={interestGroup}
+                                    />
+                                ))
+                        }
+                    </main>
                 </div>
-                <main className={styles.islands}>
-                    {
-                        // Pensioned groups are part of the history rather than something to join, so
-                        // they are listed after the ones that still run.
-                        [...interestGroups]
-                            .sort((one, two) => Number(one.pensioned) - Number(two.pensioned))
-                            .map(interestGroup => (
-                                <InterestGroup
-                                    session={session}
-                                    key={interestGroup.id}
-                                    interestGroup={interestGroup}
-                                />
-                            ))
-                    }
-                </main>
-            </div>
-        </PageWrapper>
-    ),
+            </PageWrapper>
+        )
+    },
 })
 
 export default page

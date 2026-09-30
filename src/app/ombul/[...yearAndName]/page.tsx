@@ -28,19 +28,17 @@ const { page, generateMetadata } = serverPage({
             }
         })
     },
-    authCheckers: {
-        canUpdate: () => ombulAuth.update.dynamicFields({}),
-        canUpdateParagraph: () => ombulAuth.updateParagraphContent.dynamicFields({}),
-    },
     metadata: (ombul) => ({ title: ombul.name }),
-    render: ({ data: ombul, authChecks }) => {
+    render: ({ data: ombul, session }) => {
+        const canUpdate = ombulAuth.update.dynamicFields({}).auth(session)
+        const canUpdateParagraph = ombulAuth.updateParagraphContent.dynamicFields({}).auth(session)
         const path = `/store/ombul/${ombul.fsLocation}`
 
         return (
             <PageWrapper hideTitle className={styles.ombulPage}>
                 <div className={styles.header}>
                     <div className={styles.titleBlock}>
-                        <ChangeName editable={authChecks.canUpdate.authorized} ombulId={ombul.id}>
+                        <ChangeName editable={canUpdate.authorized} ombulId={ombul.id}>
                             <h1>{ombul.name}</h1>
                         </ChangeName>
                         <p className={styles.issue}>{ombul.year} &middot; utgave {ombul.issueNumber}</p>
@@ -70,7 +68,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                     <CmsParagraph
                         className={styles.paragraph}
-                        canEdit={authChecks.canUpdateParagraph.toJsObject()}
+                        canEdit={canUpdateParagraph.toJsObject()}
                         cmsParagraph={ombul.paragraph}
                         updateCmsParagraphAction={configureAction(
                             updateOmbulParagraphContentAction,

@@ -19,14 +19,12 @@ const { page, generateMetadata } = serverPage({
         const eventTags = await eventTagOperations.readAll({})
         return { tagNames, eventTags }
     },
-    authCheckers: {
-        canUpdateTags: () => eventTagAuth.update.dynamicFields({}),
-        canCreateTags: () => eventTagAuth.create.dynamicFields({}),
-        canDestroyTags: () => eventTagAuth.destroy.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Hvad Der Har Hendt' }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
         const { tagNames, eventTags } = data
+        const canUpdateTags = eventTagAuth.update.dynamicFields({}).auth(session)
+        const canCreateTags = eventTagAuth.create.dynamicFields({}).auth(session)
+        const canDestroyTags = eventTagAuth.destroy.dynamicFields({}).auth(session)
         const currentTags = tagNames ? eventTags.filter(tag => tagNames.includes(tag.name)) : []
 
         return (
@@ -52,9 +50,9 @@ const { page, generateMetadata } = serverPage({
                         <TagHeaderItem
                             eventTags={eventTags}
                             currentTags={currentTags}
-                            canUpdate={authChecks.canUpdateTags.authorized}
-                            canCreate={authChecks.canCreateTags.authorized}
-                            canDestroy={authChecks.canDestroyTags.authorized}
+                            canUpdate={canUpdateTags.authorized}
+                            canCreate={canCreateTags.authorized}
+                            canDestroy={canDestroyTags.authorized}
                             page="EVENT_ARCHIVE"
                         />
                         <Link

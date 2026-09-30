@@ -9,7 +9,7 @@ import { beforeAll, describe, expect, test } from '@jest/globals'
 
 const inServiceContext = (work: () => Promise<void>) => withServiceContext(
     { bypassAuth: true, session: Session.empty() },
-    true,
+    { opensTransaction: true },
     work,
 )
 

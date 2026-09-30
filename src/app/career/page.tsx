@@ -30,62 +30,64 @@ const { page, generateMetadata } = serverPage({
         ])
         return { contactorCmsLink, companyPresentationEventTag, isLoggedIn: Boolean(session.user) }
     },
-    authCheckers: {
-        canEditSpecialCmsLink: () => careerAuth.updateSpecialCmsLink.dynamicFields({}),
-        canEditSpecialCmsParagraph: () => careerAuth.updateSpecialCmsParagraphContentCareerInfo.dynamicFields({}),
-    },
     metadata: (data) => ({ title: data.isLoggedIn ? 'Karriere' : 'For bedrifter' }),
-    render: ({ data, authChecks }) => (
-        <PageWrapper headerItem={
-            data.contactorCmsLink ? <CmsLink
-                canEdit={authChecks.canEditSpecialCmsLink.toJsObject()}
-                className={styles.conactorLink}
-                cmsLink={data.contactorCmsLink}
-                updateCmsLinkAction={updateCareerSpecialCmsLinkAction}
-            /> : <></>
-        }>
-            <div className={styles.wrapper}>
-                <SpecialCmsParagraph
-                    canEdit={authChecks.canEditSpecialCmsParagraph.toJsObject()}
-                    className={styles.info}
-                    special="CAREER_INFO"
-                    readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfo}
-                    updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfo}
-                />
-                <span className={styles.links}>
-                    <Link href="/career/jobads">
-                        <StandardImageServer
-                            disableLinkingToLicense
-                            className={styles.linkImage}
-                            width={300}
-                            standardImage="MACHINE"
-                        />
-                        <h2>Jobbannonser</h2>
-                    </Link>
-                    <Link href={`/events?${QueryParams.eventTags.encodeUrl(
-                        data.companyPresentationEventTag ? [data.companyPresentationEventTag.name] : []
-                    )}`}>
-                        <StandardImageServer
-                            disableLinkingToLicense
-                            className={styles.linkImage}
-                            width={300}
-                            standardImage="FAIR"
-                        />
-                        <h2>Bedriftpresentasjoner</h2>
-                    </Link>
-                    <Link href="/career/companies">
-                        <StandardImageServer
-                            disableLinkingToLicense
-                            className={styles.linkImage}
-                            width={300}
-                            standardImage="REALFAGSBYGGET"
-                        />
-                        <h2>Bedrifter</h2>
-                    </Link>
-                </span>
-            </div>
-        </PageWrapper>
-    ),
+    render: ({ data, session }) => {
+        const canEditSpecialCmsLink = careerAuth.updateSpecialCmsLink.dynamicFields({}).auth(session)
+        const canEditSpecialCmsParagraph = careerAuth
+            .updateSpecialCmsParagraphContentCareerInfo.dynamicFields({}).auth(session)
+
+        return (
+            <PageWrapper headerItem={
+                data.contactorCmsLink ? <CmsLink
+                    canEdit={canEditSpecialCmsLink.toJsObject()}
+                    className={styles.conactorLink}
+                    cmsLink={data.contactorCmsLink}
+                    updateCmsLinkAction={updateCareerSpecialCmsLinkAction}
+                /> : <></>
+            }>
+                <div className={styles.wrapper}>
+                    <SpecialCmsParagraph
+                        canEdit={canEditSpecialCmsParagraph.toJsObject()}
+                        className={styles.info}
+                        special="CAREER_INFO"
+                        readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfo}
+                        updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfo}
+                    />
+                    <span className={styles.links}>
+                        <Link href="/career/jobads">
+                            <StandardImageServer
+                                disableLinkingToLicense
+                                className={styles.linkImage}
+                                width={300}
+                                standardImage="MACHINE"
+                            />
+                            <h2>Jobbannonser</h2>
+                        </Link>
+                        <Link href={`/events?${QueryParams.eventTags.encodeUrl(
+                            data.companyPresentationEventTag ? [data.companyPresentationEventTag.name] : []
+                        )}`}>
+                            <StandardImageServer
+                                disableLinkingToLicense
+                                className={styles.linkImage}
+                                width={300}
+                                standardImage="FAIR"
+                            />
+                            <h2>Bedriftpresentasjoner</h2>
+                        </Link>
+                        <Link href="/career/companies">
+                            <StandardImageServer
+                                disableLinkingToLicense
+                                className={styles.linkImage}
+                                width={300}
+                                standardImage="REALFAGSBYGGET"
+                            />
+                            <h2>Bedrifter</h2>
+                        </Link>
+                    </span>
+                </div>
+            </PageWrapper>
+        )
+    },
 })
 
 export default page

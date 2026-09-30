@@ -37,17 +37,14 @@ const { page, generateMetadata } = serverPage({
 
         return { studyProgramme, expanded, members }
     },
-    authCheckers: {
-        canAddMembers: (data) => studyProgrammeAuth.addMembers.dynamicFields({
-            groupId: data.studyProgramme.groupId,
-        }),
-        canRemoveMembers: (data) => studyProgrammeAuth.removeMembers.dynamicFields({
-            groupId: data.studyProgramme.groupId,
-        }),
-    },
     metadata: (data) => ({ title: data.studyProgramme.name }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
         const { studyProgramme, expanded, members } = data
+
+        const canAddMembers = studyProgrammeAuth.addMembers
+            .dynamicFields({ groupId: studyProgramme.groupId }).auth(session)
+        const canRemoveMembers = studyProgrammeAuth.removeMembers
+            .dynamicFields({ groupId: studyProgramme.groupId }).auth(session)
 
         return (
             <PageWrapper>
@@ -69,16 +66,16 @@ const { page, generateMetadata } = serverPage({
                         blir meldt for brukeren.
                     </p>
 
-                    {(authChecks.canAddMembers.authorized || authChecks.canRemoveMembers.authorized) && (
+                    {(canAddMembers.authorized || canRemoveMembers.authorized) && (
                         <ManageGroupMembers
                             groupId={studyProgramme.groupId}
                             groupOrder={expanded.order}
                             orders={groupMembersByOrder(members, expanded.order)}
                             addMembersAction={
-                                authChecks.canAddMembers.authorized ? addStudyProgrammeMembersAction : undefined
+                                canAddMembers.authorized ? addStudyProgrammeMembersAction : undefined
                             }
                             removeMembersAction={
-                                authChecks.canRemoveMembers.authorized ? removeStudyProgrammeMembersAction : undefined
+                                canRemoveMembers.authorized ? removeStudyProgrammeMembersAction : undefined
                             }
                         />
                     )}

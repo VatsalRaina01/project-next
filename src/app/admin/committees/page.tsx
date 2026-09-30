@@ -16,11 +16,9 @@ const { page, generateMetadata } = serverPage({
         ])
         return { committees, expandedGroups, currentOrder }
     },
-    authCheckers: {
-        canCreate: () => committeeAuth.create.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Komitéer' }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
+        const canCreate = committeeAuth.create.dynamicFields({}).auth(session)
         const rows = data.committees.flatMap(committee => {
             const expanded = data.expandedGroups.find(group => group.id === committee.groupId)
             return expanded ? [{
@@ -35,7 +33,7 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper
-                headerItem={authChecks.canCreate.authorized && (
+                headerItem={canCreate.authorized && (
                     <AddHeaderItemPopUp popUpKey="create committee">
                         <CreateCommitteeForm />
                     </AddHeaderItemPopUp>

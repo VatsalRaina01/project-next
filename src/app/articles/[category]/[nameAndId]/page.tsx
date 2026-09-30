@@ -38,63 +38,63 @@ const { page, generateMetadata } = serverPage({
 
         return { articleCategory, article }
     },
-    authCheckers: {
-        canEdit: () => articleCategoryAuth.updateArticle.dynamicFields({}),
-    },
     metadata: (data) => ({ title: data.article.name }),
-    render: ({ data, authChecks }) => (
-        <div className={styles.wrapper}>
-            <Article
-                canEdit={authChecks.canEdit.toJsObject()}
-                coverImageClass={styles.coverImage}
-                article={data.article}
-                actions={{
-                    updateArticleAction: configureAction(
-                        updateArticleCategoryArticleAction,
-                        { implementationParams: { articleCategoryId: data.articleCategory.id } }
-                    ),
-                    updateCoverImageAction: configureAction(
-                        updateArticleCategoryArticleCoverImageAction,
-                        { implementationParams: { articleCategoryId: data.articleCategory.id } }
-                    ),
-                    addSectionToArticleAction: configureAction(
-                        updateArticleCategoryArticleAddSectionAction,
-                        { implementationParams: { articleCategoryId: data.articleCategory.id } }
-                    ),
-                    reorderArticleSectionsAction: configureAction(
-                        updateArticleCategoryArticleReorderSectionsAction,
-                        { implementationParams: { articleCategoryId: data.articleCategory.id } }
-                    ),
-                    articleSections: {
-                        updateCmsParagraph: configureAction(
-                            updateArticleCategoryArticleCmsParagraphAction,
+    render: ({ data, session }) => {
+        const canEdit = articleCategoryAuth.updateArticle.dynamicFields({}).auth(session)
+        return (
+            <div className={styles.wrapper}>
+                <Article
+                    canEdit={canEdit.toJsObject()}
+                    coverImageClass={styles.coverImage}
+                    article={data.article}
+                    actions={{
+                        updateArticleAction: configureAction(
+                            updateArticleCategoryArticleAction,
                             { implementationParams: { articleCategoryId: data.articleCategory.id } }
                         ),
-                        updateCmsImage: configureAction(
-                            updateArticleCategoryArticleCmsImageAction,
+                        updateCoverImageAction: configureAction(
+                            updateArticleCategoryArticleCoverImageAction,
                             { implementationParams: { articleCategoryId: data.articleCategory.id } }
                         ),
-                        updateCmsLink: configureAction(
-                            updateArticleCategoryArticleCmsLinkAction,
+                        addSectionToArticleAction: configureAction(
+                            updateArticleCategoryArticleAddSectionAction,
                             { implementationParams: { articleCategoryId: data.articleCategory.id } }
                         ),
-                        updateArticleSection: configureAction(
-                            updateArticleCategoryArticleSectionAction,
+                        reorderArticleSectionsAction: configureAction(
+                            updateArticleCategoryArticleReorderSectionsAction,
                             { implementationParams: { articleCategoryId: data.articleCategory.id } }
                         ),
-                        addPartToArticleSection: configureAction(
-                            updateArticleCategoryArticleSectionsAddPartAction,
-                            { implementationParams: { articleCategoryId: data.articleCategory.id } }
-                        ),
-                        removePartFromArticleSection: configureAction(
-                            updateArticleCategoryArticleSectionsRemovePartAction,
-                            { implementationParams: { articleCategoryId: data.articleCategory.id } }
-                        )
-                    }
-                }}
-            />
-        </div>
-    ),
+                        articleSections: {
+                            updateCmsParagraph: configureAction(
+                                updateArticleCategoryArticleCmsParagraphAction,
+                                { implementationParams: { articleCategoryId: data.articleCategory.id } }
+                            ),
+                            updateCmsImage: configureAction(
+                                updateArticleCategoryArticleCmsImageAction,
+                                { implementationParams: { articleCategoryId: data.articleCategory.id } }
+                            ),
+                            updateCmsLink: configureAction(
+                                updateArticleCategoryArticleCmsLinkAction,
+                                { implementationParams: { articleCategoryId: data.articleCategory.id } }
+                            ),
+                            updateArticleSection: configureAction(
+                                updateArticleCategoryArticleSectionAction,
+                                { implementationParams: { articleCategoryId: data.articleCategory.id } }
+                            ),
+                            addPartToArticleSection: configureAction(
+                                updateArticleCategoryArticleSectionsAddPartAction,
+                                { implementationParams: { articleCategoryId: data.articleCategory.id } }
+                            ),
+                            removePartFromArticleSection: configureAction(
+                                updateArticleCategoryArticleSectionsRemovePartAction,
+                                { implementationParams: { articleCategoryId: data.articleCategory.id } }
+                            )
+                        }
+                    }}
+                />
+            </div>
+        )
+    },
 })
 
 export default page

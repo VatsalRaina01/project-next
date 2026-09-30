@@ -18,25 +18,25 @@ const { page, generateMetadata } = serverPage({
         const publicKey = await omegaIdOperations.readPublicKey({})
         return { admission: params.admission, publicKey }
     },
-    authCheckers: {
-        canSearchUsers: () => userAuth.readPage.dynamicFields({}),
-    },
     metadata: (data) => ({ title: `Registrer opptak for ${admissionDisplayNames[data.admission]}` }),
-    render: ({ data, authChecks }) => (
-        <PageWrapper>
-            <UserPagingProvider
-                startPage={{ page: 0, pageSize: 50 }}
-                serverRenderedData={[]}
-                details={{ partOfName: '', groups: [] }}
-            >
-                <RegisterAdmissiontrial
-                    admission={data.admission}
-                    omegaIdPublicKey={data.publicKey}
-                    canSearchUsers={authChecks.canSearchUsers.authorized}
-                />
-            </UserPagingProvider>
-        </PageWrapper>
-    ),
+    render: ({ data, session }) => {
+        const canSearchUsers = userAuth.readPage.dynamicFields({}).auth(session)
+        return (
+            <PageWrapper>
+                <UserPagingProvider
+                    startPage={{ page: 0, pageSize: 50 }}
+                    serverRenderedData={[]}
+                    details={{ partOfName: '', groups: [] }}
+                >
+                    <RegisterAdmissiontrial
+                        admission={data.admission}
+                        omegaIdPublicKey={data.publicKey}
+                        canSearchUsers={canSearchUsers.authorized}
+                    />
+                </UserPagingProvider>
+            </PageWrapper>
+        )
+    },
 })
 
 export default page

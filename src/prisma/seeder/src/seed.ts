@@ -45,7 +45,7 @@ export default async function seed(
     await step('Upserting standard data', () => withServiceContext({
         bypassAuth: true,
         session: Session.empty(),
-    }, true, async ({ prisma }) => {
+    }, { opensTransaction: true }, async ({ prisma }) => {
         await step('Upserting standard orders', () => seedOrders())
         await step('Upserting standard images', () => seedImages())
         await step('Upserting standard special CMS', () => seedSpecialCms())
@@ -76,7 +76,7 @@ export default async function seed(
     await step('Seeding development data', () => withServiceContext({
         bypassAuth: true,
         session: Session.empty(),
-    }, true, async ({ prisma }) => {
+    }, { opensTransaction: true }, async ({ prisma }) => {
         await step('Seeding development images', () => seedDevImages())
         await step('Seeding development groups', () => seedDevGroups(prisma))
         await step('Seeding development users', () => seedDevUsers())

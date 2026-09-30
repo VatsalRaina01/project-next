@@ -38,19 +38,17 @@ const { page, generateMetadata } = serverPage({
 
         return { news, doubleLevelVisibility }
     },
-    authCheckers: {
-        canEdit: (data) => newsAuth.updateArticle.dynamicFields({
-            doubleLevelMatrix: data.doubleLevelVisibility ?? EMPTY_VISIBILITY
-        }),
-    },
     metadata: (data) => ({ title: data.news.article.name }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
         const { news, doubleLevelVisibility } = data
+        const canEdit = newsAuth.updateArticle.dynamicFields({
+            doubleLevelMatrix: doubleLevelVisibility ?? EMPTY_VISIBILITY
+        }).auth(session)
 
         return (
             <div className={styles.wrapper}>
                 <Article
-                    canEdit={authChecks.canEdit.toJsObject()}
+                    canEdit={canEdit.toJsObject()}
                     articleClassName={styles.article}
                     article={news.article}
                     actions={{

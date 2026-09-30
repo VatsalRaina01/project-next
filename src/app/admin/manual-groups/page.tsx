@@ -21,11 +21,9 @@ const { page, generateMetadata } = serverPage({
         ])
         return { manualGroups, expandedGroups, currentOrder }
     },
-    authCheckers: {
-        canAdmin: () => manualGroupAuth.update.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Andre grupper' }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
+        const canAdmin = manualGroupAuth.update.dynamicFields({}).auth(session)
         const membersOfGroup = (groupId: number) =>
             data.expandedGroups.find(group => group.id === groupId)?.members ?? 0
         const orderOfGroup = (groupId: number) =>
@@ -33,7 +31,7 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper
-                headerItem={authChecks.canAdmin.authorized && (
+                headerItem={canAdmin.authorized && (
                     <AddHeaderItemPopUp popUpKey="create manual group">
                         <ManualGroupForm />
                     </AddHeaderItemPopUp>
@@ -47,13 +45,13 @@ const { page, generateMetadata } = serverPage({
                 <table className={styles.groupList}>
                     <thead>
                         <tr>
-                            {authChecks.canAdmin.authorized && <th>Rediger</th>}
+                            {canAdmin.authorized && <th>Rediger</th>}
                             <th>Navn</th>
                             <th>Kortnavn</th>
                             <th>Orden</th>
                             <th>Aktive medlemmer</th>
                             <th>Status</th>
-                            {authChecks.canAdmin.authorized && <th></th>}
+                            {canAdmin.authorized && <th></th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -62,7 +60,7 @@ const { page, generateMetadata } = serverPage({
                             .sort((one, two) => Number(one.pensioned) - Number(two.pensioned))
                             .map(manualGroup => (
                                 <tr key={manualGroup.id}>
-                                    {authChecks.canAdmin.authorized && (
+                                    {canAdmin.authorized && (
                                         <td className={styles.editCell}>
                                             <PopUp
                                                 showButtonContent={<FontAwesomeIcon icon={faPencil} />}
@@ -82,7 +80,7 @@ const { page, generateMetadata } = serverPage({
                                     <td>{orderOfGroup(manualGroup.groupId)}</td>
                                     <td>{membersOfGroup(manualGroup.groupId)}</td>
                                     <td>{manualGroup.pensioned ? 'Pensjonert' : 'Aktiv'}</td>
-                                    {authChecks.canAdmin.authorized && (
+                                    {canAdmin.authorized && (
                                         <td className={styles.rowActions}>
                                             <DestroyManualGroup id={manualGroup.id} name={manualGroup.name} />
                                         </td>

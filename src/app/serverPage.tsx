@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import ServiceErrorView from '@/components/ServiceErrorView/ServiceErrorView'
+import ServiceErrorView, { DEFAULT_ERROR_TITLE } from '@/components/ServiceErrorView/ServiceErrorView'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { Smorekopp } from '@/services/error'
 import { withServiceContext } from '@/services/serviceOperation'
@@ -10,7 +10,6 @@ import { headers } from 'next/headers'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
 import type { AuthStatus } from '@/auth/authorizer/AuthResult'
-import type { AuthorizerDynamicFieldsBound, UserRequieredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { Session } from '@/auth/session/Session'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
@@ -34,17 +33,6 @@ type PageProps<Params extends object> = {
     params: Promise<Params>,
     searchParams: Promise<SearchParams>,
 }
-
-type AuthCheckerBound = AuthorizerDynamicFieldsBound<UserRequieredOutOpt, object | undefined>
-
-/**
- * The results of running the declared auth checkers - same keys as the authCheckers object
- * (all of the form `can[Something]`), but each value is the AuthResult of running that
- * authorizer against the session of the current request.
- */
-export type AuthChecks<CheckerKeys extends `can${string}`> = Record<
-    CheckerKeys, ReturnType<AuthCheckerBound['auth']>
->
 
 /**
  * Rethrows everything that should not be handled by rendering an error view:
@@ -97,43 +85,43 @@ async function urlWithCallback(url: string) {
  * the page render and generateMetadata via React `cache`). Throwing a service error inside
  * it sends the user to the error view - wrap non-critical calls in {@link withFallback} when
  * a failure should not take the whole page down.
- * @param authCheckers - Optional record of `can[Something]` keys to authorizer getters.
- * Each getter receives the loaded data and returns a bound authorizer; the results of
- * running them against the session arrive in `render` as `authChecks` under the same keys.
  * @param metadata - Optional Next.js metadata from the loaded data. Titles are plain -
  * the root layout's title template appends the site name.
- * @param render - Renders the page from the loaded data, the auth check results and the session.
+ * @param errorTitle - Overrides the page title used both by `ServiceErrorView` and by
+ * `generateMetadata` when the operation throws. Defaults to the generic error title.
+ * @param errorMessage - Overrides the message `ServiceErrorView` shows when the operation
+ * throws. Defaults to the thrown error's own message (or its error code's default message).
+ * @param render - Renders the page from the loaded data and the session. Call authorizers
+ * directly here (e.g. `someAuth.op.dynamicFields({...}).auth(session)`) for any auth-gated UI.
  *
  * @example
  * const { page, generateMetadata } = serverPage({
  *     operation: async ({ params }: { params: { username: string } }) =>
  *         userOperations.readProfile({ params: { username: params.username } }),
- *     authCheckers: {
- *         canUpdate: (profile) => userAuth.update.dynamicFields({ username: profile.user.username }),
- *     },
  *     metadata: (profile) => ({ title: profile.user.username }),
- *     render: ({ data, authChecks }) => (
- *         <div>
- *             {data.user.username}
- *             {authChecks.canUpdate.authorized && <EditButton />}
- *         </div>
- *     ),
+ *     render: ({ data, session }) => {
+ *         const canUpdate = userAuth.update.dynamicFields({ username: data.user.username }).auth(session)
+ *         return (
+ *             <div>
+ *                 {data.user.username}
+ *                 {canUpdate.authorized && <EditButton />}
+ *             </div>
+ *         )
+ *     },
  * })
  *
  * export default page
  * export { generateMetadata }
  */
-export function serverPage<
-    Params extends object,
-    Data,
-    CheckerKeys extends `can${string}` = never,
->({ operation, authCheckers, metadata, render }: {
+export function serverPage<Params extends object, Data>({
+    operation, metadata, errorTitle, errorMessage, render,
+}: {
     operation: (args: PageOperationArgs<Params>) => Promise<Data>,
-    authCheckers?: Record<CheckerKeys, (data: Data) => AuthCheckerBound>,
     metadata?: (data: Data) => Metadata,
+    errorTitle?: string,
+    errorMessage?: string,
     render: (args: {
         data: Data,
-        authChecks: AuthChecks<CheckerKeys>,
         session: ServerPageSession,
     }) => ReactNode | Promise<ReactNode>,
 }): {
@@ -156,49 +144,48 @@ export function serverPage<
         const session = await ServerSession.fromNextAuth()
         const data = await withServiceContext(
             { session },
-            false,
+            { opensTransaction: false },
             () => operation({ params, searchParams, session })
         )
-        // Object.entries erases the value types (authCheckers may be undefined), so the
-        // entries are asserted back to what the signature guarantees they are.
-        const checkerEntries = Object.entries(
-            authCheckers ?? {}
-        ) as [CheckerKeys, (loadedData: Data) => AuthCheckerBound][]
-        const authChecks = Object.fromEntries(
-            checkerEntries.map(([checkName, authorizerGetter]) => [
-                checkName,
-                authorizerGetter(data).auth(session),
-            ])
-        ) as AuthChecks<CheckerKeys>
-        return { data, session, authChecks }
+        return { data, session }
     })
 
-    const page = async (props: PageProps<Params>): Promise<ReactNode> => {
-        let loaded: Awaited<ReturnType<typeof load>>
+    // Shared between page and generateMetadata: both need the same load-then-handle-error
+    // sequence, differing only in what they render/return once loading has failed.
+    const tryLoad = async (props: PageProps<Params>) => {
         try {
-            loaded = await load(await serializeProps(props))
+            return { ok: true as const, loaded: await load(await serializeProps(props)) }
         } catch (error) {
-            return <ServiceErrorView error={await handleServiceError(error)} />
+            return { ok: false as const, error }
         }
-        const pageTitle = metadata ? metadata(loaded.data).title : undefined
+    }
+
+    const page = async (props: PageProps<Params>): Promise<ReactNode> => {
+        const attempt = await tryLoad(props)
+        if (!attempt.ok) {
+            return <ServiceErrorView
+                error={await handleServiceError(attempt.error)}
+                title={errorTitle}
+                message={errorMessage}
+            />
+        }
+        const pageTitle = metadata ? metadata(attempt.loaded.data).title : undefined
         return (
             <>
                 {typeof pageTitle === 'string' && <PageTitleSetter title={pageTitle} />}
-                {await render(loaded)}
+                {await render(attempt.loaded)}
             </>
         )
     }
 
     const generateMetadata = async (props: PageProps<Params>): Promise<Metadata> => {
         if (!metadata) return {}
-        let loaded: Awaited<ReturnType<typeof load>>
-        try {
-            loaded = await load(await serializeProps(props))
-        } catch (error) {
-            await handleServiceError(error)
-            return { title: 'Feil' }
+        const attempt = await tryLoad(props)
+        if (!attempt.ok) {
+            await handleServiceError(attempt.error)
+            return { title: errorTitle ?? DEFAULT_ERROR_TITLE }
         }
-        return metadata(loaded.data)
+        return metadata(attempt.loaded.data)
     }
 
     return { page, generateMetadata }
@@ -240,5 +227,5 @@ export async function withPageSession<Result>(
     callback: (session: ServerPageSession) => Promise<Result>
 ): Promise<Result> {
     const session = await ServerSession.fromNextAuth()
-    return withServiceContext({ session }, false, () => callback(session))
+    return withServiceContext({ session }, { opensTransaction: false }, () => callback(session))
 }

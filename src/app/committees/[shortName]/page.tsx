@@ -31,33 +31,32 @@ const { page, generateMetadata } = serverPage({
 
         return { committee, paragraph, members, shortName: params.shortName }
     },
-    authCheckers: {
-        canEditCommitteeParagraph: (data) => committeeAuth.updateParagraphContent.dynamicFields({
-            groupId: data.committee.groupId,
-        }),
-    },
     metadata: (data) => ({ title: data.committee.name }),
-    render: ({ data, authChecks }) => (
-        <div className={styles.wrapper}>
-            <CmsParagraph
-                canEdit={authChecks.canEditCommitteeParagraph.toJsObject()}
-                cmsParagraph={data.paragraph}
-                updateCmsParagraphAction={configureAction(
-                    updateCommitteeParagraphAction,
-                    { implementationParams: { shortName: data.shortName } }
-                )}
-            />
+    render: ({ data, session }) => {
+        const canEditCommitteeParagraph = committeeAuth.updateParagraphContent
+            .dynamicFields({ groupId: data.committee.groupId }).auth(session)
+        return (
+            <div className={styles.wrapper}>
+                <CmsParagraph
+                    canEdit={canEditCommitteeParagraph.toJsObject()}
+                    cmsParagraph={data.paragraph}
+                    updateCmsParagraphAction={configureAction(
+                        updateCommitteeParagraphAction,
+                        { implementationParams: { shortName: data.shortName } }
+                    )}
+                />
 
-            <h2>Komitémedlemmer</h2>
-            <div className={styles.memberList}>
-                {data.members.map((member, i) => <UserCard
-                    key={i}
-                    user={member.user}
-                    subText={member.title}
-                />)}
+                <h2>Komitémedlemmer</h2>
+                <div className={styles.memberList}>
+                    {data.members.map((member, i) => <UserCard
+                        key={i}
+                        user={member.user}
+                        subText={member.title}
+                    />)}
+                </div>
             </div>
-        </div>
-    ),
+        )
+    },
 })
 
 export default page

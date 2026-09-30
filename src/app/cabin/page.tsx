@@ -19,32 +19,32 @@ import Link from 'next/link'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => cabinArticleOperations.read({}),
-    authCheckers: {
-        canEdit: () => cabinArticleAuth.update.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Heutten' }),
-    render: ({ data: article, authChecks }) => (
-        <PageWrapper headerItem={<Link href="/cabin/book">Trykk her for å Booke</Link>}>
-            <SpecialArticle
-                article={article}
-                canEdit={authChecks.canEdit.toJsObject()}
-                actions={{
-                    update: updateCabinArticleAction,
-                    addSection: updateCabinArticleAddSectionAction,
-                    reorderSections: updateCabinArticleReorderSectionsAction,
-                    coverImage: updateCabinArticleCoverImageAction,
-                    articleSections: {
-                        update: updateCabinArticleSectionAction,
-                        addPart: updateCabinArticleSectionsAddPartAction,
-                        removePart: updateCabinArticleSectionsRemovePartAction,
-                        cmsImage: updateCabinArticleCmsImageAction,
-                        cmsParagraph: updateCabinArticleCmsParagraphAction,
-                        cmsLink: updateCabinArticleCmsLinkAction,
-                    }
-                }}
-            />
-        </PageWrapper>
-    ),
+    render: ({ data: article, session }) => {
+        const canEdit = cabinArticleAuth.update.dynamicFields({}).auth(session)
+        return (
+            <PageWrapper headerItem={<Link href="/cabin/book">Trykk her for å Booke</Link>}>
+                <SpecialArticle
+                    article={article}
+                    canEdit={canEdit.toJsObject()}
+                    actions={{
+                        update: updateCabinArticleAction,
+                        addSection: updateCabinArticleAddSectionAction,
+                        reorderSections: updateCabinArticleReorderSectionsAction,
+                        coverImage: updateCabinArticleCoverImageAction,
+                        articleSections: {
+                            update: updateCabinArticleSectionAction,
+                            addPart: updateCabinArticleSectionsAddPartAction,
+                            removePart: updateCabinArticleSectionsRemovePartAction,
+                            cmsImage: updateCabinArticleCmsImageAction,
+                            cmsParagraph: updateCabinArticleCmsParagraphAction,
+                            cmsLink: updateCabinArticleCmsLinkAction,
+                        }
+                    }}
+                />
+            </PageWrapper>
+        )
+    },
 })
 
 export default page

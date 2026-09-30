@@ -38,18 +38,20 @@ const { page, generateMetadata } = serverPage({
 
         return { committee, expanded, members, currentOrder }
     },
-    authCheckers: {
-        canEditLogo: (data) => committeeAuth.updateLogo.dynamicFields({ groupId: data.committee.groupId }),
-        canMigrate: (data) => committeeAuth.migrateGroup.dynamicFields({ groupId: data.committee.groupId }),
-        canAddMembers: (data) => committeeAuth.addMembers.dynamicFields({ groupId: data.committee.groupId }),
-        canSetMemberAdmin: (data) => committeeAuth.setMemberAdmin.dynamicFields({ groupId: data.committee.groupId }),
-        canSetMemberTitle: (data) => committeeAuth.setMemberTitle.dynamicFields({ groupId: data.committee.groupId }),
-        canRemoveMembers: (data) => committeeAuth.removeMembers.dynamicFields({ groupId: data.committee.groupId }),
-        canPension: () => committeeAuth.pension.dynamicFields({}),
-    },
     metadata: (data) => ({ title: `Administrer ${data.committee.name}` }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
         const { committee, expanded, members, currentOrder } = data
+
+        const canEditLogo = committeeAuth.updateLogo.dynamicFields({ groupId: committee.groupId }).auth(session)
+        const canMigrate = committeeAuth.migrateGroup.dynamicFields({ groupId: committee.groupId }).auth(session)
+        const canAddMembers = committeeAuth.addMembers.dynamicFields({ groupId: committee.groupId }).auth(session)
+        const canSetMemberAdmin = committeeAuth.setMemberAdmin
+            .dynamicFields({ groupId: committee.groupId }).auth(session)
+        const canSetMemberTitle = committeeAuth.setMemberTitle
+            .dynamicFields({ groupId: committee.groupId }).auth(session)
+        const canRemoveMembers = committeeAuth.removeMembers
+            .dynamicFields({ groupId: committee.groupId }).auth(session)
+        const canPension = committeeAuth.pension.dynamicFields({}).auth(session)
 
         // Only the active members of the committee's own order can be carried into the next one.
         const membersOfGroupOrder = members.filter(
@@ -72,7 +74,7 @@ const { page, generateMetadata } = serverPage({
                     <div className={styles.logo}>
                         <Image image={committee.logoImage} width={300} />
                         {
-                            authChecks.canEditLogo.authorized && (
+                            canEditLogo.authorized && (
                                 <ImageUploader
                                     title="Endre komitelogo"
                                     refreshOnSuccess
@@ -86,7 +88,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </section>}
 
-                {authChecks.canPension.authorized && (
+                {canPension.authorized && (
                     <section className={styles.section}>
                         <h3>Pensjonering</h3>
                         <PensionGroup
@@ -100,7 +102,7 @@ const { page, generateMetadata } = serverPage({
                 )}
 
                 {!committee.pensioned && expanded
-                    && (authChecks.canAddMembers.authorized || authChecks.canRemoveMembers.authorized) && (
+                    && (canAddMembers.authorized || canRemoveMembers.authorized) && (
                     <section className={styles.section}>
                         <h3>Medlemmer</h3>
                         <ManageGroupMembers
@@ -108,22 +110,22 @@ const { page, generateMetadata } = serverPage({
                             groupOrder={expanded.order}
                             orders={groupMembersByOrder(members, expanded.order)}
                             addMembersAction={
-                                authChecks.canAddMembers.authorized ? addCommitteeMembersAction : undefined
+                                canAddMembers.authorized ? addCommitteeMembersAction : undefined
                             }
                             setMemberAdminAction={
-                                authChecks.canSetMemberAdmin.authorized ? setCommitteeMemberAdminAction : undefined
+                                canSetMemberAdmin.authorized ? setCommitteeMemberAdminAction : undefined
                             }
                             setMemberTitleAction={
-                                authChecks.canSetMemberTitle.authorized ? setCommitteeMemberTitleAction : undefined
+                                canSetMemberTitle.authorized ? setCommitteeMemberTitleAction : undefined
                             }
                             removeMembersAction={
-                                authChecks.canRemoveMembers.authorized ? removeCommitteeMembersAction : undefined
+                                canRemoveMembers.authorized ? removeCommitteeMembersAction : undefined
                             }
                         />
                     </section>
                 )}
 
-                {!committee.pensioned && authChecks.canMigrate.authorized && expanded && (
+                {!committee.pensioned && canMigrate.authorized && expanded && (
                     <section className={styles.section}>
                         <h3>Migrering</h3>
                         <MigrateGroup

@@ -45,14 +45,12 @@ const { page, generateMetadata } = serverPage({
         ])
         return { cabinAvailability, releasePeriods, pricePeriods, cabinProducts }
     },
-    authCheckers: {
-        canBookCabin: () => cabinBookingAuth.createCabinBookingNoUser.dynamicFields({}),
-        canBookBed: () => cabinBookingAuth.createBedBookingNoUser.dynamicFields({}),
-        canEditSpecialCmsParagraphContract: () =>
-            cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Heutte Booking' }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
+        const canBookCabin = cabinBookingAuth.createCabinBookingNoUser.dynamicFields({}).auth(session)
+        const canBookBed = cabinBookingAuth.createBedBookingNoUser.dynamicFields({}).auth(session)
+        const canEditSpecialCmsParagraphContract = cabinBookingAuth
+            .updateSpecialCmsParagraphContentCabinContract.dynamicFields({}).auth(session)
         const releaseUntil = findCurrentReleasePeriod(data.releasePeriods)
         const nextReleasePeriod = findNextReleasePeriod(data.releasePeriods)
 
@@ -74,13 +72,13 @@ const { page, generateMetadata } = serverPage({
                 cabinAvailability={data.cabinAvailability}
                 releaseUntil={releaseUntil}
                 cabinProducts={data.cabinProducts}
-                canBookCabin={authChecks.canBookCabin.authorized}
-                canBookBed={authChecks.canBookBed.authorized}
+                canBookCabin={canBookCabin.authorized}
+                canBookBed={canBookBed.authorized}
                 pricePeriods={data.pricePeriods}
             />
 
             <SpecialCmsParagraph
-                canEdit={authChecks.canEditSpecialCmsParagraphContract.toJsObject()}
+                canEdit={canEditSpecialCmsParagraphContract.toJsObject()}
                 special="CABIN_CONTRACT"
                 readSpecialCmsParagraphAction={readSpecialCmsParagraphCabinContractAction}
                 updateCmsParagraphAction={updateSpecialCmsParagraphCabinContractAction}

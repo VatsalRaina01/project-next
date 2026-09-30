@@ -9,40 +9,40 @@ import { serverPage } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => studyProgrammeOperations.readMany({}),
-    authCheckers: {
-        canCreate: () => studyProgrammeAuth.create.dynamicFields({}),
-        canEdit: () => studyProgrammeAuth.update.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Studieprogrammer' }),
-    render: ({ data: studyprogrammes, authChecks }) => (
-        <PageWrapper
-            headerItem={
-                authChecks.canCreate.authorized && (
-                    <AddHeaderItemPopUp popUpKey="create ombul">
-                        <UpdateStudyProgrammeForm />
-                    </AddHeaderItemPopUp>
-                )
-            }
-        >
-            <table className={styles.table}>
-                <thead>
-                    <tr>
-                        {authChecks.canEdit.authorized && <th>Rediger</th>}
-                        <th>Navn</th>
-                        <th>Kode</th>
-                        <th>Institutt kode</th>
-                        <th>Startklasse</th>
-                        <th>Lengde på studiet</th>
-                        <th>Del av Omega</th>
-                    </tr>
-                </thead>
-                <StudyProgrammeTableBody
-                    studyprogrammes={studyprogrammes}
-                    canEdit={authChecks.canEdit.authorized}
-                />
-            </table>
-        </PageWrapper>
-    ),
+    render: ({ data: studyprogrammes, session }) => {
+        const canCreate = studyProgrammeAuth.create.dynamicFields({}).auth(session)
+        const canEdit = studyProgrammeAuth.update.dynamicFields({}).auth(session)
+        return (
+            <PageWrapper
+                headerItem={
+                    canCreate.authorized && (
+                        <AddHeaderItemPopUp popUpKey="create ombul">
+                            <UpdateStudyProgrammeForm />
+                        </AddHeaderItemPopUp>
+                    )
+                }
+            >
+                <table className={styles.table}>
+                    <thead>
+                        <tr>
+                            {canEdit.authorized && <th>Rediger</th>}
+                            <th>Navn</th>
+                            <th>Kode</th>
+                            <th>Institutt kode</th>
+                            <th>Startklasse</th>
+                            <th>Lengde på studiet</th>
+                            <th>Del av Omega</th>
+                        </tr>
+                    </thead>
+                    <StudyProgrammeTableBody
+                        studyprogrammes={studyprogrammes}
+                        canEdit={canEdit.authorized}
+                    />
+                </table>
+            </PageWrapper>
+        )
+    },
 })
 
 export default page

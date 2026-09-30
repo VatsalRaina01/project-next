@@ -29,22 +29,19 @@ const { page, generateMetadata } = serverPage({
 
         return { profile, studyProgrammes }
     },
-    authCheckers: {
-        canUpdateImage: (data) => userAuth.updateProfileImage.dynamicFields({
-            username: data.profile.user.username
-        }),
-        canChangeClass: () => classAuth.changeClassOfUser.dynamicFields({}),
-        canManageStudyProgrammes: () => studyProgrammeAuth.update.dynamicFields({}),
-    },
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
         const { profile, studyProgrammes } = data
+        const canUpdateImage = userAuth.updateProfileImage
+            .dynamicFields({ username: profile.user.username }).auth(session)
+        const canChangeClass = classAuth.changeClassOfUser.dynamicFields({}).auth(session)
+        const canManageStudyProgrammes = studyProgrammeAuth.update.dynamicFields({}).auth(session)
 
         return (
             <div className={styles.wrapper}>
                 <UserProfileSettingsCard>
                     <UserSettingsForm user={profile.user} />
                 </UserProfileSettingsCard>
-                {authChecks.canChangeClass.authorized && (
+                {canChangeClass.authorized && (
                     <UserProfileSettingsCard>
                         <ChangeClassForm
                             userId={profile.user.id}
@@ -52,7 +49,7 @@ const { page, generateMetadata } = serverPage({
                         />
                     </UserProfileSettingsCard>
                 )}
-                {authChecks.canManageStudyProgrammes.authorized && (
+                {canManageStudyProgrammes.authorized && (
                     <UserProfileSettingsCard>
                         <ManageUserStudyProgrammes
                             userId={profile.user.id}
@@ -73,7 +70,7 @@ const { page, generateMetadata } = serverPage({
                     <div className={styles.profileImage}>
                         <Image width={300} image={profile.user.image} />
                         <ProfileImageUploader
-                            canEdit={authChecks.canUpdateImage.toJsObject()}
+                            canEdit={canUpdateImage.toJsObject()}
                             uploadImageAction={configureAction(
                                 updateUserProfileImageAction,
                                 { params: { username: profile.user.username } }

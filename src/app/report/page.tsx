@@ -19,32 +19,32 @@ import { serverPage } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => reportOperations.read({}),
-    authCheckers: {
-        canEdit: () => reportAuth.update.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Varsling' }),
-    render: ({ data: article, authChecks }) => (
-        <PageWrapper className={styles.reportPage}>
-            <SpecialArticle
-                article={article}
-                canEdit={authChecks.canEdit.toJsObject()}
-                actions={{
-                    update: updateReportArticleAction,
-                    addSection: updateReportArticleAddSectionAction,
-                    reorderSections: updateReportArticleReorderSectionsAction,
-                    coverImage: updateReportArticleCoverImageAction,
-                    articleSections: {
-                        update: updateReportArticleSectionAction,
-                        addPart: updateReportArticleSectionsAddPartAction,
-                        removePart: updateReportArticleSectionsRemovePartAction,
-                        cmsImage: updateReportArticleCmsImageAction,
-                        cmsParagraph: updateReportArticleCmsParagraphAction,
-                        cmsLink: updateReportArticleCmsLinkAction,
-                    }
-                }}
-            />
-        </PageWrapper>
-    ),
+    render: ({ data: article, session }) => {
+        const canEdit = reportAuth.update.dynamicFields({}).auth(session)
+        return (
+            <PageWrapper className={styles.reportPage}>
+                <SpecialArticle
+                    article={article}
+                    canEdit={canEdit.toJsObject()}
+                    actions={{
+                        update: updateReportArticleAction,
+                        addSection: updateReportArticleAddSectionAction,
+                        reorderSections: updateReportArticleReorderSectionsAction,
+                        coverImage: updateReportArticleCoverImageAction,
+                        articleSections: {
+                            update: updateReportArticleSectionAction,
+                            addPart: updateReportArticleSectionsAddPartAction,
+                            removePart: updateReportArticleSectionsRemovePartAction,
+                            cmsImage: updateReportArticleCmsImageAction,
+                            cmsParagraph: updateReportArticleCmsParagraphAction,
+                            cmsLink: updateReportArticleCmsLinkAction,
+                        }
+                    }}
+                />
+            </PageWrapper>
+        )
+    },
 })
 
 export default page

@@ -39,21 +39,20 @@ const { page, generateMetadata } = serverPage({
 
         return { profile, sittedTrials }
     },
-    authCheckers: {
-        canReadTrials: (data) => admissionAuth.readTrial.dynamicFields({ userId: data.profile.user.id }),
-        canRegisterTrial: () => admissionAuth.createTrial.dynamicFields({}),
-        canChangeLevel: () => omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}),
-        canChangeOrder: () => omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}),
-    },
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
         const { profile } = data
         const { id: userId } = profile.user
+
+        const canReadTrials = admissionAuth.readTrial.dynamicFields({ userId }).auth(session)
+        const canRegisterTrial = admissionAuth.createTrial.dynamicFields({}).auth(session)
+        const canChangeLevel = omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}).auth(session)
+        const canChangeOrder = omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}).auth(session)
 
         const currentLevel = profile.omegaMembership.level
         const sittedTrials = new Set(data.sittedTrials)
 
         // Only a soelle sits trials, so that is the only time registering one would be accepted.
-        const showTrialRegistration = authChecks.canRegisterTrial.authorized && currentLevel === 'SOELLE'
+        const showTrialRegistration = canRegisterTrial.authorized && currentLevel === 'SOELLE'
 
         return (
             <div className={styles.wrapper}>
@@ -74,7 +73,7 @@ const { page, generateMetadata } = serverPage({
                                 </span>
                                 {level === currentLevel
                                     ? <span className={styles.marker}>Du er her</span>
-                                    : authChecks.canChangeLevel.authorized && (
+                                    : canChangeLevel.authorized && (
                                         <Form
                                             className={styles.action}
                                             submitText="Flytt hit"
@@ -95,7 +94,7 @@ const { page, generateMetadata } = serverPage({
                             {/* The trials are what carries a soelle up to sysken, so they sit in the
                                 gap between the two. Hidden from anyone who may not read them, since
                                 empty boxes would read as "none sat" rather than "not shown". */}
-                            {level === 'SYSKEN' && authChecks.canReadTrials.authorized && (
+                            {level === 'SYSKEN' && canReadTrials.authorized && (
                                 <ul className={styles.trials}>
                                     {allAdmissions.map(admission => (
                                         <li
@@ -131,7 +130,7 @@ const { page, generateMetadata } = serverPage({
                     <p>
                         Medlemskapet er udaf den {profile.omegaMembership.order}´dis orden.
                     </p>
-                    {authChecks.canChangeOrder.authorized && (
+                    {canChangeOrder.authorized && (
                         <Form
                             submitText="Endre orden"
                             refreshOnSuccess

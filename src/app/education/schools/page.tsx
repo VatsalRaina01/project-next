@@ -20,29 +20,29 @@ const { page, generateMetadata } = serverPage({
             },
         },
     }),
-    authCheckers: {
-        canAdministrateSchools: () => schoolAuth.create.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Skoler' }),
-    render: ({ data: serverRenderedData, authChecks, session }) => (
-        <PageWrapper headerItem={
-            authChecks.canAdministrateSchools.authorized ? (
-                <Link href="/admin/schools" className={styles.adminLink}>
+    render: ({ data: serverRenderedData, session }) => {
+        const canAdministrateSchools = schoolAuth.create.dynamicFields({}).auth(session)
+        return (
+            <PageWrapper headerItem={
+                canAdministrateSchools.authorized ? (
+                    <Link href="/admin/schools" className={styles.adminLink}>
                     Gå til administrasjon
-                </Link>
-            ) : <></>
-        }>
-            <SchoolPagingProvider
-                serverRenderedData={serverRenderedData}
-                details={undefined}
-                startPage={{ pageSize: pageSizeSchool, page: 1 }}
-            >
-                <div className={styles.wrapper}>
-                    <SchoolList serverRendered={serverRenderedData.map(schoolListRenderer(session.toJsObject()))} />
-                </div>
-            </SchoolPagingProvider>
-        </PageWrapper>
-    ),
+                    </Link>
+                ) : <></>
+            }>
+                <SchoolPagingProvider
+                    serverRenderedData={serverRenderedData}
+                    details={undefined}
+                    startPage={{ pageSize: pageSizeSchool, page: 1 }}
+                >
+                    <div className={styles.wrapper}>
+                        <SchoolList serverRendered={serverRenderedData.map(schoolListRenderer(session.toJsObject()))} />
+                    </div>
+                </SchoolPagingProvider>
+            </PageWrapper>
+        )
+    },
 })
 
 export default page

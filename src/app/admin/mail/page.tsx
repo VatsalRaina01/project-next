@@ -21,27 +21,25 @@ const { page, generateMetadata } = serverPage({
         ])
         return { mailAliases, mailingLists, mailAddressesExternal }
     },
-    authCheckers: {
-        canCreateMailAlias: () => mailAliasAuth.create.dynamicFields({}),
-        canCreateMailingList: () => mailingListAuth.create.dynamicFields({}),
-        canCreateMailaddressExternal: () => mailAddressExternalAuth.create.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Innkommende elektronisk post' }),
-    render: ({ data, authChecks }) => {
-        const showAdminPanel = authChecks.canCreateMailAlias.authorized
-            || authChecks.canCreateMailingList.authorized
-            || authChecks.canCreateMailaddressExternal.authorized
+    render: ({ data, session }) => {
+        const canCreateMailAlias = mailAliasAuth.create.dynamicFields({}).auth(session)
+        const canCreateMailingList = mailingListAuth.create.dynamicFields({}).auth(session)
+        const canCreateMailaddressExternal = mailAddressExternalAuth.create.dynamicFields({}).auth(session)
+        const showAdminPanel = canCreateMailAlias.authorized
+            || canCreateMailingList.authorized
+            || canCreateMailaddressExternal.authorized
 
         return (
             <PageWrapper>
                 {showAdminPanel && <div className={styles.adminContainer}>
-                    {authChecks.canCreateMailAlias.authorized ? <div>
+                    {canCreateMailAlias.authorized ? <div>
                         <CreateMailAlias />
                     </div> : null }
-                    {authChecks.canCreateMailingList.authorized ? <div>
+                    {canCreateMailingList.authorized ? <div>
                         <CreateMailingList />
                     </div> : null }
-                    { authChecks.canCreateMailaddressExternal.authorized ? <div>
+                    { canCreateMailaddressExternal.authorized ? <div>
                         <CreateMailaddressExternal />
                     </div> : null }
                 </div>}

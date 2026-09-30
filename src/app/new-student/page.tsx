@@ -18,32 +18,32 @@ import { serverPage } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => newStudentOperations.read({}),
-    authCheckers: {
-        canEdit: () => newStudentAuth.update.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Ny student' }),
-    render: ({ data: article, authChecks }) => (
-        <PageWrapper>
-            <SpecialArticle
-                article={article}
-                canEdit={authChecks.canEdit.toJsObject()}
-                actions={{
-                    update: updateNewStudentArticleAction,
-                    addSection: updateNewStudentArticleAddSectionAction,
-                    reorderSections: updateNewStudentArticleReorderSectionsAction,
-                    coverImage: updateNewStudentArticleCoverImageAction,
-                    articleSections: {
-                        update: updateNewStudentArticleSectionAction,
-                        addPart: updateNewStudentArticleSectionsAddPartAction,
-                        removePart: updateNewStudentArticleSectionsRemovePartAction,
-                        cmsImage: updateNewStudentArticleCmsImageAction,
-                        cmsParagraph: updateNewStudentArticleCmsParagraphAction,
-                        cmsLink: updateNewStudentArticleCmsLinkAction,
-                    }
-                }}
-            />
-        </PageWrapper>
-    ),
+    render: ({ data: article, session }) => {
+        const canEdit = newStudentAuth.update.dynamicFields({}).auth(session)
+        return (
+            <PageWrapper>
+                <SpecialArticle
+                    article={article}
+                    canEdit={canEdit.toJsObject()}
+                    actions={{
+                        update: updateNewStudentArticleAction,
+                        addSection: updateNewStudentArticleAddSectionAction,
+                        reorderSections: updateNewStudentArticleReorderSectionsAction,
+                        coverImage: updateNewStudentArticleCoverImageAction,
+                        articleSections: {
+                            update: updateNewStudentArticleSectionAction,
+                            addPart: updateNewStudentArticleSectionsAddPartAction,
+                            removePart: updateNewStudentArticleSectionsRemovePartAction,
+                            cmsImage: updateNewStudentArticleCmsImageAction,
+                            cmsParagraph: updateNewStudentArticleCmsParagraphAction,
+                            cmsLink: updateNewStudentArticleCmsLinkAction,
+                        }
+                    }}
+                />
+            </PageWrapper>
+        )
+    },
 })
 
 export default page

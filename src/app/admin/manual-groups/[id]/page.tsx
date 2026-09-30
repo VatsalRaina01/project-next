@@ -42,19 +42,19 @@ const { page, generateMetadata } = serverPage({
 
         return { manualGroup, expanded, members, currentOrder }
     },
-    authCheckers: {
-        canMigrate: (data) => manualGroupAuth.migrateGroup.dynamicFields({ groupId: data.manualGroup.groupId }),
-        canAddMembers: (data) => manualGroupAuth.addMembers.dynamicFields({ groupId: data.manualGroup.groupId }),
-        canSetMemberAdmin: (data) => manualGroupAuth.setMemberAdmin.dynamicFields({ groupId: data.manualGroup.groupId }),
-        canSetMemberTitle: (data) => manualGroupAuth.setMemberTitle.dynamicFields({
-            groupId: data.manualGroup.groupId,
-        }),
-        canPension: () => manualGroupAuth.pension.dynamicFields({}),
-        canRemoveMembers: (data) => manualGroupAuth.removeMembers.dynamicFields({ groupId: data.manualGroup.groupId }),
-    },
     metadata: (data) => ({ title: data.manualGroup.name }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, session }) => {
         const { manualGroup, expanded, members, currentOrder } = data
+
+        const canMigrate = manualGroupAuth.migrateGroup.dynamicFields({ groupId: manualGroup.groupId }).auth(session)
+        const canAddMembers = manualGroupAuth.addMembers.dynamicFields({ groupId: manualGroup.groupId }).auth(session)
+        const canSetMemberAdmin = manualGroupAuth.setMemberAdmin
+            .dynamicFields({ groupId: manualGroup.groupId }).auth(session)
+        const canSetMemberTitle = manualGroupAuth.setMemberTitle
+            .dynamicFields({ groupId: manualGroup.groupId }).auth(session)
+        const canPension = manualGroupAuth.pension.dynamicFields({}).auth(session)
+        const canRemoveMembers = manualGroupAuth.removeMembers
+            .dynamicFields({ groupId: manualGroup.groupId }).auth(session)
 
         // Only the active members of the group's own order can be carried into the next one.
         const membersOfGroupOrder = members.filter(
@@ -70,7 +70,7 @@ const { page, generateMetadata } = serverPage({
                         <span>Aktive medlemmer: {expanded.members}</span>
                     </div>
 
-                    {authChecks.canPension.authorized && (
+                    {canPension.authorized && (
                         <div className={styles.section}>
                             <h2>Pensjonering</h2>
                             <PensionGroup
@@ -84,7 +84,7 @@ const { page, generateMetadata } = serverPage({
                     )}
 
                     {!manualGroup.pensioned
-                        && (authChecks.canAddMembers.authorized || authChecks.canRemoveMembers.authorized) && (
+                        && (canAddMembers.authorized || canRemoveMembers.authorized) && (
                         <div className={styles.section}>
                             <h2>Medlemmer</h2>
                             <ManageGroupMembers
@@ -92,22 +92,22 @@ const { page, generateMetadata } = serverPage({
                                 groupOrder={expanded.order}
                                 orders={groupMembersByOrder(members, expanded.order)}
                                 addMembersAction={
-                                    authChecks.canAddMembers.authorized ? addManualGroupMembersAction : undefined
+                                    canAddMembers.authorized ? addManualGroupMembersAction : undefined
                                 }
                                 setMemberAdminAction={
-                                    authChecks.canSetMemberAdmin.authorized ? setManualGroupMemberAdminAction : undefined
+                                    canSetMemberAdmin.authorized ? setManualGroupMemberAdminAction : undefined
                                 }
                                 setMemberTitleAction={
-                                    authChecks.canSetMemberTitle.authorized ? setManualGroupMemberTitleAction : undefined
+                                    canSetMemberTitle.authorized ? setManualGroupMemberTitleAction : undefined
                                 }
                                 removeMembersAction={
-                                    authChecks.canRemoveMembers.authorized ? removeManualGroupMembersAction : undefined
+                                    canRemoveMembers.authorized ? removeManualGroupMembersAction : undefined
                                 }
                             />
                         </div>
                     )}
 
-                    {!manualGroup.pensioned && authChecks.canMigrate.authorized && (
+                    {!manualGroup.pensioned && canMigrate.authorized && (
                         <div className={styles.section}>
                             <h2>Migrering</h2>
                             <MigrateGroup

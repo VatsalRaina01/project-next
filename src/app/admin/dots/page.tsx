@@ -28,17 +28,15 @@ const { page, generateMetadata } = serverPage({
 
         return { userId, onlyActive, user, dots } as const
     },
-    authCheckers: {
-        // This page is only about administrating dots, so the crud of them is offered outright to
-        // whoever is authorized for it - no edit mode to enter first. The create authorizer needs
-        // the session's own user id, so it is run inline in render rather than declared here.
-        canUpdate: () => dotAuth.update.dynamicFields({}),
-        canDestroy: () => dotAuth.destroy.dynamicFields({}),
-    },
     metadata: (data) => ({
         title: data.userId === null ? 'Prikker' : `Prikker for ${data.user.firstname} ${data.user.lastname}`,
     }),
-    render: ({ data, authChecks, session }) => {
+    render: ({ data, session }) => {
+        // This page is only about administrating dots, so the crud of them is offered outright to
+        // whoever is authorized for it - no edit mode to enter first.
+        const canUpdate = dotAuth.update.dynamicFields({}).auth(session)
+        const canDestroy = dotAuth.destroy.dynamicFields({}).auth(session)
+
         if (data.userId === null) {
             return (
                 <PageWrapper>
@@ -76,8 +74,8 @@ const { page, generateMetadata } = serverPage({
                         showCreateForm={
                             dotAuth.create.dynamicFields({ userId: session.user?.id ?? 0 }).auth(session).authorized
                         }
-                        showUpdateForm={authChecks.canUpdate.authorized}
-                        showDestroyForm={authChecks.canDestroy.authorized}
+                        showUpdateForm={canUpdate.authorized}
+                        showDestroyForm={canDestroy.authorized}
                     />
                 </div>
             </PageWrapper>

@@ -37,131 +37,130 @@ import type { PageOperationArgs } from '@/app/serverPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) =>
         jobAdOperations.read({ params: { id: decodeVevenUriHandleError(params.nameAndId) } }),
-    authCheckers: {
-        canEdit: () => jobAdAuth.updateArticle.dynamicFields({}),
-    },
     metadata: () => ({ title: 'Jobbannonse' }),
-    render: ({ data: jobAd, authChecks, session }) => (
-        <div className={styles.wrapper}>
-            <main className={styles.main}>
-                <Article
-                    canEdit={authChecks.canEdit.toJsObject()}
-                    article={jobAd.article}
-                    coverImageClass={styles.coverImage}
-                    sideBarClassName={styles.sideBar}
-                    articleClassName={styles.articleZone}
-                    addSectionClassName={styles.addSectionZone}
-                    actions={{
-                        updateArticleAction: configureAction(
-                            updateJobAdArticleAction,
-                            { implementationParams: { jobAdId: jobAd.id } }
-                        ),
-                        updateCoverImageAction: configureAction(
-                            updateJobAdArticleCoverImageAction,
-                            { implementationParams: { jobAdId: jobAd.id } }
-                        ),
-                        addSectionToArticleAction: configureAction(
-                            updateJobAdArticleAddSectionAction,
-                            { implementationParams: { jobAdId: jobAd.id } }
-                        ),
-                        reorderArticleSectionsAction: configureAction(
-                            updateJobAdArticleReorderSectionsAction,
-                            { implementationParams: { jobAdId: jobAd.id } }
-                        ),
-                        articleSections: {
-                            updateCmsParagraph: configureAction(
-                                updateJobAdArticleCmsParagraphAction,
+    render: ({ data: jobAd, session }) => {
+        const canEdit = jobAdAuth.updateArticle.dynamicFields({}).auth(session)
+        return (
+            <div className={styles.wrapper}>
+                <main className={styles.main}>
+                    <Article
+                        canEdit={canEdit.toJsObject()}
+                        article={jobAd.article}
+                        coverImageClass={styles.coverImage}
+                        sideBarClassName={styles.sideBar}
+                        articleClassName={styles.articleZone}
+                        addSectionClassName={styles.addSectionZone}
+                        actions={{
+                            updateArticleAction: configureAction(
+                                updateJobAdArticleAction,
                                 { implementationParams: { jobAdId: jobAd.id } }
                             ),
-                            updateCmsImage: configureAction(
-                                updateJobAdArticleCmsImageAction,
+                            updateCoverImageAction: configureAction(
+                                updateJobAdArticleCoverImageAction,
                                 { implementationParams: { jobAdId: jobAd.id } }
                             ),
-                            updateCmsLink: configureAction(
-                                updateJobAdArticleCmsLinkAction,
+                            addSectionToArticleAction: configureAction(
+                                updateJobAdArticleAddSectionAction,
                                 { implementationParams: { jobAdId: jobAd.id } }
                             ),
-                            updateArticleSection: configureAction(
-                                updateJobAdArticleSectionAction,
+                            reorderArticleSectionsAction: configureAction(
+                                updateJobAdArticleReorderSectionsAction,
                                 { implementationParams: { jobAdId: jobAd.id } }
                             ),
-                            addPartToArticleSection: configureAction(
-                                updateJobAdArticleSectionsAddPartAction,
-                                { implementationParams: { jobAdId: jobAd.id } }
-                            ),
-                            removePartFromArticleSection: configureAction(
-                                updateJobAdArticleSectionsRemovePartAction,
-                                { implementationParams: { jobAdId: jobAd.id } }
-                            )
-                        }
+                            articleSections: {
+                                updateCmsParagraph: configureAction(
+                                    updateJobAdArticleCmsParagraphAction,
+                                    { implementationParams: { jobAdId: jobAd.id } }
+                                ),
+                                updateCmsImage: configureAction(
+                                    updateJobAdArticleCmsImageAction,
+                                    { implementationParams: { jobAdId: jobAd.id } }
+                                ),
+                                updateCmsLink: configureAction(
+                                    updateJobAdArticleCmsLinkAction,
+                                    { implementationParams: { jobAdId: jobAd.id } }
+                                ),
+                                updateArticleSection: configureAction(
+                                    updateJobAdArticleSectionAction,
+                                    { implementationParams: { jobAdId: jobAd.id } }
+                                ),
+                                addPartToArticleSection: configureAction(
+                                    updateJobAdArticleSectionsAddPartAction,
+                                    { implementationParams: { jobAdId: jobAd.id } }
+                                ),
+                                removePartFromArticleSection: configureAction(
+                                    updateJobAdArticleSectionsRemovePartAction,
+                                    { implementationParams: { jobAdId: jobAd.id } }
+                                )
+                            }
+                        }}
+                        sideBarContent={
+                            <>
+                                <ul className={styles.metInfo}>
+                                    <li>
+                                        <FontAwesomeIcon icon={faSuitcase} />
+                                        <h3>Stillingstype</h3>
+                                        <p>{jobAdType[jobAd.type].label}</p>
+                                    </li>
+                                    <li>
+                                        <FontAwesomeIcon icon={jobAd.active ? faCheckCircle : faXmarkCircle} />
+                                        <h3>Status</h3>
+                                        <p>
+                                            {jobAd.active
+                                                ? 'Denne jobbanonsen er aktiv'
+                                                : 'Denne jobbanonsen er arkivert'}
+                                        </p>
+                                    </li>
+                                    <li>
+                                        <FontAwesomeIcon icon={faClock} />
+                                        <h3>Søknadsfrist</h3>
+                                        <p>
+                                            { jobAd.applicationDeadline ?
+                                                <Date date={jobAd.applicationDeadline} /> :
+                                                'Ingen søknadsfrist satt'
+                                            }
+                                        </p>
+                                    </li>
+                                    <li>
+                                        <FontAwesomeIcon icon={faNewspaper} />
+                                        <h3>Publisert</h3>
+                                        <p>
+                                            <Date date={jobAd.createdAt} />
+                                        </p>
+                                    </li>
+                                    <li>
+                                        <FontAwesomeIcon icon={faLocationDot} />
+                                        <h3>Sted</h3>
+                                        <p>{jobAd.location}</p>
+                                    </li>
+                                </ul>
+                                <div className={styles.company}>
+                                    <h2>Arbeidsgiver</h2>
+                                    <Company
+                                        disableEdit
+                                        squareLogo={false}
+                                        company={jobAd.company}
+                                        session={session}
+                                    />
+                                </div>
+                            </>
+                        } />
+                </main>
+                <CompanyPagingProvider
+                    serverRenderedData={[]}
+                    startPage={{
+                        page: 0,
+                        pageSize: 10
                     }}
-                    sideBarContent={
-                        <>
-                            <ul className={styles.metInfo}>
-                                <li>
-                                    <FontAwesomeIcon icon={faSuitcase} />
-                                    <h3>Stillingstype</h3>
-                                    <p>{jobAdType[jobAd.type].label}</p>
-                                </li>
-                                <li>
-                                    <FontAwesomeIcon icon={jobAd.active ? faCheckCircle : faXmarkCircle} />
-                                    <h3>Status</h3>
-                                    <p>
-                                        {jobAd.active
-                                            ? 'Denne jobbanonsen er aktiv'
-                                            : 'Denne jobbanonsen er arkivert'}
-                                    </p>
-                                </li>
-                                <li>
-                                    <FontAwesomeIcon icon={faClock} />
-                                    <h3>Søknadsfrist</h3>
-                                    <p>
-                                        { jobAd.applicationDeadline ?
-                                            <Date date={jobAd.applicationDeadline} /> :
-                                            'Ingen søknadsfrist satt'
-                                        }
-                                    </p>
-                                </li>
-                                <li>
-                                    <FontAwesomeIcon icon={faNewspaper} />
-                                    <h3>Publisert</h3>
-                                    <p>
-                                        <Date date={jobAd.createdAt} />
-                                    </p>
-                                </li>
-                                <li>
-                                    <FontAwesomeIcon icon={faLocationDot} />
-                                    <h3>Sted</h3>
-                                    <p>{jobAd.location}</p>
-                                </li>
-                            </ul>
-                            <div className={styles.company}>
-                                <h2>Arbeidsgiver</h2>
-                                <Company
-                                    disableEdit
-                                    squareLogo={false}
-                                    company={jobAd.company}
-                                    session={session}
-                                />
-                            </div>
-                        </>
-                    } />
-            </main>
-            <CompanyPagingProvider
-                serverRenderedData={[]}
-                startPage={{
-                    page: 0,
-                    pageSize: 10
-                }}
-                details={{ name: undefined }}
-            >
-                <CompanySelectionProvider company={jobAd.company}>
-                    <EditJobAd jobAd={jobAd}/>
-                </CompanySelectionProvider>
-            </CompanyPagingProvider>
-        </div>
-
-    ),
+                    details={{ name: undefined }}
+                >
+                    <CompanySelectionProvider company={jobAd.company}>
+                        <EditJobAd jobAd={jobAd}/>
+                    </CompanySelectionProvider>
+                </CompanyPagingProvider>
+            </div>
+        )
+    },
 })
 
 export default page
