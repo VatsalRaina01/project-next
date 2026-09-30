@@ -55,6 +55,12 @@ export const eventSchemas = {
         id: z.number(),
     }),
 
+    search: z.object({
+        query: z.string().trim().min(1).max(100),
+        limit: z.number().int().min(1).max(25)
+            .optional(),
+    }),
+
     setPublished: z.object({
         published: Zpn.checkboxOrBoolean({ label: 'Publisert' }),
     }),

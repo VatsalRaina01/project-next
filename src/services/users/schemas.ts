@@ -37,6 +37,12 @@ const refinePassword = {
 }
 
 export const userSchemas = {
+    search: z.object({
+        query: z.string().trim().min(1).max(100),
+        limit: z.number().int().min(1).max(25)
+            .optional(),
+    }),
+
     create: userSchema.pick({
         email: true,
         firstname: true,
