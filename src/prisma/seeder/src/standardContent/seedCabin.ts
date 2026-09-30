@@ -1,5 +1,4 @@
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
-import { upsert } from '@/seeder/src/upsert'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { CabinProduct, CabinProductPrice } from '@/prisma-generated-pn-types'
 
@@ -7,12 +6,14 @@ type SeedCabinProductConfig = Omit<CabinProduct, 'id'> & {
     CabinProductPrice: (Omit<CabinProductPrice, 'id' | 'cabinProductId' | 'pricePeriodId'>)[]
 }
 
+const NEXT_PERIOD_PRICE_FACTOR = 1.5
+
 /**
- * Upserts the cabin products, and the initial price and release periods.
+ * Seeds the cabin products, and the initial price and release periods.
  *
- * None of these have a natural unique key, and all of them are managed through the cabin admin
- * pages once they exist, so everything here is skip-if-exists: a product is matched on its name,
- * and the price and release periods are only seeded while there are none at all.
+ * The periods are dated relative to the run, so there is no stable key to match existing rows
+ * against one by one, and prices edited through the admin pages should not be undone by a re-seed.
+ * So the whole seed is skipped once any cabin product exists.
  */
 export const seedCabin = defineSeedOperation(async (prisma: PrismaClient) => {
     const products: SeedCabinProductConfig[] = [
@@ -71,58 +72,57 @@ export const seedCabin = defineSeedOperation(async (prisma: PrismaClient) => {
         }
     ]
 
-    const seededProducts = await Promise.all(products.map(product => upsert({
-        checkExistance: () => prisma.cabinProduct.findFirst({
-            where: { name: product.name },
-            select: { id: true },
+    const alreadySeeded = await prisma.cabinProduct.findFirst({ select: { id: true } })
+    if (alreadySeeded) return
+
+    const now = new Date()
+
+    const [pricePeriod, secondPricePeriod] = await Promise.all([
+        prisma.pricePeriod.create({
+            data: {
+                validFrom: now
+            }
         }),
-        create: async () => await prisma.cabinProduct.create({
+        prisma.pricePeriod.create({
+            data: {
+                validFrom: new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate())
+            }
+        }),
+    ])
+
+    await Promise.all(products.map(product =>
+        prisma.cabinProduct.create({
             data: {
                 name: product.name,
                 amount: product.amount,
                 type: product.type,
+                CabinProductPrice: {
+                    create: product.CabinProductPrice.flatMap(price => [
+                        {
+                            ...price,
+                            pricePeriodId: pricePeriod.id
+                        },
+                        {
+                            ...price,
+                            pricePeriodId: secondPricePeriod.id,
+                            price: Math.round(price.price * NEXT_PERIOD_PRICE_FACTOR)
+                        },
+                    ])
+                }
             }
-        }),
-        update: async () => await prisma.cabinProduct.findFirstOrThrow({
-            where: { name: product.name },
-        }),
-    }).then(seeded => ({ ...product, id: seeded.id }))))
-
-    const now = new Date()
-
-    if (await prisma.pricePeriod.count() === 0) {
-        const pricePeriods = await Promise.all([
-            { validFrom: now, priceFactor: 1 },
-            { validFrom: new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate()), priceFactor: 1.5 },
-        ].map(async ({ validFrom, priceFactor }) => ({
-            id: (await prisma.pricePeriod.create({ data: { validFrom } })).id,
-            priceFactor,
-        })))
-
-        await prisma.cabinProductPrice.createMany({
-            data: pricePeriods.flatMap(pricePeriod => seededProducts.flatMap(product =>
-                product.CabinProductPrice.map(price => ({
-                    ...price,
-                    price: price.price * pricePeriod.priceFactor,
-                    cabinProductId: product.id,
-                    pricePeriodId: pricePeriod.id,
-                }))
-            )),
         })
-    }
+    ))
 
-    if (await prisma.releasePeriod.count() === 0) {
-        await prisma.releasePeriod.createMany({
-            data: [
-                {
-                    releaseTime: now,
-                    releaseUntil: new Date(now.getUTCFullYear(), now.getUTCMonth() + 2, now.getUTCDate())
-                },
-                {
-                    releaseTime: new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate()),
-                    releaseUntil: new Date(now.getUTCFullYear(), now.getUTCMonth() + 4, now.getUTCDate())
-                },
-            ],
-        })
-    }
+    await prisma.releasePeriod.createMany({
+        data: [
+            {
+                releaseTime: now,
+                releaseUntil: new Date(now.getUTCFullYear(), now.getUTCMonth() + 2, now.getUTCDate())
+            },
+            {
+                releaseTime: new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate()),
+                releaseUntil: new Date(now.getUTCFullYear(), now.getUTCMonth() + 4, now.getUTCDate())
+            },
+        ],
+    })
 })
