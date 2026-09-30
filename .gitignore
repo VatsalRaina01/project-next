@@ -47,7 +47,6 @@ next-env.d.ts
 
 # environment variables, see .env.default for the needed env vars.
 .env
-.env.changes
 
 .rest
 
