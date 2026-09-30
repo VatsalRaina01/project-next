@@ -4,12 +4,12 @@ import { ServerError } from '@/services/error'
 
 export const NTNUEmailDomain = 'stud.ntnu.no'
 
-export const validMailAdressDomains = isBuildPhase() ? ['omega.ntnu.no'] : (() => {
-    if (!process.env.DOMAIN || !process.env.MAIL_DOMAIN) {
-        throw new ServerError('INVALID CONFIGURATION', 'The environment variables DOMAIN and MAIL_DOMAIN must be set')
+export const validMailAdressDomains = isBuildPhase() ? ['build-phase-placeholder.invalid'] : (() => {
+    if (!process.env.EMAIL_DOMAIN || !process.env.EMAIL_HOSTNAME) {
+        throw new ServerError('INVALID CONFIGURATION', 'The env vars EMAIL_DOMAIN and EMAIL_HOSTNAME must be set')
     }
     return [
-        process.env.DOMAIN,
-        process.env.MAIL_DOMAIN
+        process.env.EMAIL_DOMAIN,
+        process.env.EMAIL_HOSTNAME
     ] as const
 })()

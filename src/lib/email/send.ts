@@ -29,7 +29,7 @@ export async function sendSystemMail(
     await sendMail({
         to,
         subject,
-        from: `noreply@${process.env.DOMAIN}`,
+        from: `noreply@${process.env.EMAIL_DOMAIN}`,
         html: (typeof body === 'string') ? body : await render(body),
     })
 }
