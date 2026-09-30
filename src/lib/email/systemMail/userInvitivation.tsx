@@ -12,7 +12,7 @@ export async function sendUserInvitationEmail(user: UserFiltered) {
         email: user.email,
     }, userInvitationExpiration)
 
-    const link = `${process.env.SERVER_LINK_PREFIX}/verify-email?token=${jwt}`
+    const link = `${process.env.WEBSITE_URL}/verify-email?token=${jwt}`
 
     await sendSystemMail(
         user.email,
