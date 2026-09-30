@@ -1,44 +1,48 @@
 import styles from './LedgerTransactionRow.module.scss'
+import LedgerTransactionDetails, { transactionPurposeNames, transactionStateNames } from './LedgerTransactionDetails'
+import PopUp from '@/components/PopUp/PopUp'
 import { displayAmount } from '@/lib/currency/convert'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
-import type { LedgerTransactionPurpose, LedgerTransactionState } from '@/prisma-generated-pn-types'
 
 type Props = {
     transaction: ExpandedLedgerTransaction,
     accountId: number,
-    showFees?: boolean,
+    canViewFees?: boolean,
 }
 
-const transactionPurposeNames: Record<LedgerTransactionPurpose, string> = {
-    SHOP_PURCHASE: 'Kjøp i Kiogeskabet',
-    EVENT_PAYMENT: 'Arrangementsbetaling',
-    DEPOSIT: 'Innskudd',
-    PAYOUT: 'Utbetaling',
-    REFUND: 'Refusjon',
+// Incomplete (PENDING) transactions are shown in italic; terminal-but-unsuccessful (FAILED,
+// CANCELED) transactions are struck through. SUCCEEDED is the plain/default style. The detailed
+// popup still spells the state out in full.
+function stateStyle(state: ExpandedLedgerTransaction['state']) {
+    if (state === 'PENDING') return styles.pending
+    if (state === 'FAILED' || state === 'CANCELED') return styles.terminalFailure
+    return undefined
 }
 
-const transactionStateNames: Record<LedgerTransactionState, string> = {
-    PENDING: 'Under behandling',
-    SUCCEEDED: 'Fullført',
-    FAILED: 'Feilet',
-    CANCELED: 'Avbrutt',
-}
-
-export default function LedgerTransactionRow({ transaction, accountId, showFees }: Props) {
+export default function LedgerTransactionRow({ transaction, accountId, canViewFees }: Props) {
     const totalFunds = (
         transaction.ledgerEntries?.reduce((sum, entry) => sum + Math.abs(entry.funds), 0)
         + Math.abs(transaction.payment?.funds ?? 0)
     ) / 2
 
     const fundsChange = transaction.ledgerEntries.find(entry => entry.ledgerAccountId === accountId)?.funds ?? null
-    const feesChange = transaction.ledgerEntries.find(entry => entry.ledgerAccountId === accountId)?.fees ?? null
 
-    return <tr>
-        <td>{transaction.createdAt.toLocaleString()}</td>
-        <td>{transaction.description ?? transactionPurposeNames[transaction.purpose]}</td>
-        <td>{transactionStateNames[transaction.state]}</td>
-        <td className={styles.rightAlign}><b>{displayAmount(totalFunds)}</b></td>
-        <td className={styles.rightAlign}><b>{fundsChange !== null ? displayAmount(fundsChange) : '-'}</b></td>
-        {showFees && <td className={styles.rightAlign}><i>{feesChange !== null ? displayAmount(feesChange) : '-'}</i></td>}
-    </tr>
+    const rowClassName = [styles.row, stateStyle(transaction.state)].filter(Boolean).join(' ')
+
+    return <PopUp
+        popUpKey={`LedgerTransactionDetails${transaction.id}`}
+        customShowButton={open => (
+            <tr className={rowClassName} onClick={open}>
+                <td>{transaction.createdAt.toLocaleString()}</td>
+                <td>{transaction.description ?? transactionPurposeNames[transaction.purpose]}</td>
+                <td>{transactionStateNames[transaction.state]}</td>
+                <td className={styles.rightAlign}><b>{displayAmount(totalFunds)}</b></td>
+                <td className={styles.rightAlign}>
+                    <b>{fundsChange !== null ? displayAmount(fundsChange, true, true) : '-'}</b>
+                </td>
+            </tr>
+        )}
+    >
+        <LedgerTransactionDetails transaction={transaction} accountId={accountId} canViewFees={canViewFees} />
+    </PopUp>
 }

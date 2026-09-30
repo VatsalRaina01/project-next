@@ -1,6 +1,12 @@
 import logger from '@/lib/logger'
 
-export type MappedResource = 'images' | 'image collections' | 'committees'
+export type MappedResource =
+    | 'images'
+    | 'image collections'
+    | 'committees'
+    | 'user accounts'
+    | 'drain accounts'
+    | 'event registrations'
 
 export type IdMapper = {
     owId: number
