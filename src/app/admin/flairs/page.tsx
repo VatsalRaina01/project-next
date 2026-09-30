@@ -13,10 +13,12 @@ import Flair from '@/components/Flair/Flair'
 import ImageUploader from '@/components/Image/ImageUploader'
 import PopUp from '@/components/PopUp/PopUp'
 import { configureAction } from '@/services/configureAction'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import type { FlairRow } from './FlairTable'
 
 
 export default async function FlairUpdatePage() {
+    await authorizeAdminPage('flairs')
     const flairs = unwrapActionReturn(await readAllFlairsAction()).sort((a, b) => a.rank - b.rank)
 
     const rows: FlairRow[] = flairs.map(flair => ({

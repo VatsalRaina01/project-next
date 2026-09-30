@@ -4,17 +4,14 @@ import {
     readOmegaMembershipGroupsExpandedAction,
 } from '@/services/groups/omegaMembershipGroups/actions'
 import { readCurrentOmegaOrderAction } from '@/services/omegaOrder/actions'
-import { omegaMembershipGroupAuth } from '@/services/groups/omegaMembershipGroups/auth'
 import { OmegaMembershipLevelConfig } from '@/services/groups/constants'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { ServerSession } from '@/auth/session/ServerSession'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 export default async function AdminOmegaMembershipGroups() {
-    const session = await ServerSession.fromNextAuth()
-    omegaMembershipGroupAuth.readExpanded.dynamicFields({}).auth(session)
-        .redirectOnUnauthorized({ returnUrl: '/admin/omega-membership-groups' })
+    await authorizeAdminPage('omega-membership-groups')
 
     const [membershipGroups, expandedGroups, currentOrder] = await Promise.all([
         readOmegaMembershipGroupsAction().then(unwrapActionReturn),

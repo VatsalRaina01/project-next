@@ -7,11 +7,11 @@ import useOnNavigation from '@/hooks/useOnNavigation'
 import React, { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
-import type { NavItem } from './navDef'
+import type { NavLink } from './navDef'
 
 type PropTypes = {
     openBtnVariant: 'mobile' | 'desktop',
-    items: NavItem[]
+    items: NavLink[]
 }
 
 

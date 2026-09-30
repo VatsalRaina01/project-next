@@ -9,20 +9,21 @@ import { faCog } from '@fortawesome/free-solid-svg-icons'
 import { useContext } from 'react'
 
 type PropTypes = {
-    isAdmin: boolean
+    /** Whether any page of `adminNavDef` is one the session may open. */
+    showAdmin: boolean
     expanded?: boolean
 }
 
 /**
  * Renders nothing at all - not even the wrapping nav/background panel -
  * when there's neither an admin link nor an edit-mode icon to show.
- * DesktopSideBar (a server component) only knows isAdmin; whether
+ * DesktopSideBar only knows whether there's an admin page to open; whether
  * there's something to edit is only known client-side via
  * EditModeContext, so that decision has to live in a client component.
  */
-export default function AdminNav({ isAdmin, expanded = false }: PropTypes) {
+export default function AdminNav({ showAdmin, expanded = false }: PropTypes) {
     const editModeCtx = useContext(EditModeContext)
-    if (!isAdmin && !editModeCtx?.somethingToEdit) return null
+    if (!showAdmin && !editModeCtx?.somethingToEdit) return null
 
     const adminLink = (
         <Link href="/admin" className={styles.navIcon} aria-label="Admin">
@@ -34,7 +35,7 @@ export default function AdminNav({ isAdmin, expanded = false }: PropTypes) {
     return (
         <nav className={styles.adminNav} aria-label="Adminnavigasjon">
             <EditModeNavIcon className={styles.navIcon} expanded={expanded} />
-            {isAdmin && (
+            {showAdmin && (
                 expanded ? adminLink : <NavTooltip content="Admin">{adminLink}</NavTooltip>
             )}
         </nav>

@@ -6,6 +6,7 @@ import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { readNotificationChannelsAction } from '@/services/notifications/actions'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 
@@ -45,6 +46,7 @@ function orderByHierarchy(channels: ExpandedNotificationChannel[]): ChannelRow[]
 }
 
 export default async function NotificationChannels() {
+    await authorizeAdminPage('notification-channels')
     const channels = unwrapActionReturn(await readNotificationChannelsAction())
     const rows = orderByHierarchy(channels)
 
