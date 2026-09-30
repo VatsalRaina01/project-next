@@ -34,3 +34,5 @@ export const eventFilterSelection = {
         },
     },
 } as const
+
+export const defaultSearchResultLimit = 5

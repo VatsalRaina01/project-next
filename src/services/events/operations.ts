@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
-import { eventFilterSelection } from './constants'
+import { defaultSearchResultLimit, eventFilterSelection } from './constants'
 import { notificationOperations } from '@/services/notifications/operations'
 import { getOsloTime } from '@/lib/dates/getOsloTime'
 import { ServerError } from '@/services/error'
@@ -310,6 +310,36 @@ export const eventOperations = {
             }))
         }
     }),
+
+    /**
+     * The event half of the global search: the few events best matching a free text query, for a
+     * search box to show while the user types. Both past and coming events are searched, the most
+     * recent ones first, and only the events the session may see at all - the very same
+     * visibility rule as the lists of current and archived events above.
+     */
+    search: defineOperation({
+        paramsSchema: eventSchemas.search,
+        authorizer: () => eventAuth.search.dynamicFields({}),
+        operation: async ({ prisma, params }, visibilityWhereFilter) => await prisma.event.findMany({
+            take: params.limit ?? defaultSearchResultLimit,
+            select: {
+                id: true,
+                name: true,
+                eventStart: true,
+                coverImage: {
+                    select: {
+                        image: { include: expandedImageIncluder }
+                    }
+                }
+            },
+            where: {
+                name: { contains: params.query, mode: 'insensitive' },
+                ...visibleEventsFilter(visibilityWhereFilter)
+            },
+            orderBy: { eventStart: 'desc' },
+        })
+    }),
+
     update: defineOperation({
         paramsSchema: eventSchemas.params,
         dataSchema: eventSchemas.update,

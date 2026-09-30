@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { userSchemas } from './schemas'
 import { userAuth } from './auth'
 import {
+    defaultSearchResultLimit,
     maxNumberOfGroupsInFilter,
     standardMembershipSelection,
     userFilterSelection
@@ -308,6 +309,46 @@ export const userOperations = {
                     }
                 }
             })
+        }
+    }),
+
+    /**
+     * The user half of the global search: the few users best matching a free text query, for a
+     * search box to show while the user types. Every word of the query must occur in some part of
+     * the name of the user, so that "ola nor" finds "Ola Nordmann".
+     */
+    search: defineOperation({
+        paramsSchema: userSchemas.search,
+        authorizer: () => userAuth.search.dynamicFields({}),
+        operation: async ({ prisma, params }) => {
+            const words = params.query.split(/\s+/).filter(Boolean)
+
+            const users = await prisma.user.findMany({
+                take: params.limit ?? defaultSearchResultLimit,
+                select: {
+                    id: true,
+                    username: true,
+                    firstname: true,
+                    lastname: true,
+                    image: { include: expandedImageIncluder },
+                },
+                where: {
+                    AND: words.map(word => ({
+                        OR: [
+                            { firstname: { contains: word, mode: 'insensitive' } },
+                            { lastname: { contains: word, mode: 'insensitive' } },
+                            { username: { contains: word, mode: 'insensitive' } },
+                        ],
+                    })),
+                },
+                orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
+            })
+
+            const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
+                params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
+            })
+
+            return users.map(user => ({ ...user, image: user.image ?? defaultProfileImage }))
         }
     }),
 
