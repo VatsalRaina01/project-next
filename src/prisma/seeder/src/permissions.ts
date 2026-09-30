@@ -12,8 +12,6 @@ export function checkForPermissionDuplicates(arr: Permission[], failMessage: str
 
 export const COMMITTEE_PERMISSIONS: Permission[] = [
     'IMAGE_USE',
-    'EVENT_ADMIN',
-    'NOTIFICATION_ADMIN',
     'MAILADDRESS_EXTERNAL_USE',
     'MAILALIAS_USE',
     'MAILINGLIST_USE',
