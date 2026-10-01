@@ -11,5 +11,5 @@ import type { Permission } from '@/prisma-generated-pn-types'
  */
 export function requireEveryPermissionOrGroupAdmin(permissions: Permission[]) {
     const everyPermission = permissions.reduce((builder, permission) => builder.permission(permission), Require)
-    return Require.anyOf(everyPermission, Require.groupAdmin())
+    return everyPermission.or().groupAdmin()
 }

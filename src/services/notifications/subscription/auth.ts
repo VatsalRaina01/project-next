@@ -1,6 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 
-const userIdOrNotificationAdmin = Require.anyOf(Require.permission('NOTIFICATION_ADMIN'), Require.userId())
+const userIdOrNotificationAdmin = Require.permission('NOTIFICATION_ADMIN').or().userId()
 
 export const notificationSubscriptionAuth = {
     read: userIdOrNotificationAdmin,

@@ -63,13 +63,13 @@ export default async function Event({ params }: PropTypes) {
     const doubleLevelVisibility = readDoubleLevelVisibility.success ? readDoubleLevelVisibility.data : null
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
 
-    const canEditCmsCoverImage = eventAuth.updateCmsCoverImage(doubleLevelMatrix).authorize(
+    const canEditCmsCoverImage = eventAuth.updateCmsCoverImage.data({ visibility: doubleLevelMatrix }).authorize(
         session
     ).toJsObject()
-    const canEditCmsParagraph = eventAuth.updateParagraphContent(doubleLevelMatrix).authorize(
+    const canEditCmsParagraph = eventAuth.updateParagraphContent.data({ visibility: doubleLevelMatrix }).authorize(
         session
     ).toJsObject()
-    const canDestroy = eventAuth.destroy(doubleLevelMatrix).authorize(
+    const canDestroy = eventAuth.destroy.data({ visibility: doubleLevelMatrix }).authorize(
         session
     ).toJsObject()
 
@@ -80,8 +80,10 @@ export default async function Event({ params }: PropTypes) {
         userId: session.user.id,
         doubleLevelMatrix,
     }).authorize(session).authorized : false
-    const canReadRegistrations = eventRegistrationAuth.readPage(doubleLevelMatrix).authorize(session).authorized
-    const canRegisterOthers = eventRegistrationAuth.createGuest(doubleLevelMatrix).authorize(session).authorized
+    const canReadRegistrations = eventRegistrationAuth.readPage
+        .data({ visibility: doubleLevelMatrix }).authorize(session).authorized
+    const canRegisterOthers = eventRegistrationAuth.createGuest
+        .data({ visibility: doubleLevelMatrix }).authorize(session).authorized
 
     // What the dots of the one visiting hold them back from - nothing to tell a visitor without a
     // user, and nothing to hide either, as it is their own dots it is read from.

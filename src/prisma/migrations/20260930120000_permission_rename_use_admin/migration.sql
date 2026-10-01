@@ -1,6 +1,13 @@
 -- AlterEnum
 BEGIN;
 
+-- NOTIFICATION_CREATE was granted to every committee; the new model has no committee-level
+-- notification permission, so drop those grants instead of escalating them to NOTIFICATION_ADMIN.
+DELETE FROM "GroupPermission" WHERE "permission"::text = 'NOTIFICATION_CREATE';
+DELETE FROM "DefaultPermission" WHERE "permission"::text = 'NOTIFICATION_CREATE';
+UPDATE "ApiKey" SET "permissions" = array_remove("permissions", 'NOTIFICATION_CREATE'::"Permission")
+WHERE "permissions" IS NOT NULL;
+
 CREATE TABLE "_PermissionRenameMap" (
     "oldValue" TEXT PRIMARY KEY,
     "newValue" TEXT NOT NULL
@@ -37,7 +44,6 @@ INSERT INTO "_PermissionRenameMap" ("oldValue", "newValue") VALUES
     ('NOTIFICATION_SUBSCRIPTION_READ_OTHER', 'NOTIFICATION_ADMIN'),
     ('NOTIFICATION_SUBSCRIPTION_UPDATE', 'NOTIFICATION_ADMIN'),
     ('NOTIFICATION_SUBSCRIPTION_UPDATE_OTHER', 'NOTIFICATION_ADMIN'),
-    ('NOTIFICATION_CREATE', 'NOTIFICATION_ADMIN'),
     ('MAIL_SEND', 'MAIL_USE'),
     ('MAILALIAS_READ', 'MAILALIAS_USE'),
     ('MAILINGLIST_READ', 'MAILINGLIST_USE'),
@@ -51,8 +57,8 @@ INSERT INTO "_PermissionRenameMap" ("oldValue", "newValue") VALUES
     ('COURSES_READ', 'COURSES_USE'),
     ('COMPANY_READ', 'COMPANY_USE'),
     ('CABIN_CALENDAR_READ', 'CABIN_USE'),
-    ('CABIN_BOOKING_CABIN_CREATE', 'CABIN_ADMIN'),
-    ('CABIN_BOOKING_BED_CREATE', 'CABIN_ADMIN'),
+    ('CABIN_BOOKING_CABIN_CREATE', 'CABIN_USE'),
+    ('CABIN_BOOKING_BED_CREATE', 'CABIN_USE'),
     ('CABIN_BOOKING_ADMIN', 'CABIN_ADMIN'),
     ('CABIN_PRODUCTS_ADMIN', 'CABIN_ADMIN'),
     ('SHOP_READ', 'SHOP_USE'),

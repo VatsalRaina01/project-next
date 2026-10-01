@@ -25,11 +25,11 @@ const testDoubleLevelVisibility = implementDoubleLevelVisibilityOperations({
     }),
     authorizers: {
         readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
-            Require.visibility().data({ visibility: doubleLevelMatrix.regularLevel }),
+            Require.visibility({ level: 'regularLevel' }).data({ visibility: doubleLevelMatrix }),
         updateRegularLevel: ({ doubleLevelMatrix }) =>
-            Require.visibility().data({ visibility: doubleLevelMatrix.adminLevel }),
+            Require.visibility({ level: 'adminLevel' }).data({ visibility: doubleLevelMatrix }),
         updateAdminLevel: ({ doubleLevelMatrix }) =>
-            Require.visibility().data({ visibility: doubleLevelMatrix.adminLevel }),
+            Require.visibility({ level: 'adminLevel' }).data({ visibility: doubleLevelMatrix }),
     },
     readDoubleLevel: async ({ prisma: client, implementationParams, include }) => {
         const [regularLevel, adminLevel] = await Promise.all([

@@ -13,7 +13,7 @@ import type { ExpandedAdmissionTrail } from './types'
 export const admissionOperations = {
     readTrial: defineOperation({
         paramsSchema: admissionSchemas.readTrial,
-        authorizer: ({ params }) => admissionAuth.readTrial(params.userId),
+        authorizer: ({ params }) => admissionAuth.readTrial.data({ userId: params.userId }),
         operation: async ({ prisma, params: { userId } }) => await prisma.admissionTrial.findMany({
             where: {
                 userId,
@@ -27,7 +27,7 @@ export const admissionOperations = {
      */
     userCompletedTrials: defineOperation({
         paramsSchema: admissionSchemas.userCompletedTrials,
-        authorizer: ({ params }) => admissionAuth.userCompletedTrials(params.userId),
+        authorizer: ({ params }) => admissionAuth.userCompletedTrials.data({ userId: params.userId }),
         operation: async ({ prisma, params: { userId } }): Promise<boolean> => {
             const trials = await prisma.admissionTrial.count({
                 where: {

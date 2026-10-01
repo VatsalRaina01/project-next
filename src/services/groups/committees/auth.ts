@@ -3,7 +3,7 @@ import { requireReadManagedGroupMembers } from '@/services/groups/auth'
 
 export const committeeLogosImagePanelAuth = Require.permission('COMMITTEE_ADMIN')
 
-const adminOrGroupAdmin = Require.anyOf(Require.permission('COMMITTEE_ADMIN'), Require.groupAdmin())
+const adminOrGroupAdmin = Require.permission('COMMITTEE_ADMIN').or().groupAdmin()
 
 export const committeeAuth = {
     create: Require.permission('COMMITTEE_ADMIN'),

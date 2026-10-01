@@ -1,22 +1,29 @@
 import { Require } from '@/auth/authorizer/Require'
+import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 
-// The caller picks which half of a double-level matrix (or, for `read`, whichever level currently
-// applies) to supply as `visibility` in `.data()`.
-const visibilityOrNewsAdmin = Require.anyOf(Require.permission('NEWS_ADMIN'), Require.visibility())
+/**
+ * A news article's admin level decides who may edit, destroy, (un)publish or see it in draft, its
+ * regular level who may see it once published. NEWS_ADMIN bypasses both levels for every article.
+ * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`.
+ */
+const regularLevel = Require.permission('NEWS_ADMIN').or().visibility({ level: 'regularLevel' })
+const adminLevel = Require.permission('NEWS_ADMIN').or().visibility({ level: 'adminLevel' })
 
 export const newsAuth = {
     create: Require.permission('NEWS_USE'),
 
-    readDoubleLevelMatrix: visibilityOrNewsAdmin,
-    updateRegularLevel: visibilityOrNewsAdmin,
-    updateAdminLevel: visibilityOrNewsAdmin,
+    readDoubleLevelMatrix: regularLevel,
+    updateRegularLevel: adminLevel,
+    updateAdminLevel: adminLevel,
 
-    destroy: visibilityOrNewsAdmin,
-    update: visibilityOrNewsAdmin,
-    updateArticle: visibilityOrNewsAdmin,
-    setPublished: visibilityOrNewsAdmin,
+    destroy: adminLevel,
+    update: adminLevel,
+    updateArticle: adminLevel,
+    setPublished: adminLevel,
 
-    read: visibilityOrNewsAdmin,
+    // Published articles are visible at the regular level, drafts only at the admin level.
+    read: ({ published, doubleLevelMatrix }: { published: boolean, doubleLevelMatrix: DoubleLevelVisibilityMatrix }) =>
+        (published ? regularLevel : adminLevel).data({ visibility: doubleLevelMatrix }),
     readCurrent: Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
     readOldPage: Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
 } as const

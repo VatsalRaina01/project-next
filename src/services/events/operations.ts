@@ -27,9 +27,12 @@ import type { EventExpanded } from './types'
 const visibility = implementDoubleLevelVisibilityOperations({
     implementationParamsSchema: eventSchemas.params,
     authorizers: {
-        readDoubleLevelMatrix: ({ doubleLevelMatrix }) => eventAuth.readDoubleLevelMatrix(doubleLevelMatrix),
-        updateRegularLevel: ({ doubleLevelMatrix }) => eventAuth.updateRegularLevel(doubleLevelMatrix),
-        updateAdminLevel: ({ doubleLevelMatrix }) => eventAuth.updateAdminLevel(doubleLevelMatrix)
+        readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
+            eventAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix }),
+        updateRegularLevel: ({ doubleLevelMatrix }) =>
+            eventAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix }),
+        updateAdminLevel: ({ doubleLevelMatrix }) =>
+            eventAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix })
     },
     readDoubleLevel: async ({ prisma, implementationParams, include }) => {
         const event = await prisma.event.findUniqueOrThrow({
@@ -355,9 +358,9 @@ export const eventOperations = {
     update: defineOperation({
         paramsSchema: eventSchemas.params,
         dataSchema: eventSchemas.update,
-        authorizer: async ({ params, prisma }) => eventAuth.update(
-            await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        ),
+        authorizer: async ({ params, prisma }) => eventAuth.update.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+        }),
         operation: async ({ prisma, params, data: { tagIds, locationMap, ...data } }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
@@ -435,11 +438,11 @@ export const eventOperations = {
         implementationParamsSchema: z.object({
             eventId: z.number()
         }),
-        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateCmsCoverImage(
-            await visibility.readDoubleLevelMatrixInternal({
+        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateCmsCoverImage.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({
                 params: { id: implementationParams.eventId }, prisma
             })
-        ),
+        }),
         ownershipCheck: async ({ implementationParams, params }) =>
             (await read({
                 params: { id: implementationParams.eventId },
@@ -455,9 +458,9 @@ export const eventOperations = {
     setPublished: defineOperation({
         paramsSchema: eventSchemas.params,
         dataSchema: eventSchemas.setPublished,
-        authorizer: async ({ params, prisma }) => eventAuth.setPublished(
-            await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        ),
+        authorizer: async ({ params, prisma }) => eventAuth.setPublished.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+        }),
         operation: async ({ prisma, params, data }) => prisma.event.update({
             where: { id: params.id },
             data: { published: data.published },
@@ -466,9 +469,9 @@ export const eventOperations = {
 
     destroy: defineOperation({
         paramsSchema: eventSchemas.params,
-        authorizer: async ({ params, prisma }) => eventAuth.destroy(
-            await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        ),
+        authorizer: async ({ params, prisma }) => eventAuth.destroy.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+        }),
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
             const event = await prisma.event.findUniqueOrThrow({
@@ -498,11 +501,11 @@ export const eventOperations = {
         implementationParamsSchema: z.object({
             eventId: z.number()
         }),
-        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateParagraphContent(
-            await visibility.readDoubleLevelMatrixInternal({
+        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateParagraphContent.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({
                 params: { id: implementationParams.eventId }, prisma
             })
-        ),
+        }),
         ownershipCheck: async ({ implementationParams, params }) =>
             (await read({
                 params: { id: implementationParams.eventId },

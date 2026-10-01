@@ -4,7 +4,7 @@ import { Require } from '@/auth/authorizer/Require'
 // self-service. None of these may be used to pay, or save a new payment method, on another
 // user's behalf, not even by admins. Listing and deleting saved payment methods are exempted
 // for LEDGER_ADMIN, so admins can audit or clean up cards without being able to spend them.
-const userIdOrLedgerAdmin = Require.anyOf(Require.permission('LEDGER_ADMIN'), Require.userId())
+const userIdOrLedgerAdmin = Require.permission('LEDGER_ADMIN').or().userId()
 
 export const stripeCustomerAuth = {
     readOrCreate: Require.userId(),

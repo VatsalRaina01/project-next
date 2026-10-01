@@ -1,7 +1,7 @@
 import { Require } from '@/auth/authorizer/Require'
 import { requireReadManagedGroupMembers } from '@/services/groups/auth'
 
-const adminOrGroupAdmin = Require.anyOf(Require.permission('MANUAL_GROUP_ADMIN'), Require.groupAdmin())
+const adminOrGroupAdmin = Require.permission('MANUAL_GROUP_ADMIN').or().groupAdmin()
 
 export const manualGroupAuth = {
     create: Require.permission('MANUAL_GROUP_ADMIN'),

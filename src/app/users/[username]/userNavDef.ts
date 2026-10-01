@@ -58,7 +58,7 @@ export const userNavDef: UserNavItem[] = [
         icon: faIdCard,
         path: 'membership-status',
         authorizers: ({ userId }) => [
-            admissionAuth.readTrial(userId),
+            admissionAuth.readTrial.data({ userId }),
             admissionAuth.createTrial,
             omegaMembershipGroupAuth.updateUserLevel,
             omegaMembershipGroupAuth.updateUserOrder,

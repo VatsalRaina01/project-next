@@ -4,14 +4,11 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 /**
  * The regular level of an event is what it takes to register for it, and its admin level is what it
  * takes to act on the registrations of everyone else. EVENT_ADMIN bypasses both for every event.
+ * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`.
  */
-const levelAuthorizer = Require.anyOf(Require.permission('EVENT_ADMIN'), Require.visibility())
-const registerLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
-    levelAuthorizer.data({ visibility: doubleLevelMatrix.regularLevel })
-const eventAdminLevel = (doubleLevelMatrix: DoubleLevelVisibilityMatrix) =>
-    levelAuthorizer.data({ visibility: doubleLevelMatrix.adminLevel })
-const userIdOrEventAdmin = Require.anyOf(Require.permission('EVENT_ADMIN'), Require.userId())
-const ownUserOrEventAdmin = (userId: number) => userIdOrEventAdmin.data({ userId })
+const registerLevel = Require.permission('EVENT_ADMIN').or().visibility({ level: 'regularLevel' })
+const eventAdminLevel = Require.permission('EVENT_ADMIN').or().visibility({ level: 'adminLevel' })
+const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
 
 /**
  * Acting on the registration of a given user: their own, or anyone's for those who administrate the
@@ -20,10 +17,10 @@ const ownUserOrEventAdmin = (userId: number) => userIdOrEventAdmin.data({ userId
 const registrationOfUser = ({ userId, doubleLevelMatrix }: {
     userId: number | null,
     doubleLevelMatrix: DoubleLevelVisibilityMatrix,
-}) => (userId === null ? eventAdminLevel(doubleLevelMatrix) : Require.anyOf(
-    ownUserOrEventAdmin(userId),
-    eventAdminLevel(doubleLevelMatrix),
-))
+}) => {
+    const admin = eventAdminLevel.data({ visibility: doubleLevelMatrix })
+    return userId === null ? admin : userIdOrEventAdmin.data({ userId }).or().allOf(admin)
+}
 
 export const eventRegistrationAuth = {
     /**
@@ -34,15 +31,15 @@ export const eventRegistrationAuth = {
         userId: number,
         doubleLevelMatrix: DoubleLevelVisibilityMatrix,
     }) => Require.allOf(
-        registerLevel(fields.doubleLevelMatrix),
+        registerLevel.data({ visibility: fields.doubleLevelMatrix }),
         registrationOfUser(fields),
     ),
-    createGuest: (doubleLevelMatrix: DoubleLevelVisibilityMatrix) => eventAdminLevel(doubleLevelMatrix),
+    createGuest: eventAdminLevel,
 
-    readDotPunishmentOfUser: (userId: number) => ownUserOrEventAdmin(userId),
+    readDotPunishmentOfUser: userIdOrEventAdmin,
     readOfUser: registrationOfUser,
-    readPage: (doubleLevelMatrix: DoubleLevelVisibilityMatrix) => registerLevel(doubleLevelMatrix),
-    readPageDetailed: (doubleLevelMatrix: DoubleLevelVisibilityMatrix) => eventAdminLevel(doubleLevelMatrix),
+    readPage: registerLevel,
+    readPageDetailed: eventAdminLevel,
 
     updateNotes: registrationOfUser,
     destroy: registrationOfUser,
@@ -53,5 +50,5 @@ export const eventRegistrationAuth = {
     // "register yourself or someone else", wrong for "spend someone else's ledger balance").
     // Provider/account-ownership rules are not this operation's business - paymentOperations.create
     // and ledgerTransactionOperations.create already own those.
-    createPayment: (userId: number) => ownUserOrEventAdmin(userId),
+    createPayment: userIdOrEventAdmin,
 } as const

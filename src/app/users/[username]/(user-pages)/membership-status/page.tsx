@@ -30,7 +30,7 @@ export default async function MembershipStatus({ params }: PropTypes) {
     const { profile, session } = await getProfileForUserPage(await params, 'membership-status')
     const { id: userId } = profile.user
 
-    const canReadTrials = admissionAuth.readTrial(userId).authorize(session).authorized
+    const canReadTrials = admissionAuth.readTrial.data({ userId }).authorize(session).authorized
     const canRegisterTrial = admissionAuth.createTrial.authorize(session).authorized
     const canChangeLevel = omegaMembershipGroupAuth.updateUserLevel.authorize(session).authorized
     const canChangeOrder = omegaMembershipGroupAuth.updateUserOrder.authorize(session).authorized

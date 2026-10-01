@@ -39,8 +39,7 @@ export default async function NewsArticle({ params }: PropTypes) {
     const readDoubleLevelVisibility = await readNewsDoubleLevelVisibilityAction({ params: { id: news.id } })
     const doubleLevelVisibility = readDoubleLevelVisibility.success ? readDoubleLevelVisibility.data : null
 
-    const canEdit = newsAuth.updateArticle
-        .data({ visibility: (doubleLevelVisibility ?? EMPTY_VISIBILITY).adminLevel })
+    const canEdit = newsAuth.updateArticle.data({ visibility: doubleLevelVisibility ?? EMPTY_VISIBILITY })
         .authorize(await ServerSession.fromNextAuth())
         .toJsObject()
     return (

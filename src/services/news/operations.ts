@@ -21,11 +21,11 @@ const visibility = implementDoubleLevelVisibilityOperations({
     implementationParamsSchema: newsSchemas.params,
     authorizers: {
         readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
-            newsAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix.regularLevel }),
+            newsAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix }),
         updateRegularLevel: ({ doubleLevelMatrix }) =>
-            newsAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix.adminLevel }),
+            newsAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix }),
         updateAdminLevel: ({ doubleLevelMatrix }) =>
-            newsAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix.adminLevel })
+            newsAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix })
     },
     readDoubleLevel: async ({ prisma, implementationParams, include }) => {
         const news = await prisma.newsArticle.findUniqueOrThrow({
@@ -51,8 +51,12 @@ const read = defineOperation({
                 visibilityAdmin: { include: visibilityIncluder }
             }
         })
-        return newsAuth.read.data({
-            visibility: news.published ? toMatrix(news.visibilityRegular) : toMatrix(news.visibilityAdmin)
+        return newsAuth.read({
+            published: news.published,
+            doubleLevelMatrix: {
+                regularLevel: toMatrix(news.visibilityRegular),
+                adminLevel: toMatrix(news.visibilityAdmin)
+            }
         })
     },
     paramsSchema: newsSchemas.params,
@@ -125,7 +129,7 @@ export const newsOperations = {
     destroy: defineOperation({
         authorizer: async ({ params, prisma }) =>
             newsAuth.destroy.data({
-                visibility: (await visibility.readDoubleLevelMatrixInternal({ params, prisma })).adminLevel
+                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
             }),
         paramsSchema: newsSchemas.params,
         opensTransaction: true,
@@ -210,7 +214,7 @@ export const newsOperations = {
     update: defineOperation({
         authorizer: async ({ params, prisma }) =>
             newsAuth.update.data({
-                visibility: (await visibility.readDoubleLevelMatrixInternal({ params, prisma })).adminLevel
+                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
             }),
         paramsSchema: newsSchemas.params,
         dataSchema: newsSchemas.update,
@@ -236,7 +240,7 @@ export const newsOperations = {
     setPublished: defineOperation({
         authorizer: async ({ params, prisma }) =>
             newsAuth.setPublished.data({
-                visibility: (await visibility.readDoubleLevelMatrixInternal({ params, prisma })).adminLevel
+                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
             }),
         paramsSchema: newsSchemas.params,
         dataSchema: newsSchemas.setPublished,
@@ -275,10 +279,10 @@ export const newsOperations = {
         }),
         authorizer: async ({ implementationParams, prisma }) =>
             newsAuth.updateArticle.data({
-                visibility: (await visibility.readDoubleLevelMatrixInternal({
+                visibility: await visibility.readDoubleLevelMatrixInternal({
                     params: { id: implementationParams.newsId },
                     prisma
-                })).adminLevel
+                })
             }),
         ownedArticles: async ({ implementationParams }) => {
             const news = await read({ params: { id: implementationParams.newsId }, bypassAuth: true })

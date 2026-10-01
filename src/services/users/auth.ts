@@ -2,9 +2,9 @@ import { Require } from '@/auth/authorizer/Require'
 
 export const profileImagesImagePanelAuth = Require.permission('USERS_ADMIN')
 
-const userFieldOrUsersUse = Require.anyOf(Require.permission('USERS_USE'), Require.userField())
-const userFieldOrUsersAdmin = Require.anyOf(Require.permission('USERS_ADMIN'), Require.userField())
-const userIdOrUsersAdmin = Require.anyOf(Require.permission('USERS_ADMIN'), Require.userId())
+const userFieldOrUsersUse = Require.permission('USERS_USE').or().userField()
+const userFieldOrUsersAdmin = Require.permission('USERS_ADMIN').or().userField()
+const userIdOrUsersAdmin = Require.permission('USERS_ADMIN').or().userId()
 
 export const userAuth = {
     readProfile: userFieldOrUsersUse,

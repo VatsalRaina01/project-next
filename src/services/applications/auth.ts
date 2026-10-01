@@ -1,6 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 
-const userIdOrApplicationAdmin = Require.anyOf(Require.permission('APPLICATION_ADMIN'), Require.userId())
+const userIdOrApplicationAdmin = Require.permission('APPLICATION_ADMIN').or().userId()
 
 export const applicationAuth = {
     readForUser: userIdOrApplicationAdmin,

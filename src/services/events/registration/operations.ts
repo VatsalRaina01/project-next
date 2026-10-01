@@ -176,9 +176,9 @@ export const eventRegistrationOperations = {
     }),
 
     createGuest: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.createGuest(
-            await eventVisibility(prisma, params.eventId)
-        ),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.createGuest.data({
+            visibility: await eventVisibility(prisma, params.eventId)
+        }),
         paramsSchema: z.object({
             eventId: z.number(),
         }),
@@ -212,7 +212,7 @@ export const eventRegistrationOperations = {
     }),
 
     readDotPunishmentOfUser: readDotPunishmentOfUser.implement({
-        authorizer: ({ params }) => eventRegistrationAuth.readDotPunishmentOfUser(params.userId),
+        authorizer: ({ params }) => eventRegistrationAuth.readDotPunishmentOfUser.data({ userId: params.userId }),
         ownershipCheck: () => true,
     }),
 
@@ -267,9 +267,9 @@ export const eventRegistrationOperations = {
     }),
 
     readPage: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPage(
-            await eventVisibility(prisma, params.paging.details.eventId)
-        ),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPage.data({
+            visibility: await eventVisibility(prisma, params.paging.details.eventId)
+        }),
         paramsSchema: eventRegistrationSchemas.readPage,
         operation: async ({ prisma, params }): Promise<EventRegistrationExpanded[]> => {
             const segment = await queueSegmentFilter(prisma, params.paging.details)
@@ -294,9 +294,9 @@ export const eventRegistrationOperations = {
     }),
 
     readPageDetailed: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPageDetailed(
-            await eventVisibility(prisma, params.paging.details.eventId)
-        ),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPageDetailed.data({
+            visibility: await eventVisibility(prisma, params.paging.details.eventId)
+        }),
         paramsSchema: eventRegistrationSchemas.readPageDetailed,
         operation: async ({ prisma, params }) => {
             const segment = await queueSegmentFilter(prisma, params.paging.details)
@@ -460,7 +460,7 @@ export const eventRegistrationOperations = {
             manualFees: z.coerce.number().nonnegative().default(0),
             description: z.string().optional(),
         }),
-        authorizer: ({ params }) => eventRegistrationAuth.createPayment(params.userId),
+        authorizer: ({ params }) => eventRegistrationAuth.createPayment.data({ userId: params.userId }),
         opensTransaction: true,
         operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
             const registration = await prisma.eventRegistration.findUnique({

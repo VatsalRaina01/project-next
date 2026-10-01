@@ -35,7 +35,7 @@ export function ledgerAccountAccess(
     const ownership = opts?.mode === 'ANY'
         ? Require.anyOf(firstCheck, ...restChecks)
         : Require.allOf(firstCheck, ...restChecks)
-    return Require.anyOf(Require.permission(permission), ownership)
+    return Require.permission(permission).or().allOf(ownership)
 }
 
 /**
