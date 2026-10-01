@@ -52,7 +52,6 @@ export const userSchemas = {
     }),
 
     update: userSchema.partial().pick({
-        email: true,
         firstname: true,
         lastname: true,
         username: true,
@@ -72,6 +71,8 @@ export const userSchemas = {
         imageConsent: true,
         relationshipStatusText: true,
         relationshipStatus: true,
+    }).extend({
+        mobile: userSchema.shape.mobile.or(z.literal('').transform(() => null)).optional(),
     }),
 
     register: userSchema.pick({

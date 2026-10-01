@@ -387,7 +387,7 @@ export const userOperations = {
         paramsSchema: z.object({
             username: z.string()
         }),
-        dataSchema: userSchemas.update,
+        dataSchema: userSchemas.updateProfile,
         authorizer: ({ params }) => userAuth.updateProfile.dynamicFields({ username: params.username }),
         operation: ({ prisma, data, params }) => prisma.user.update({
             where: params,
@@ -438,8 +438,13 @@ export const userOperations = {
                 }
             })
 
-            // This test may not be needed if we let users change their email later. Maybe just remove this check
-            if (storedUser.emailVerified) throw new ServerError('BAD PARAMETERS', 'Brukeren er allerede verifisert')
+            // Used both to set the email during sign-up and to change it afterwards.
+            if (data.email === storedUser.email && storedUser.emailVerified) {
+                return {
+                    verified: true,
+                    email: data.email,
+                }
+            }
 
             if (data.email === storedUser.feideAccount?.email) {
                 await prisma.user.update({
@@ -447,6 +452,7 @@ export const userOperations = {
                         id: params.id,
                     },
                     data: {
+                        email: data.email,
                         emailVerified: (new Date()).toISOString()
                     }
                 })

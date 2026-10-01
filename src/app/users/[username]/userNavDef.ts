@@ -123,9 +123,11 @@ export const userNavDef: UserNavItem[] = [
         name: 'Innstillinger',
         icon: faCog,
         path: 'settings',
-        authorizers: ({ username }) => [
+        authorizers: ({ username, userId }) => [
             userAuth.updateProfile.dynamicFields({ username }),
+            userAuth.registerNewEmail.dynamicFields({ userId }),
             userAuth.updateProfileImage.dynamicFields({ username }),
+            userAuth.update.dynamicFields({}),
             classAuth.changeClassOfUser.dynamicFields({}),
             studyProgrammeAuth.update.dynamicFields({}),
         ],

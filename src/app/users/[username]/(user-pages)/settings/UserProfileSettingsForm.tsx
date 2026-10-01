@@ -33,6 +33,7 @@ export default function UserProfileSettingsForm({ user, emailDomain } : PropType
             action={configureAction(updateUserProfileAction, { params: { username: user.username } })}
         >
             <p>Har du andre brukerinstillinger du ønsker å endre? Kontakt HS på hs@{emailDomain}</p>
+            <TextInput label="Mobilnummer" name="mobile" defaultValue={user.mobile ?? ''} />
             <TextInput label="Allergier / diett" name="allergies" defaultValue={user.allergies || ''} />
             <Dropdown
                 label="Kjønn"
