@@ -44,7 +44,7 @@ in the projectnext container
 Every time the dev container starts, it applies any pending migrations and upserts the seed data, so your data survives restarts. To wipe the database and seed it from scratch, run the following command. It works whether or not the dev environment is running.
 
 ```bash
-npm run docker:seed
+npm run docker:reseed
 ```
 
 #### Reinstalling node_modules

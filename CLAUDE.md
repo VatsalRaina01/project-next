@@ -42,7 +42,7 @@ npm run lint -- --fix
 
 Reseed the database (deletes all data and re-seeds):
 ```bash
-npm run docker:seed
+npm run docker:reseed
 ```
 
 Create a migration after schema changes (writes `src/prisma/migrations/<timestamp>_<name>/`, which must be committed). The dev database is built from migrations, so a schema change only reaches it through one. Works whether or not the dev environment is running:
