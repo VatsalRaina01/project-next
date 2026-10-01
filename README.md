@@ -41,7 +41,7 @@ in the projectnext container
 
 #### Seeding
 
-Seeding happens automaticly in devlopment. If you want to reseed the database without restarting the docker container, run the following command. This will remove all data from the database, and then seed all the data afterwards.
+Every time the dev container starts, it applies any pending migrations and upserts the seed data, so your data survives restarts. To wipe the database and seed it from scratch, run the following command. It works whether or not the dev environment is running.
 
 ```bash
 npm run docker:seed
