@@ -1,6 +1,8 @@
 import EmailRegistrationForm from './EmailregistrationForm'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { RequireUser } from '@/auth/authorizer/RequireUser'
+import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+import { readFeideLoginMatchAction } from '@/services/auth/actions'
 import { readUserAction } from '@/services/users/actions'
 import { notFound, redirect } from 'next/navigation'
 
@@ -25,5 +27,7 @@ export default async function Registeremail() {
         redirect('/register')
     }
 
-    return <EmailRegistrationForm user={updatedUser.data} />
+    const feideLoginMatch = unwrapActionReturn(await readFeideLoginMatchAction())
+
+    return <EmailRegistrationForm user={updatedUser.data} feideLoginMatch={feideLoginMatch} />
 }
