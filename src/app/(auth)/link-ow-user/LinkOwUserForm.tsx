@@ -4,12 +4,16 @@ import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { useState } from 'react'
 
-export default function LinkOwUserForm() {
+type PropTypes = {
+    title?: string,
+}
+
+export default function LinkOwUserForm({ title = 'Koble til gammel bruker' }: PropTypes) {
     const [feedback, setFeedback] = useState('')
 
     return <>
         <Form
-            title="Koble til gammel bruker"
+            title={title}
             submitText="Send e-post"
             action={sendLinkFeideAccountEmailAction}
             successCallback={() => {

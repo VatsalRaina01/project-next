@@ -99,6 +99,7 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                     lastname: user.lastname,
                     username,
                     emailVerified: null,
+                    createdByFeideLoginOnProjectNext: true,
                 },
                 select: userFilterSelection,
             })
