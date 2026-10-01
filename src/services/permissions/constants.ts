@@ -474,7 +474,7 @@ export const permissionConfig = {
     BULLSHIT_WRITE: {
         name: 'Lage bullshit',
         description: 'Kan sende inn bullshit',
-        category: 'public',
+        category: 'ombul',
     },
     BULLSHIT_READ: {
         name: 'Les bullshit',

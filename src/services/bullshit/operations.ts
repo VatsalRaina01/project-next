@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 export const bullshitOperations = {
     create: defineOperation({
-        authorizer: ({ params }) => bullshitAuth.create.dynamicFields({ userId: params.bullshitAuthPosterId }),
+        authorizer: () => bullshitAuth.create.dynamicFields({}),
         dataSchema: bullshitSchemas.create,
         paramsSchema: z.object({
             bullshitAuthPosterId: z.number()
