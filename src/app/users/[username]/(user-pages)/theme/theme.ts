@@ -3,6 +3,7 @@ export enum ThemeName {
     Light = 'Light',
     Solarized = 'Solarized',
     StjerneInnbygger = 'StjerneInnbygger',
+    HotDogStand = 'HotDogStand',
 }
 
 type ThemeColors = {
@@ -101,6 +102,25 @@ export const themes: Record<ThemeName, ThemeColors> = {
         'accent-blue': 'hsl(207, 91%, 65%)',
         'accent-magenta': 'hsl(300, 80%, 60%)',
         'accent-violet': 'hsl(260, 80%, 60%)',
+    },
+    [ThemeName.HotDogStand]: {
+        layer: 'hsl(0, 100%, 50%)',
+        text: 'hsl(0, 0%, 100%)',
+        'text-muted': 'hsl(0, 0%, 100%)',
+        'surface-base': 'hsl(0, 100%, 50%)',
+        'surface-raised': 'hsl(0, 100%, 50%)',
+        'surface-hover': 'hsl(0, 100%, 50%)',
+        'surface-subtle': 'hsl(0, 100%, 50%)',
+        'ink-hover': 'hsl(0, 0%, 100%)',
+        'ink-strong': 'hsl(0, 0%, 100%)',
+        'accent-red': 'hsl(0, 80%, 60%)',
+        'accent-orange': 'hsl(60, 100%, 50%)',
+        'accent-yellow': 'hsl(60, 100%, 50%)',
+        'accent-green': 'hsl(60, 100%, 50%)',
+        'accent-cyan': 'hsl(60, 100%, 50%)',
+        'accent-blue': 'hsl(60, 100%, 50%)',
+        'accent-magenta': 'hsl(60, 100%, 50%)',
+        'accent-violet': 'hsl(60, 100%, 50%)',
     },
 }
 
