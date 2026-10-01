@@ -80,7 +80,7 @@ function MainListContent({ category }: { category: ExpandedArticleCategory }) {
 
     const handleDestroy = async (id: number) => {
         const res = await removeArticleFromCategoryAction({ params: { id: category.id, articleId: id } })
-        if (!res.success) throw new Error('could not destroy article')
+        if (!res.success) throw new Error('Kunne ikke slette artikkelen')
         push(`/articles/${category.name}`)
         refresh()
     }

@@ -1,12 +1,9 @@
 import MailForm from './mailForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { notificationAuth } from '@/services/notifications/auth'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 export default async function SendMail() {
-    notificationAuth.sendMail.dynamicFields({}).auth(
-        await ServerSession.fromNextAuth()
-    ).redirectOnUnauthorized({ returnUrl: '/admin/send-mail' })
+    await authorizeAdminPage('send-mail')
 
     return (
         <PageWrapper title="Elektronisk postutsendelse">

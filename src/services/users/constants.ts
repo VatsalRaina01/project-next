@@ -4,6 +4,8 @@ import type { Prisma, User, SEX } from '@/prisma-generated-pn-types'
 
 export const maxNumberOfGroupsInFilter = 7
 
+export const defaultSearchResultLimit = 5
+
 // TODO: This needs to be divived into seperate filters, depending on how much information is needed
 export const userFieldsToExpose = [
     'id',
@@ -18,6 +20,7 @@ export const userFieldsToExpose = [
     'acceptedTerms',
     'sex',
     'allergies',
+    'studentCard',
     'imageConsent',
     'relationshipStatus',
     'relationshipStatusText',
@@ -29,6 +32,10 @@ export const userFilterSelection = {
     flairs: {
         select: {
             id: true,
+            rank: true,
+            colorR: true,
+            colorG: true,
+            colorB: true,
             image: { include: expandedImageIncluder },
         },
     },

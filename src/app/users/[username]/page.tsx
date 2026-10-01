@@ -1,6 +1,6 @@
 import styles from './page.module.scss'
-import ProfileButton from '@/components/UI/ProfileButton'
-import { userAuth } from '@/services/users/auth'
+import { ClassLevelConfig } from '@/services/groups/constants'
+import Button from '@/components/UI/Button'
 import ProfilePicture from '@/components/User/ProfilePicture'
 import UserDisplayName from '@/components/User/UserDisplayName'
 import { readUserProfileAction } from '@/services/users/actions'
@@ -9,12 +9,18 @@ import { sexConfig } from '@/services/users/constants'
 import { readUserFlairsAction } from '@/services/flairs/actions'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { RelationshipStatus } from '@/prisma-generated-pn-types'
+import PageTitleSetter from '@/contexts/PageTitleSetter'
+import UserNavBar from '@/app/users/[username]/UserNavBar'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+    faMoneyBill,
+    faQrcode,
+    faSignOut,
+} from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
-import { faCog, faSignOut } from '@fortawesome/free-solid-svg-icons'
 import { notFound, redirect } from 'next/navigation'
 import { v4 as uuid } from 'uuid'
 import React from 'react'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -41,24 +47,27 @@ export default async function User({ params }: PropTypes) {
     const committeeMemberships = profile.user.memberships.filter(membership => membership.group.groupType === 'COMMITTEE')
         .filter(membership => membership.group.committee !== null)
 
-    const studyProgrammes = profile.user.memberships.filter(membership => membership.group.groupType === 'STUDY_PROGRAMME')
+    // Which study programmes someone is on is a statement about now, so only the active ones.
+    const studyProgrammes = profile.user.memberships
+        .filter(membership => membership.group.groupType === 'STUDY_PROGRAMME' && membership.active)
         .map(membership => membership.group.studyProgramme).filter(membership => membership !== null)
 
-    const classes = profile.user.memberships.filter(membership => membership.group.groupType === 'CLASS')
-        .map(membership => membership.group.class).filter(membership => membership !== null)
+    const interestGroupMemberships = profile.user.memberships
+        .filter(membership => membership.group.groupType === 'INTEREST_GROUP')
+        .filter(membership => membership.group.interestGroup !== null)
 
-    const omegaMembership = profile.user.memberships
-        .find(membership => membership.group.groupType === 'OMEGA_MEMBERSHIP_GROUP')
-    if (!omegaMembership) {
-        throw new Error('Failed to load the omega membership level')
-    }
+    // Newest order first: the history reads from the most recent membership downwards.
+    const byOrderDescending = <T extends { order: number }>(memberships: T[]) => [...memberships]
+        .sort((membershipOne, membershipTwo) => membershipTwo.order - membershipOne.order)
+
+    const committeeMembershipsByOrder = byOrderDescending(committeeMemberships)
+    const interestGroupMembershipsByOrder = byOrderDescending(interestGroupMemberships)
+    const activeCommitteeMemberships = committeeMemberships.filter(membership => membership.active)
+
+    const omegaMembership = profile.omegaMembership
     const flairs = unwrapActionReturn(await readUserFlairsAction({ params: { userId: profile.user.id } })).sort(
         (a, b) => a.rank - b.rank
     )
-
-    const { authorized: canAdministrate } = userAuth.updateProfile.dynamicFields(
-        { username: profile.user.username }
-    ).auth(session)
 
     const relationshipColour = {
         [RelationshipStatus.SINGLE]: 'green',
@@ -68,18 +77,24 @@ export default async function User({ params }: PropTypes) {
     }
 
     const borderColour = { '--border-colour': relationshipColour[profile.user.relationshipStatus] } as React.CSSProperties
+    const flairColour = {
+        '--flairColor': flairs.length > 0
+            ? `rgb(${flairs[0].colorR}, ${flairs[0].colorG}, ${flairs[0].colorB})`
+            : 'transparent'
+    } as React.CSSProperties
+    const isOwnProfile = profile.user.id === session.user?.id
 
     function memberhipTitle(): string {
-        switch (omegaMembership?.group.omegaMembershipGroup?.omegaMembershipLevel) {
+        switch (omegaMembership.level) {
             case 'SOELLE':
                 return 'Soelle Noviice (avsky!)'
-            case 'MEMBER':
+            case 'SYSKEN':
                 return `
                     ${sexConfig[profile.user.sex ?? 'OTHER'].title}
-                    uudaf ${omegaMembership.order}´dis orden i Sanctus Omega Broderskab
+                    uudaf den ${omegaMembership.order}´dis orden i Sanctus Omega Broderskab
                 `
-            case 'EXTERNAL':
-                return 'Ekstern'
+            case 'DEN_GEMENE_HOB':
+                return 'Fortabt uudi den gemene hob'
             default:
         }
         return 'Kunne ikke finne tittel'
@@ -87,119 +102,151 @@ export default async function User({ params }: PropTypes) {
 
     return (
         <div className={styles.wrapper}>
+            <PageTitleSetter title={'Profil'} />
             <div className={styles.profile}>
-                <div
-                    style={ flairs.length > 0 ? {
-                        backgroundColor: `rgb(${flairs[0].colorR}, ${flairs[0].colorG}, ${flairs[0].colorB})`
-                    } : {} }
-                    className={`${styles.top} ${styles.standardFlairColor}`}
-                />
-
-                <div className={styles.profileContent} style={borderColour}>
-                    <ProfilePicture width={240} profileImage={profile.user.image} className={styles.profilePicture}/>
-                    <div className={styles.header}>
-                        <div className={styles.nameAndId}>
-                            <h1><UserDisplayName
-                                user={profile.user}
-                                width={40}
-                            /></h1>
-                        </div>
-                        {studyProgrammes.map((studyProgramme, i) =>
-                            <p key={i} className={styles.studyProgramme}>
-                                {studyProgramme.name} {`(${studyProgramme.code})`}
+                <div className={styles.profileContent} style={{ ...borderColour, ...flairColour }}>
+                    <div className={styles.profileContentInner}>
+                        <ProfilePicture width={240} profileImage={profile.user.image} className={styles.profilePicture}/>
+                        <div className={styles.header}>
+                            <div className={styles.nameAndId}>
+                                <h1><UserDisplayName
+                                    user={profile.user}
+                                    width={40}
+                                /></h1>
+                            </div>
+                            <p className={styles.orderText}>
+                                { memberhipTitle() }
                             </p>
-                        )}
-                        {classes.map((classGroup, i) =>
-                            <p key={i} className={styles.studyProgramme}>{classGroup.year}. årstrinn</p>
-                        )}
-                        <div className={styles.committeesWrapper}>
-                            {
-                                committeeMemberships.filter(membership => membership.active).map(membership =>
+
+                            <div className={styles.committeesWrapper}>
+                                {activeCommitteeMemberships.map(membership =>
                                     <div className={styles.committee} key={uuid()}>
                                         <Link href={`/committees/${membership.group.committee?.shortName}`}>
-                                            <p>{membership.title}</p>
+                                            <p>{membership.title} i {membership.group.committee?.name}</p>
                                         </Link>
                                     </div>
-                                )
-                            }
-                            {/* TODO change to your own committee title instead of committee name*/}
-                        </div>
-                        <hr />
-                        <p className={styles.orderText}>
-                            { memberhipTitle() }
-                        </p>
-                    </div>
-                    <div className={styles.leftSection}>
-                        <div className={styles.buttons}>
-                            {canAdministrate &&
-                                <ProfileButton href={`/users/${profile.user.username}/settings`}>
-                                    <FontAwesomeIcon icon={faCog} />
-                                    <p>Innstillinger</p>
-                                </ProfileButton>
-                            }
-                            {profile.user.id === session?.user?.id && (
-                                <ProfileButton href={'/logout'}>
-                                    <FontAwesomeIcon icon={faSignOut} />
-                                    <p>Logg ut</p>
-                                </ProfileButton>
-                            )
-                            }
-                        </div>
-
-                    </div>
-                    <div className={styles.profileMain}>
-
-
-                        {(profile.user.bio !== '') &&
-                            <div className={styles.bio}>
-                                <h2>Bio:</h2>
-                                <p>{profile.user.bio}</p>
+                                )}
                             </div>
-                        }
 
-                        {(profile.user.relationshipStatus !== RelationshipStatus.NOT_SPECIFIED) &&
-                        <p>
-                            <span className={styles.relationshipStatus}>Sivilstatus: </span>
-                            {profile.user.relationshipStatusText ? profile.user.relationshipStatusText :
-                                profile.user.relationshipStatus === RelationshipStatus.SINGLE && 'Singel' ||
-                            profile.user.relationshipStatus === RelationshipStatus.ITS_COMPLICATED && 'Det er komplisert' ||
-                            profile.user.relationshipStatus === RelationshipStatus.TAKEN && 'I et forhold'
+                            <hr />
 
+                            {committeeMembershipsByOrder.length > 0 && (
+                                <section className={styles.groupSection}>
+                                    <h2>Komitéer:</h2>
+                                    {committeeMembershipsByOrder.map(membership =>
+                                        <Link
+                                            key={uuid()}
+                                            href={`/committees/${membership.group.committee?.shortName}`}
+                                        >
+                                            <p className={styles.studyProgramme}>
+                                                {membership.title} udaf {membership.order}´dis orden i{' '}
+                                                {membership.group.committee?.name}
+                                            </p>
+                                        </Link>
+                                    )}
+                                </section>
+                            )}
+
+                            {interestGroupMembershipsByOrder.length > 0 && (
+                                <section className={styles.groupSection}>
+                                    <h2>Interessegrupper:</h2>
+                                    {interestGroupMembershipsByOrder.map(membership =>
+                                        <Link
+                                            key={uuid()}
+                                            href={`/interest-groups/${membership.group.interestGroup?.id}`}
+                                        >
+                                            <p className={styles.studyProgramme}>
+                                                {membership.title} udaf {membership.order}´dis orden i{' '}
+                                                {membership.group.interestGroup?.name}
+                                            </p>
+                                        </Link>
+                                    )}
+                                </section>
+                            )}
+
+                            {studyProgrammes.length > 0 && (
+                                <section className={styles.groupSection}>
+                                    <h2>Studier:</h2>
+                                    {studyProgrammes.map(studyProgramme =>
+                                        <p key={studyProgramme.id} className={styles.studyProgramme}>
+                                            {studyProgramme.name} {`(${studyProgramme.code})`}
+                                        </p>
+                                    )}
+                                </section>
+                            )}
+                        </div>
+                        <div className={styles.leftSection}>
+                            <div className={styles.buttons}>
+                                {isOwnProfile && (
+                                    <>
+                                        <Link href="/users/me/omegaid">
+                                            <Button color="secondary" className={styles.actionButton}>
+                                                <FontAwesomeIcon icon={faQrcode} />
+                                                <p>Omega-ID</p>
+                                            </Button>
+                                        </Link>
+                                        <Link href="/users/me/account">
+                                            <Button color="secondary" className={styles.actionButton}>
+                                                <FontAwesomeIcon icon={faMoneyBill} />
+                                                <p>Konto</p>
+                                            </Button>
+                                        </Link>
+                                        <Link href="/logout">
+                                            <Button color="secondary" className={styles.actionButton}>
+                                                <FontAwesomeIcon icon={faSignOut} />
+                                                <p>Logg ut</p>
+                                            </Button>
+                                        </Link>
+                                    </>
+                                )}
+                            </div>
+
+                        </div>
+                        <div className={styles.profileMain}>
+
+
+                            {(profile.user.bio !== '') &&
+                                <div className={styles.bio}>
+                                    <h2>Bio:</h2>
+                                    <p>{profile.user.bio}</p>
+                                </div>
                             }
 
-                        </p>
-                        }
+                            {(profile.user.relationshipStatus !== RelationshipStatus.NOT_SPECIFIED) &&
+                            <p>
+                                <span className={styles.relationshipStatus}>Sivilstatus: </span>
+                                {profile.user.relationshipStatusText ? profile.user.relationshipStatusText :
+                                    profile.user.relationshipStatus === RelationshipStatus.SINGLE && 'Singel' ||
+                                    profile.user.relationshipStatus === RelationshipStatus.ITS_COMPLICATED
+                                        && 'Det er komplisert' ||
+                                    profile.user.relationshipStatus === RelationshipStatus.TAKEN && 'I et forhold'
+                                }
+
+                            </p>
+                            }
 
 
-                        <p>
-                            <span className={styles.email}>E-post:</span>
-                            {profile.user.email}
-                        </p>
-                        <p>
-                            <span className={styles.username}>Brukernavn:</span>
-                            {profile.user.username}
-                        </p>
-                        <p>
-                            <span className={styles.username}>Mobilnummer:</span>
-                            {profile.user.mobile}
-                        </p>
-
-                        {(committeeMemberships.length > 0) && <div>
-                            <h2>Medlemsskap</h2>
-                            {committeeMemberships.map((membership, i) => (
-                                <Link
-                                    className={styles.memberShipInCommitteeLink}
-                                    href={`/committees/${membership.group.committee?.shortName}`}
-                                    key={i}
-                                >
-                                    <p className={styles.memberShipInCommittee}>
-                                        {membership.title} i {membership.group.committee?.name}
-                                    </p>
-                                </Link>
-                            ))}
-                        </div>}
+                            <p>
+                                <span className={styles.email}>E-post:</span>
+                                {profile.user.email}
+                            </p>
+                            <p>
+                                <span className={styles.username}>Brukernavn:</span>
+                                {profile.user.username}
+                            </p>
+                            <p>
+                                <span className={styles.username}>Mobilnummer:</span>
+                                {profile.user.mobile}
+                            </p>
+                            <p>
+                                <span className={styles.username}>Klasse:</span>
+                                {profile.class ? ClassLevelConfig[profile.class.level].name : 'Ingen klasse'}
+                            </p>
+                        </div>
                     </div>
                 </div>
+
+                <UserNavBar username={profile.user.username} userId={profile.user.id} />
             </div>
         </div>
     )

@@ -8,7 +8,7 @@ import TextInput from '@/components/UI/TextInput'
 import { createEventRegistrationAction, createGuestEventRegistrationAction } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
 import { useContext } from 'react'
-import type { EventRegistration } from '@/prisma-generated-pn-types'
+import type { EventRegistrationWithWaitingList } from '@/services/events/registration/types'
 import type { ActionReturn } from '@/services/actionTypes'
 
 function ManualRegistrationFormInner({
@@ -17,11 +17,9 @@ function ManualRegistrationFormInner({
     eventId: number,
 }) {
     const userSelectionContext = useContext(UserSelectionContext)
-    if (!userSelectionContext) throw new Error('UserSelectionContext not found')
+    if (!userSelectionContext) throw new Error('Fant ikke UserSelectionContext')
 
-    const action = async (): Promise<ActionReturn<{
-        result: EventRegistration
-    }>> => {
+    const action = async (): Promise<ActionReturn<EventRegistrationWithWaitingList>> => {
         if (!userSelectionContext.user) {
             return {
                 success: false,
@@ -32,9 +30,6 @@ function ManualRegistrationFormInner({
                 }]
             }
         }
-
-        console.log(eventId)
-        console.log(userSelectionContext.user.id)
 
         return await createEventRegistrationAction(
             {
@@ -62,7 +57,7 @@ export default function ManualRegistrationForm({
     return <div className={styles.ManualRegistrationForm}>
         <Form
             submitText="Registrer gjest"
-            title="Register gjest uten bruker"
+            title="Registrer gjest uten bruker"
             action={configureAction(createGuestEventRegistrationAction, { params: { eventId } })}
         >
             <TextInput name="name" label="Navn" />

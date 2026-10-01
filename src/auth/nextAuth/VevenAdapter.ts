@@ -4,6 +4,7 @@ import { createFeideAccount } from '@/services/auth/feideAccounts/create'
 import { readUserOrNullOfFeideAccount } from '@/services/auth/feideAccounts/read'
 import { userOperations } from '@/services/users/operations'
 import { userFilterSelection } from '@/services/users/constants'
+import logger from '@/lib/logger'
 import type { UserFiltered } from '@/services/users/types'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { Adapter, AdapterUser, AdapterAccount } from 'next-auth/adapters'
@@ -86,7 +87,10 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                 throw new Error()
             }
 
-            const username = await generateUsername(prisma, user.username, user.lastname)
+            // A Feide login is never matched to an existing user by username: the username is
+            // derived from the email local part, which any Feide institution can issue. Migrated
+            // users that the exact email match misses claim their user through /link-ow-user.
+            const username = await generateUsername(prisma, user.username.toLowerCase(), user.lastname)
 
             const createdUser = await prisma.user.create({
                 data: {
@@ -95,6 +99,7 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                     lastname: user.lastname,
                     username,
                     emailVerified: null,
+                    createdByFeideLoginOnProjectNext: true,
                 },
                 select: userFilterSelection,
             })
@@ -103,8 +108,6 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
         },
 
         async getUser(id) {
-            console.log('get id')
-
             const user = await userOperations.readOrNull({
                 params: { id: Number(id) },
                 bypassAuth: true,
@@ -114,8 +117,6 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
         },
 
         async getUserByEmail(email) {
-            console.log('get email')
-            console.log(email)
             const user = await userOperations.readOrNull({
                 params: { email },
                 bypassAuth: true,
@@ -141,8 +142,6 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
         },
 
         async getUserByAccount({ providerAccountId, provider }) {
-            console.log('get account')
-
             if (provider !== 'feide') {
                 throw new Error('Unsupported provider')
             }
@@ -153,8 +152,6 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
         },
 
         async updateUser(user) {
-            console.log('update u')
-
             const updatedUser = await prisma.user.update({
                 where: {
                     id: Number(user.id),
@@ -170,15 +167,13 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
         },
 
         async linkAccount(account: AdapterAccount) {
-            console.log('link acc')
-
             if (!account.access_token || !account.expires_at || !account.id_token) {
                 throw new Error('Missing required fields in account')
             }
 
             const tokenData = readJWTPayload<{ email: string }>(account.id_token)
 
-            await createFeideAccount({
+            const feideAccount = await createFeideAccount({
                 id: account.providerAccountId,
                 accessToken: account.access_token,
                 expiresAt: new Date(account.expires_at * 1000),
@@ -186,6 +181,11 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                 userId: Number(account.userId),
                 email: tokenData.email,
             })
+
+            logger.info(
+                `Linking user account with ID '${account.id}' and email ${tokenData.email} ` +
+                `to Feide account with ID ${feideAccount.id}.`
+            )
         },
         async deleteUser() {
             throw new Error('Delete user from next auth is not implemented')

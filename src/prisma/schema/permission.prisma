@@ -15,46 +15,42 @@ enum Permission {
   OMBUL_UPDATE
   OMBUL_DESTROY
 
-  // Groups - Generic
-  GROUP_READ
-  GROUP_DESTROY
-  GROUP_ADMIN //TODO: Temp needs discussion about this
-  // Since groups can only be created with a specific type, there is no need to
-  // have permissions to create or update a generic group.
+  // Groups
+  // There are no generic group permissions: a group is only ever reachable through its own group
+  // type, and each group type below carries its own. Reading "all groups" is the union of the group
+  // types the session may read, decided per type.
+  //
+  // Every group type carries the same two: _READ to see it, _ADMIN for everything else - creating,
+  // updating, destroying and managing members. Splitting those apart again would mean deciding, per
+  // type, which of them a half-administrator should hold, and nothing has ever needed that.
 
   // omega order
   OMEGA_ORDER_READ
   OMEGA_ORDER_CREATE
-  // Since groups can only be created with a specific type, there is no need to
-  // have permissions to create or update a generic group.
 
   // Groups - Classes
-  CLASS_CREATE
   CLASS_READ
-  CLASS_UPDATE
-  CLASS_DESTROY
+  CLASS_ADMIN
 
   // Groups - Committess
-  COMMITTEE_CREATE
   COMMITTEE_READ
-  COMMITTEE_UPDATE
-  COMMITTEE_DESTROY
+  COMMITTEE_ADMIN
 
   // Groups - InterestGroups
   INTEREST_GROUP_ADMIN
   INTEREST_GROUP_READ
 
+  // Groups - ManualGroups
+  MANUAL_GROUP_ADMIN
+  MANUAL_GROUP_READ
+
   // Groups - OmegaMembershipGroup
   OMEGA_MEMBERSHIP_GROUP_READ
-  OMEGA_MEMBERSHIP_GROUP_UPDATE
-  // Since omega membership groups always need to exist there are no
-  // permissions to create or destroy them.
+  OMEGA_MEMBERSHIP_GROUP_ADMIN
 
   // Groups - StudyProgramme
-  STUDY_PROGRAMME_CREATE
   STUDY_PROGRAMME_READ
-  STUDY_PROGRAMME_UPDATE
-  STUDY_PROGRAMME_DESTROY
+  STUDY_PROGRAMME_ADMIN
 
   // Lockers
   LOCKER_ADMIN
@@ -76,10 +72,6 @@ enum Permission {
 
   EVENT_CREATE
   EVENT_ADMIN
-  EVENT_READ
-  EVENT_REGISTRATION_CREATE
-  EVENT_REGISTRATION_DESROY
-  EVENT_REGISTRATION_READ
 
   // Notifications
   NOTIFICATION_CHANNEL_CREATE
@@ -110,7 +102,7 @@ enum Permission {
   MAILADDRESS_EXTERNAL_DESTROY
 
   // Admisstion
-  ADMISSION_TRIAL_CREATE
+  ADMISSION_TRIAL_ADMIN
 
   // API keys
   APIKEY_ADMIN
@@ -161,8 +153,15 @@ enum Permission {
   APPLICATION_ADMIN
   APPLICATION_WRITE
 
-  // Public articles
-  PUBLIC_ARTICLE_ADMIN
+  // New student page
+  NEW_STUDENT_ADMIN
+
+  // Report page
+  REPORT_ADMIN
+
+  // Ledger permissions
+  LEDGER_ADMIN
+  LEDGER_USE
 
   //Flair/badge/cape
   FLAIR_ADMIN
@@ -170,6 +169,9 @@ enum Permission {
   //Bullshit
   BULLSHIT_WRITE
   BULLSHIT_READ
+  // News
+  NEWS_CREATE
+  NEWS_ADMIN
 }
 
 model GroupPermission {

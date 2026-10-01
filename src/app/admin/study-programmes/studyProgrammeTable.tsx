@@ -3,6 +3,8 @@
 import styles from './studyProgrammeTable.module.scss'
 import UpdateStudyProgrammeForm from './updateStudyProgrammeForm'
 import PopUp from '@/components/PopUp/PopUp'
+import { ClassLevelConfig } from '@/services/groups/constants'
+import Link from 'next/link'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { v4 as uuid } from 'uuid'
@@ -26,10 +28,14 @@ export default function StudyProgrammeTableBody({
                 >
                     <UpdateStudyProgrammeForm studyProgramme={studyProgramme} />
                 </PopUp></td>}
-                <th>{studyProgramme.name}</th>
+                <th>
+                    <Link href={`/admin/study-programmes/${studyProgramme.id}`}>
+                        {studyProgramme.name}
+                    </Link>
+                </th>
                 <td>{studyProgramme.code}</td>
                 <td>{studyProgramme.insititueCode ?? ''}</td>
-                <td>{studyProgramme.startYear ?? ''}</td>
+                <td>{studyProgramme.classLevel ? ClassLevelConfig[studyProgramme.classLevel].name : ''}</td>
                 <td>{studyProgramme.yearsLength ?? ''}</td>
                 <td>{studyProgramme.partOfOmega ? 'Ja' : 'Nei'}</td>
             </tr>

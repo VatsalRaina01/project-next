@@ -1,4 +1,3 @@
-import getNavItems from './navDef'
 import styles from './MobileNavBar.module.scss'
 import Menu from './Menu'
 import UserNavigation from './UserNavigation'
@@ -6,14 +5,15 @@ import StandardImageServer from '@/components/Image/StandardImageServer'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import type { PropTypes } from './NavBar'
+import type { NavLink } from './navDef'
 
-export default async function MobileNavBar({ profile }: PropTypes) {
-    const user = profile?.user ?? null
-    const isLoggedIn = user !== null
-    const applicationPeriod = false //TODO
-    const isAdmin = true //TODO
-    const navItems = getNavItems(isLoggedIn, isAdmin, applicationPeriod)
+type PropTypes = {
+    isLoggedIn: boolean
+    /** The nav items the session may open, as `visibleNavItems` leaves them. */
+    navItems: NavLink[]
+}
+
+export default async function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
     const itemsForNav = navItems.slice(0, 2)
     const itemsForMenu = navItems.slice(2, navItems.length)
 
@@ -32,6 +32,7 @@ export default async function MobileNavBar({ profile }: PropTypes) {
                 <StandardImageServer
                     standardImage="LOGO_SIMPLE"
                     width={30}
+                    tint="var(--text)"
                 >
                     <Link className={styles.imagelink} href="/"/>
                 </StandardImageServer>
@@ -42,9 +43,9 @@ export default async function MobileNavBar({ profile }: PropTypes) {
                     width={25}
                     height={25}
                     alt="log in button"
-                    className={styles.image}
+                    tint="var(--text)"
                 />
-                <UserNavigation profile={profile} />
+                <UserNavigation isLoggedIn={isLoggedIn} />
             </div>
             <Menu
                 items={itemsForMenu}

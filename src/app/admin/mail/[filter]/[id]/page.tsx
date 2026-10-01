@@ -40,7 +40,7 @@ export default async function MailFlowPage({ params }: PropTypes) {
     if (!results.success && results.errorCode === 'NOT FOUND') {
         notFound()
     } else if (!results.success || !mailOptions.success) {
-        throw new Error('Could not fecth mail flow')
+        throw new Error('Kunne ikke hente e-postflyt')
     }
 
     return <PageWrapper

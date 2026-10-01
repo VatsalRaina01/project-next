@@ -1,16 +1,39 @@
 import { owIdToPnId, type IdMapper } from './IdMapper'
+import { createProgressBar } from './progressBar'
 import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
 import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
 import type { Limits } from './migrationLimits'
 import type { UserMigrator } from './migrateUsers'
 
+/**
+ * The two visibility levels every event needs. Nothing in the old system restricted who could see
+ * an event, so the regular level is created without requirements - which checkVisibility reads as
+ * open to all. Administration is another matter: the admin level gets one requirement with no
+ * conditions, which can never be satisfied, so migrated events are administrated by those who hold
+ * the EVENT_ADMIN permission and no one else.
+ */
+async function createVisibilities(pnPrisma: PrismaClientPn) {
+    const [visibilityRegular, visibilityAdmin] = await Promise.all([
+        pnPrisma.visibility.create({ data: {} }),
+        pnPrisma.visibility.create({ data: { requirements: { create: [{}] } } }),
+    ])
+    return {
+        visibilityRegularId: visibilityRegular.id,
+        visibilityAdminId: visibilityAdmin.id,
+    }
+}
+
+/**
+ * @returns IdMapper - Maps OW EventRegistrations.id to the PN EventRegistration.id created for it,
+ * so later migrations (e.g. money/ledger) can link a transaction back to the right registration.
+ */
 export default async function migrateEvents(
     pnPrisma: PrismaClientPn,
     owPrisma: PrismaClientOw,
     imageIdMap: IdMapper,
     userMigrator: UserMigrator,
     limits: Limits
-) {
+): Promise<IdMapper> {
     const events = await owPrisma.events.findMany({
         take: limits.events ? limits.events : undefined,
         orderBy: limits.events ? {
@@ -23,8 +46,9 @@ export default async function migrateEvents(
         }
     })
 
-    await Promise.all(events.map(async event => {
-        const coverId = owIdToPnId(imageIdMap, event.ImageId)
+    const eventsBar = createProgressBar('Migrating events', events.length)
+    const registrationIdMapsPerEvent = await Promise.all(events.map(async event => {
+        const coverId = owIdToPnId(imageIdMap, event.ImageId, 'images')
         const coverIage = await pnPrisma.cmsImage.create({
             data: {
                 image: coverId ? {
@@ -62,10 +86,12 @@ export default async function migrateEvents(
                 company: event.company,
                 extraFields: event.extraFields ?? undefined,
                 createdById: event.CreatedByUserId ? await userMigrator.getPnUserId(event.CreatedByUserId) : undefined,
+                published: true,
+                ...(await createVisibilities(pnPrisma)),
             }
         })
 
-        await Promise.all(event.EventRegistrations.map(async registration => {
+        const registrationIdMaps = await Promise.all(event.EventRegistrations.map(async registration => {
             const result = await pnPrisma.eventRegistration.create({
                 data: {
                     eventId: newEvent.id,
@@ -89,8 +115,16 @@ export default async function migrateEvents(
                     }
                 })
             }
+
+            return { owId: registration.id, pnId: result.id }
         }))
+
+        eventsBar.increment()
+
+        return registrationIdMaps
     }))
+    eventsBar.stop()
+    const eventRegistrationIdMap: IdMapper = registrationIdMapsPerEvent.flat()
 
     const simpleEvents = await owPrisma.simpleEvents.findMany({
         take: limits.events ? limits.events : undefined,
@@ -99,6 +133,7 @@ export default async function migrateEvents(
         }
     })
 
+    const simpleEventsBar = createProgressBar('Migrating simple events', simpleEvents.length)
     await Promise.all(simpleEvents.map(async simpleEvent => {
         const coverIage = await pnPrisma.cmsImage.create({
             data: {
@@ -128,7 +163,13 @@ export default async function migrateEvents(
                 coverImageId: coverIage.id,
                 cmsParagraphId: paragraph.id,
                 waitingList: false,
+                published: true,
+                ...(await createVisibilities(pnPrisma)),
             }
         })
+        simpleEventsBar.increment()
     }))
+    simpleEventsBar.stop()
+
+    return eventRegistrationIdMap
 }

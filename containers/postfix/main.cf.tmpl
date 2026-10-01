@@ -1,7 +1,7 @@
 # See /usr/share/postfix/main.cf.dist for a commented, more complete version
 
 # The hostname of the machine
-myhostname = {{ .Env.MY_HOSTNAME }}
+myhostname = {{ .Env.EMAIL_HOSTNAME }}
 
 # Debian specific:  Specifying a file name will cause the first
 # line of that file to be used as the name.  The Debian default
@@ -26,11 +26,10 @@ readme_directory = no
 compatibility_level = 2
 
 # TLS parameters
-smtpd_tls_cert_file=/etc/letsencrypt/live/{{ .Env.MY_HOSTNAME }}/fullchain.pem
-smtpd_tls_key_file=/etc/letsencrypt/live/{{ .Env.MY_HOSTNAME }}/privkey.pem
-smtpd_use_tls=yes
-smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
-smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+# No certificate is provisioned for the mail domain (dropped along with the
+# nginx-owned certbot flow) - TLS is disabled rather than pointing at cert
+# files that don't exist, which would otherwise stop postfix from starting.
+smtpd_use_tls=no
 
 # See /usr/share/doc/postfix/TLS_README.gz in the postfix-doc package for
 # information on enabling SSL in the smtp client.
@@ -39,14 +38,14 @@ smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
 #smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
 
 # The domain of the mails
-mydomain = {{ .Env.MY_DOMAIN }}
+mydomain = {{ .Env.WEBSITE_DOMAIN }}
 
 # Dette tror jeg bare gjelder hvis mailen skal hit
 alias_maps = pgsql:/etc/postfix/pgsql-aliases.cf  
 alias_database = pgsql:/etc/postfix/pgsql-aliases.cf 
 
 # Denne er veldig viktig
-relayhost = {{ .Env.RELAY_HOST }}
+relayhost = {{ .Env.EMAIL_RELAY_HOST }}
 
 # Dette er den viktige pekeren, som sorger for at mail blir videresendt
 virtual_alias_maps = pgsql:/etc/postfix/pgsql-aliases.cf

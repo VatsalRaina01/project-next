@@ -90,20 +90,20 @@ export const productOperations = {
 
     readByBarCode: defineOperation({
         authorizer: () => productAuth.read.dynamicFields({}),
-        dataSchema: productSchemas.readByBarCode,
-        operation: async ({ prisma, data }): Promise<ExtendedProduct | null> => {
-            if (!data.barcode) {
+        paramsSchema: productSchemas.readByBarCode,
+        operation: async ({ prisma, params }): Promise<ExtendedProduct | null> => {
+            if (!params.barcode) {
                 throw new ServerError('BAD PARAMETERS', 'Barcode is required.')
             }
 
             const results = await prisma.product.findUnique({
                 where: {
-                    barcode: data.barcode.toString()
+                    barcode: params.barcode.toString()
                 },
                 include: {
                     ShopProduct: {
                         where: {
-                            shopId: data.shopId,
+                            shopId: params.shopId,
                             active: true,
                         }
                     }
@@ -113,7 +113,7 @@ export const productOperations = {
             if (!results || results.ShopProduct.length === 0) {
                 throw new ServerError(
                     'NOT FOUND',
-                    `Could not find any prduct with barcode ${data.barcode} in shop ${data.shopId}.`
+                    `Could not find any prduct with barcode ${params.barcode} in shop ${params.shopId}.`
                 )
             }
 

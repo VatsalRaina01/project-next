@@ -158,7 +158,7 @@ export const imageOperations = {
             }
 
             const buffer = Buffer.from(await imageFile.arrayBuffer())
-            const placeholderBuffer = await resizeToAvifBuffer(buffer, imageSizes.placeholder)
+            const { data: placeholderBuffer } = await resizeToAvifBuffer(buffer, imageSizes.placeholder)
 
             return await prisma.image.create({
                 data: {
@@ -172,7 +172,67 @@ export const imageOperations = {
     }),
 
     /**
-     * Produces the real tiny/small/medium/large avif variants for an already-uploaded image.
+     * Swaps the file behind an existing image in place, keeping its id - and with it every relation
+     * pointing at it - intact. The new original is stored the same way uploadImage stores one, the
+     * old variants are dropped so the background worker produces fresh ones, and the old files are
+     * removed once the row points at the new ones.
+     *
+     * Nothing is written when the new file is byte for byte the stored original, so this is cheap to
+     * call on every run for an image whose source of truth lives outside the database.
+     */
+    replaceImageFile: defineSubOperation({
+        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        dataSchema: () => imageSchemas.replaceImageFile,
+        opensTransaction: true,
+        operation: (
+            { allowedExtensions }: { allowedExtensions: readonly ImageExtension[] }
+        ) => async ({ prisma, params, data: { imageFile } }) => {
+            const image = await prisma.image.findUniqueOrThrow({
+                where: { id: params.imageId },
+                include: expandedImageIncluder,
+            })
+
+            const buffer = Buffer.from(await imageFile.arrayBuffer())
+            const storedOriginal = await imageStore.readStoredFile(image.fsLocationOriginal).catch(error => {
+                // A missing original is exactly what replacing it repairs.
+                if (error instanceof ServerError && error.errorCode === 'NOT FOUND') return null
+                throw error
+            })
+            if (storedOriginal?.equals(buffer)) return { replaced: false }
+
+            const original = await imageStore.createFile(imageFile, allowedExtensions)
+            const placeholderDataUrl = original.ext === 'svg'
+                ? null
+                : `data:image/avif;base64,${
+                    (await resizeToAvifBuffer(buffer, imageSizes.placeholder)).data.toString('base64')
+                }`
+
+            await prisma.$transaction(async (tx) => {
+                await tx.processedImageFiles.deleteMany({
+                    where: { imageId: image.id },
+                })
+                await tx.image.update({
+                    where: { id: image.id },
+                    data: {
+                        type: original.ext === 'svg' ? 'SVG' : 'RASTER',
+                        fsLocationOriginal: original.fsLocation,
+                        extOriginal: original.ext,
+                        placeholderDataUrl,
+                        processingStartedAt: null,
+                        processingAttempts: 0,
+                        processingError: null,
+                    }
+                })
+            })
+
+            await destroyStoredFiles(storedFileLocationsOfImage(image), 'image file replacement')
+            return { replaced: true }
+        }
+    }),
+
+    /**
+     * Produces the real avif variants for an already-uploaded image.
+     * See createRasterVariants for which tiers get skipped.
      * Called by the background worker container (src/lib/images/worker.ts), never directly from a request.
      */
     processImageVariants: defineSubOperation({
@@ -184,19 +244,28 @@ export const imageOperations = {
             }
             try {
                 const buffer = await imageStore.readStoredFile(image.fsLocationOriginal)
-                const [tinySize, smallSize, mediumSize, largeSize] = await Promise.all([
-                    createResizedAvifInStore(buffer, imageSizes.tiny),
-                    createResizedAvifInStore(buffer, imageSizes.small),
-                    createResizedAvifInStore(buffer, imageSizes.medium),
-                    createResizedAvifInStore(buffer, imageSizes.large),
-                ])
+                const variants = await createRasterVariants(buffer)
                 await prisma.processedImageFiles.create({
                     data: {
                         imageId: image.id,
-                        fsLocationTinySize: tinySize.fsLocation,
-                        fsLocationSmallSize: smallSize.fsLocation,
-                        fsLocationMediumSize: mediumSize.fsLocation,
-                        fsLocationLargeSize: largeSize.fsLocation,
+                        fsLocationMicroSize: variants.micro?.fsLocation,
+                        widthMicroSize: variants.micro?.width,
+                        heightMicroSize: variants.micro?.height,
+                        fsLocationTinySize: variants.tiny.fsLocation,
+                        widthTinySize: variants.tiny.width,
+                        heightTinySize: variants.tiny.height,
+                        fsLocationSmallSize: variants.small?.fsLocation,
+                        widthSmallSize: variants.small?.width,
+                        heightSmallSize: variants.small?.height,
+                        fsLocationMediumSize: variants.medium?.fsLocation,
+                        widthMediumSize: variants.medium?.width,
+                        heightMediumSize: variants.medium?.height,
+                        fsLocationLargeSize: variants.large?.fsLocation,
+                        widthLargeSize: variants.large?.width,
+                        heightLargeSize: variants.large?.height,
+                        fsLocationHugeSize: variants.huge?.fsLocation,
+                        widthHugeSize: variants.huge?.width,
+                        heightHugeSize: variants.huge?.height,
                     }
                 })
                 return { success: true }
@@ -347,24 +416,53 @@ export const imageOperations = {
 } as const
 
 /**
- * Resizes the original image buffer down to the given size before encoding to avif, so the
- * (potentially much larger) original resolution is never itself run through avif encoding.
+ * Resizes the buffer down to the given width and encodes it as avif.
+ * Only width is passed to sharp. Height scales automatically, so aspect ratio is preserved.
+ * withoutEnlargement means a narrower source is returned unchanged instead of upscaled.
+ * resolveWithObject also returns the real encoded width and height.
  */
-async function resizeToAvifBuffer(buffer: Buffer, size: number) {
+async function resizeToAvifBuffer(buffer: Buffer, width: number) {
     return await sharp(buffer)
-        .resize(size, size, {
-            fit: sharp.fit.inside,
-            withoutEnlargement: true
-        })
+        .resize({ width, withoutEnlargement: true })
         .toFormat('avif')
         .avif(avifConvertionOptions)
-        .toBuffer()
+        .toBuffer({ resolveWithObject: true })
 }
 
-async function createResizedAvifInStore(buffer: Buffer, size: number) {
-    const avifBuffer = await resizeToAvifBuffer(buffer, size)
-    const avifFile = new File([new Uint8Array(avifBuffer)], 'image.avif', { type: 'image/avif' })
-    return imageStore.createFile(avifFile, ['avif'])
+async function createResizedAvifInStore(buffer: Buffer, width: number) {
+    const { data, info } = await resizeToAvifBuffer(buffer, width)
+    const avifFile = new File([new Uint8Array(data)], 'image.avif', { type: 'image/avif' })
+    const storedFile = await imageStore.createFile(avifFile, ['avif'])
+    return { ...storedFile, width: info.width, height: info.height }
+}
+
+/**
+ * Produces one avif variant per size tier.
+ * tiny is always produced. Every other tier, including micro, is skipped once its target
+ * width matches an already produced tier, so no two tiers ever store the same image twice.
+ */
+type VariantFile = Awaited<ReturnType<typeof createResizedAvifInStore>>
+type LargerTier = 'small' | 'medium' | 'large' | 'huge'
+
+async function createRasterVariants(buffer: Buffer) {
+    const { width: sourceWidth = imageSizes.huge } = await sharp(buffer).metadata()
+
+    const tinyWidth = Math.min(imageSizes.tiny, sourceWidth)
+    const tiny = await createResizedAvifInStore(buffer, tinyWidth)
+
+    const microWidth = Math.min(imageSizes.micro, sourceWidth)
+    const micro = microWidth === tinyWidth ? undefined : await createResizedAvifInStore(buffer, microWidth)
+
+    let lastWidth = tinyWidth
+    const rest: Partial<Record<LargerTier, VariantFile>> = {}
+    for (const tier of ['small', 'medium', 'large', 'huge'] as const) {
+        const targetWidth = Math.min(imageSizes[tier], sourceWidth)
+        if (targetWidth === lastWidth) continue
+        rest[tier] = await createResizedAvifInStore(buffer, targetWidth)
+        lastWidth = targetWidth
+    }
+
+    return { micro, tiny, ...rest }
 }
 
 /**
@@ -375,11 +473,13 @@ function storedFileLocationsOfImage(image: Pick<ExpandedImage, 'fsLocationOrigin
     if (!image.processedFiles) return [image.fsLocationOriginal]
     return [
         image.fsLocationOriginal,
+        image.processedFiles.fsLocationMicroSize,
         image.processedFiles.fsLocationTinySize,
         image.processedFiles.fsLocationSmallSize,
         image.processedFiles.fsLocationMediumSize,
         image.processedFiles.fsLocationLargeSize,
-    ]
+        image.processedFiles.fsLocationHugeSize,
+    ].filter((fsLocation): fsLocation is string => fsLocation !== null)
 }
 
 /**

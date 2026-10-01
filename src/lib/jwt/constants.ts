@@ -6,4 +6,5 @@ export const OmegaJWTAudienceFields = [
     'resetpassword',
     'omegaid',
     'verifyemail',
+    'linkfeideaccount',
 ] as const

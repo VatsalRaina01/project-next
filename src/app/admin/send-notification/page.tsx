@@ -3,13 +3,15 @@ import NotificaionForm from './notificationForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { readNotificationChannelsAction } from '@/services/notifications/actions'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 
 export default async function SendNotification() {
+    await authorizeAdminPage('send-notification')
     const channels = unwrapActionReturn(await readNotificationChannelsAction())
 
     return <PageWrapper
-        title="Send Varsel"
+        title="Send varsel"
     >
         <NotificaionForm channels={channels}/>
     </PageWrapper>

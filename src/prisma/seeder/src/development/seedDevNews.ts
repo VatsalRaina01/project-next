@@ -65,6 +65,16 @@ async function upsertTestNews(
                         }
                     }
                 }
+            },
+            visibilityRegular: {
+                create: {}
+            },
+            // A requirement with no conditions can never be satisfied, so the admin level admits
+            // only those who bypass it with NEWS_ADMIN - seeded news belongs to no group.
+            visibilityAdmin: {
+                create: {
+                    requirements: { create: [{}] }
+                }
             }
         }
     })

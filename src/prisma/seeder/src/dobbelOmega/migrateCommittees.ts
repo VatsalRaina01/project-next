@@ -1,5 +1,7 @@
 import { owIdToPnId } from './IdMapper'
+import { createProgressBar } from './progressBar'
 import { cmsParagraphOperations } from '@/services/cms/paragraphs/operations'
+import logger from '@/lib/logger'
 import { readFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
@@ -52,12 +54,19 @@ async function createCommitteArticleSection(
     }
 }
 
+/**
+ * Migrates Omegaweb-basic committees into PN committees with their own group, members and
+ * member history.
+ * @returns an IdMapper from Omegaweb-basic committee id to the PN group id of the migrated
+ * committee, so later steps can hang committee-owned data (news visibility, locker
+ * reservations) off the right group.
+ */
 export default async function migrateCommittees(
     pnPrisma: PrismaClientPn,
     owPrisma: PrismaClientOw,
     userMigrator: UserMigrator,
     imageIdMap: IdMapper,
-) {
+): Promise<IdMapper> {
     const committees = await owPrisma.committees.findMany({
         include: {
             CommitteeMembers: true,
@@ -65,18 +74,40 @@ export default async function migrateCommittees(
         }
     })
 
+    // A membership points at an omega order, and omegaweb-basic knew nothing of the OmegaOrder table,
+    // so every order a membership refers to has to exist before any of them can be written.
+    const membershipOrders = new Set(committees.flatMap(committee => [
+        ...committee.CommitteeMembers.map(member => member.order),
+        ...committee.CommitteeMembersHist.map(member => member.order),
+    ]))
+    await pnPrisma.omegaOrder.createMany({
+        data: Array.from(membershipOrders, order => ({ order })),
+        skipDuplicates: true,
+    })
+
+    // Committees land in the order omega is in now. Hardcoding one meant every migrated committee
+    // was behind from the moment it arrived, which blocks the next increment until each is migrated.
+    const { order: currentOrder } = await pnPrisma.omegaOrder.findFirstOrThrow({
+        orderBy: { order: 'desc' },
+    })
+
+    const bar = createProgressBar('Migrating committees', committees.length)
+    const committeeGroupIdMap: IdMapper = []
     await Promise.all(committees.map(async committee => {
+        // Omegaweb-basic's inactive committees are what we now call pensioned.
+        const pensioned = !committee.active
         const committeeParagraph = await createCmsParagraph(
             pnPrisma, await readCommitteMarkdown(`${committee.shortname}_p.md`)
         )
         const applicationParagraph = await createCmsParagraph(pnPrisma, committee.applicationText || '')
         const committeArticle = await createCommitteArticleSection(pnPrisma, `${committee.shortname}_a.md`)
-        const logoImageId = owIdToPnId(imageIdMap, committee.ImageId)
+        const logoImageId = owIdToPnId(imageIdMap, committee.ImageId, 'images')
 
         const newCommittee = await pnPrisma.committee.create({
             data: {
                 name: committee.name,
                 shortName: committee.shortname,
+                pensioned,
                 videoLink: committee.applicationVideo,
                 logoImage: logoImageId ? {
                     connect: {
@@ -103,7 +134,7 @@ export default async function migrateCommittees(
                 group: {
                     create: {
                         groupType: 'COMMITTEE',
-                        order: 106,
+                        order: currentOrder,
                     },
                 }
             }
@@ -111,8 +142,7 @@ export default async function migrateCommittees(
 
         await Promise.all(committee.CommitteeMembers.map(async member => {
             if (member.UserId === null) {
-                console.warn(`${committee.shortname} has a member that is not connected to a user!`)
-                console.warn(member)
+                logger.warn(`${committee.shortname} has a member that is not connected to a user!`, { committee, member })
                 return
             }
             const pnUserId = await userMigrator.getPnUserId(member.UserId)
@@ -120,7 +150,8 @@ export default async function migrateCommittees(
                 data: {
                     groupId: newCommittee.groupId,
                     userId: pnUserId,
-                    active: true,
+                    // A pensioned committee holds no active memberships, whatever basic said.
+                    active: !pensioned,
                     admin: member.admin,
                     order: member.order,
                     title: member.position || undefined,
@@ -141,5 +172,12 @@ export default async function migrateCommittees(
                 }
             })
         }))
+
+        committeeGroupIdMap.push({ owId: committee.id, pnId: newCommittee.groupId })
+
+        bar.increment()
     }))
+    bar.stop()
+
+    return committeeGroupIdMap
 }

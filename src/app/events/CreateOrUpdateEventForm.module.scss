@@ -2,7 +2,7 @@
 
 .CreateOrUpdateEventForm {
     min-width: 50vw;
-    padding: 2 * ohma.$gap;
+    padding: calc(2 * #{ohma.$gap});
     .canBeViewdBy {
         max-width: 300px;
     }
@@ -30,4 +30,9 @@
             z-index: 2;
         }
     }
+}
+.visibility {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }

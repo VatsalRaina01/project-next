@@ -1,14 +1,13 @@
 import { licenseOperations } from '@/services/licenses/operations'
 import { mimeTypeForExtension } from '@/lib/store/fileExtensions'
 import { readFile } from 'fs/promises'
-import { dirname, join } from 'path'
-import { fileURLToPath } from 'url'
+import { join } from 'path'
 import { File } from 'node:buffer'
 import type { StandardLicenseName } from '@/services/licenses/constants'
 import type { imageSchemas } from '@/services/images/subservice/schemas'
 import type { z } from 'zod'
 
-const standardStoreRoot = join(dirname(fileURLToPath(import.meta.url)), '../../../standard_store/')
+const standardStoreRoot = join(process.cwd(), 'standard_store')
 
 export type StandardStoreFile = {
     file: () => Promise<File>,
@@ -105,13 +104,13 @@ export const standardStoreFiles = {
         originOfFile: 'Kongsberg Gruppen',
     }),
     logoSimple: standardStoreFile({
-        location: 'logo_simple.png',
+        location: 'logo_simple.svg',
         credit: null,
         license: null,
         originOfFile: 'ow - basic',
     }),
     logoWhite: standardStoreFile({
-        location: 'logo_white.png',
+        location: 'logo_white.svg',
         credit: null,
         license: null,
         originOfFile: 'ow - basic',
@@ -129,13 +128,13 @@ export const standardStoreFiles = {
         originOfFile: 'ow-basic',
     }),
     magiskHatt: standardStoreFile({
-        location: 'magisk_hatt.png',
+        location: 'magisk_hatt.svg',
         credit: null,
         license: null,
         originOfFile: 'ow-basic',
     }),
     omegaLogoWhite: standardStoreFile({
-        location: 'omega_logo_white.png',
+        location: 'omega_logo_white.svg',
         credit: null,
         license: null,
         originOfFile: 'ow - basic',
@@ -153,7 +152,7 @@ export const standardStoreFiles = {
         originOfFile: 'ow - basic',
     }),
     pwa: standardStoreFile({
-        location: 'pwa.png',
+        location: 'pwa.svg',
         credit: null,
         license: null,
         originOfFile: 'pwa logo',
@@ -171,7 +170,7 @@ export const standardStoreFiles = {
         originOfFile: new URL('https://pixabay.com/photos/paper-document-old-writing-vintage-3212015/'),
     }),
     vevcomLogo: standardStoreFile({
-        location: 'vevcom_logo.png',
+        location: 'vevcom_logo.svg',
         credit: null,
         license: null,
         originOfFile: 'ow - basic',

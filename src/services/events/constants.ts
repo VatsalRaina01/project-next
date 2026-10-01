@@ -23,7 +23,10 @@ export const eventFieldsToExpose = [
     'registrationStart',
     'registrationEnd',
     'canBeViewdBy',
-    'takesRegistration'
+    'takesRegistration',
+    'price',
+    'paymentStart',
+    'paymentEnd'
 ] as const satisfies (keyof Event)[]
 
 export const eventFilterSelection = {
@@ -34,3 +37,5 @@ export const eventFilterSelection = {
         },
     },
 } as const
+
+export const defaultSearchResultLimit = 5

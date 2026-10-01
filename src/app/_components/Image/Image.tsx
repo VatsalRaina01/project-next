@@ -1,12 +1,13 @@
 import styles from './Image.module.scss'
 import { resolutionForWidth } from '@/lib/images/resolutionForWidth'
-import { imageSourceForResolution } from '@/lib/images/imageSource'
+import { imageSourceForResolution, srcSetForImage } from '@/lib/images/imageSource'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCopyright } from '@fortawesome/free-solid-svg-icons'
 import type { ImageResolution } from '@/lib/images/resolutionForWidth'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { ImageProps } from 'next/image'
+import type { CSSProperties } from 'react'
 
 export type PropTypes = Omit<ImageProps, 'src' | 'alt'> & {
     image: ExpandedImage,
@@ -18,6 +19,8 @@ export type PropTypes = Omit<ImageProps, 'src' | 'alt'> & {
     hideCredit?: boolean,
     hideCopyRight?: boolean,
     disableLinkingToLicense?: boolean,
+    tint?: string,
+    tintAspectRatio?: number,
 }
 
 /**
@@ -26,7 +29,9 @@ export type PropTypes = Omit<ImageProps, 'src' | 'alt'> & {
  * @param image - the image to display
  * @param width - the width of the image - this also determines the resolution of the image to display
  * @param resolution - (optional) The resolution inferred from the width may be overrided using
- * this prop, but only do so if strictly necessary. The resolution is used to determine which image file to display.
+ * this prop, but only do so if strictly necessary. The resolution is used to determine which image
+ * file to display. Passing this disables srcset, since overriding resolution is a deliberate
+ * single choice.
  * @param imageContainerClassName - (optional) the class name of the
  * @param creditPlacement - (optional) the placement of the credit
  * @param hideCredit - (optional) if true, the credit will be hidden
@@ -39,22 +44,42 @@ export default function Image({
     alt,
     image,
     width,
-    resolution = resolutionForWidth(width),
+    resolution: explicitResolution,
     imageContainerClassName,
     creditPlacement = 'bottom',
     hideCredit = false,
     hideCopyRight = false,
     disableLinkingToLicense = false,
+    tint,
+    tintAspectRatio = 1,
     ...props
 }: PropTypes) {
-    const url = imageSourceForResolution(image, resolution)
+    const url = imageSourceForResolution(image, explicitResolution ?? resolutionForWidth(width))
+    const srcSet = explicitResolution ? undefined : srcSetForImage(image)
+    const imageWidthStyle = { '--image-width': `${width}px` } as CSSProperties
+
     return (
-        <div style={{ width: `${width}px` }} className={`${styles.Image} ${imageContainerClassName}`}>
-            <img {...props}
-                width={width}
-                alt={alt || image.alt}
-                src={url}
-            />
+        <div style={imageWidthStyle} className={`${styles.Image} ${imageContainerClassName}`}>
+            {tint && image.type === 'SVG' ? (
+                <div
+                    className={styles.tinted}
+                    style={{
+                        '--image-tint-mask': `url('${url}')`,
+                        '--image-tint-color': tint,
+                        aspectRatio: tintAspectRatio,
+                    } as CSSProperties}
+                    role="img"
+                    aria-label={alt || image.alt}
+                />
+            ) : (
+                <img {...props}
+                    width={width}
+                    alt={alt || image.alt}
+                    src={url}
+                    srcSet={srcSet}
+                    sizes={srcSet ? `${width}px` : undefined}
+                />
+            )}
             {image.credit && !hideCredit && <p className={`${styles.credit} ${styles[creditPlacement]}`}>{image.credit}</p>}
             {!hideCopyRight && image.licenseLink && (
                 <div className={styles.license}>
@@ -82,8 +107,10 @@ type SrcImageProps = Omit<PropTypes, 'image' | 'resolution'> & {
  * @returns
  */
 export function SrcImage({ src, width, ...props }: SrcImageProps) {
+    const imageWidthStyle = { '--image-width': `${width}px` } as CSSProperties
+
     return (
-        <div style={{ width: `${width}px` }} className={styles.Image}>
+        <div style={imageWidthStyle} className={styles.Image}>
             <img {...props} width={width} src={src} />
         </div>
     )

@@ -81,7 +81,7 @@ const makeInputArray = (children: ReactNode): Inputs =>
 export default function Form<GiveActionReturn>({
     children,
     title,
-    submitText = 'create',
+    submitText = 'Opprett',
     submitColor = 'primary',
     confirmation = {
         confirm: false,
@@ -143,7 +143,7 @@ export default function Form<GiveActionReturn>({
             setGeneralErrors([
                 {
                     path: [],
-                    message: 'error with input'
+                    message: 'Noe gikk galt. Prøv igjen.'
                 }
             ])
             return

@@ -97,7 +97,7 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
                                 successCallback={handleChange}
                                 submitText="Oppdater fil"
                             >
-                                <FileInput name="ombulFile" label="ombul fil" color="primary" />
+                                <FileInput name="ombulFile" label="Ombul fil" color="primary" />
                             </Form>
                         </>
                     )
@@ -124,7 +124,7 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
                 {
                     canUpdateCover && (
                         <div className={styles.coverImage}>
-                            <Image image={ombul.coverImage} width={400} />
+                            <Image image={ombul.coverImage} width={200} />
                             <ImageUploader
                                 title="Endre forsidebilde"
                                 refreshOnSuccess

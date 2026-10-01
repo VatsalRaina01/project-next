@@ -43,7 +43,6 @@ export const cabinPricePeriodOperations = {
                         pricePeriodId: latestPricePeriod.id,
                     }
                 })
-                console.log(products)
 
                 await prisma.cabinProductPrice.createMany({
                     data: products.map(product => ({
@@ -81,7 +80,7 @@ export const cabinPricePeriodOperations = {
     }),
 
     readMany: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.read.dynamicFields({}),
+        authorizer: () => cabinPricePeriodAuth.readMany.dynamicFields({}),
         operation: async ({ prisma }) => prisma.pricePeriod.findMany()
     }),
 
@@ -119,7 +118,7 @@ export const cabinPricePeriodOperations = {
     }),
 
     readUnreleasedPeriods: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.read.dynamicFields({}),
+        authorizer: () => cabinPricePeriodAuth.readUnreleasedPeriods.dynamicFields({}),
         operation: async ({ prisma }) => {
             const releaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
             return prisma.pricePeriod.findMany({

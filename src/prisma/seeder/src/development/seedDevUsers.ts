@@ -2,10 +2,37 @@ import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { userOperations } from '@/services/users/operations'
 import { standardStoreFiles } from '@/lib/standardStore/files'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
-import { OmegaMembershipLevel, type Prisma } from '@/prisma-generated-pn-types'
+import { Admission, OmegaMembershipLevel, type Prisma } from '@/prisma-generated-pn-types'
 import { v4 as uuid } from 'uuid'
 import { randomInt } from 'crypto'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
+
+const allAdmissions = Object.values(Admission)
+
+/**
+ * Which omega membership a dev user is seeded into, and the admission trials that go with it.
+ *
+ * The two have to agree, since that is the invariant the rest of the system upholds: a sysken is
+ * someone who has sat every trial, and anyone who has sat every trial is made a sysken. So only a
+ * soelle is given part of the set - never all of it - and den gemene hob none at all, having never
+ * been let in to start.
+ *
+ * It is derived from the user's position rather than drawn at random so that re-seeding puts every
+ * user back exactly where they were.
+ */
+function omegaStandingOf(index: number): { level: OmegaMembershipLevel, trials: Admission[] } {
+    switch (index % 3) {
+        case 0:
+            return { level: OmegaMembershipLevel.DEN_GEMENE_HOB, trials: [] }
+        case 1:
+            return {
+                level: OmegaMembershipLevel.SOELLE,
+                trials: allAdmissions.slice(0, index % allAdmissions.length),
+            }
+        default:
+            return { level: OmegaMembershipLevel.SYSKEN, trials: allAdmissions }
+    }
+}
 
 export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => {
     const firstNames = [
@@ -24,127 +51,168 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         },
     })
 
-    const memberGroup = await prisma.omegaMembershipGroup.findUniqueOrThrow({
-        where: {
-            omegaMembershipLevel: OmegaMembershipLevel.MEMBER
-        }
+    const omegaMembershipGroups = await prisma.omegaMembershipGroup.findMany({
+        select: { groupId: true, omegaMembershipLevel: true },
     })
+    const omegaGroupIdOf = (level: OmegaMembershipLevel) => omegaMembershipGroups
+        .find(group => group.omegaMembershipLevel === level)!.groupId
+    const syskenGroupId = omegaGroupIdOf(OmegaMembershipLevel.SYSKEN)
 
     const allStudyProgrammes = await prisma.studyProgramme.findMany()
     const allCommittees = await prisma.committee.findMany()
     const allClasses = await prisma.class.findMany()
     const allFlairs = await prisma.flair.findMany()
 
-    // Promise.all not possible here because db connection pool might be
-    // overloaded from profile image uploads.
-    for (let i = 0; i < firstNames.length; i++) {
-        const firstName = firstNames[i]
-        for (let j = 0; j < devProfileImages.length; j++) {
-            const [lastName, devProfileImage] = devProfileImages[j]
-            const username = `${firstName}${lastName}${i + 1}${j}`
-                .toLowerCase()
-                .replace(/å/g, 'aa') // special cases for norwegian letters
-                .replace(/æ/g, 'ae')
-                .replace(/ø/g, 'oe')
-                .normalize('NFD') // decompose into letter + diacritics, i.e. 'é' -> 'e´'
-                .replace(/[^a-zA-Z0-9]/g, '') // only keep ASCII alphanumeric characters
+    const devUserSpecs = firstNames.flatMap((firstName, i) => devProfileImages.map(([lastName, devProfileImage], j) => ({
+        firstName,
+        lastName,
+        devProfileImage,
+        email: uuid(),
+        username: `${firstName}${lastName}${i + 1}${j}`
+            .toLowerCase()
+            .replace(/å/g, 'aa') // special cases for norwegian letters
+            .replace(/æ/g, 'ae')
+            .replace(/ø/g, 'oe')
+            .normalize('NFD') // decompose into letter + diacritics, i.e. 'é' -> 'e´'
+            .replace(/[^a-zA-Z0-9]/g, ''), // only keep ASCII alphanumeric characters
+    })))
 
-            const existingUser = await prisma.user.findUnique({
-                where: { username },
-                select: { id: true },
-            })
+    const existingUsers = await prisma.user.findMany({
+        where: { username: { in: devUserSpecs.map(spec => spec.username) } },
+        select: { id: true, username: true },
+    })
+    const existingUsernames = new Set(existingUsers.map(user => user.username))
+    const newDevUserSpecs = devUserSpecs.filter(spec => !existingUsernames.has(spec.username))
 
-            const user = existingUser ?? await prisma.user.create({
-                data: {
-                    firstname: firstName,
-                    lastname: lastName,
-                    email: uuid(),
-                    username,
-                    studentCard: `${username}s studentkort`,
-                    credentials: {
-                        create: {
-                            passwordHash,
-                        },
-                    },
-                    acceptedTerms: new Date(),
-                },
-            })
+    const createdUsers = await prisma.user.createManyAndReturn({
+        data: newDevUserSpecs.map(spec => ({
+            firstname: spec.firstName,
+            lastname: spec.lastName,
+            email: spec.email,
+            username: spec.username,
+            studentCard: `${spec.username}s studentkort`,
+            acceptedTerms: new Date(),
+        })),
+        select: { id: true, username: true },
+    })
 
-            // Only uploaded the first time this dev user is created - re-seeding must not upload
-            // (and immediately destroy) a fresh profile image on every run.
-            if (!existingUser && Math.random() < 0.95) {
-                await userOperations.updateProfileImage({
-                    params: { username },
-                    data: await devProfileImage.imageUploadData({
-                        name: lastName,
-                        alt: `Bilde av ${lastName}`,
-                    }),
-                })
-            }
+    const userIdByUsername = new Map([
+        ...existingUsers.map(user => [user.username, user.id] as const),
+        ...createdUsers.map(user => [user.username, user.id] as const),
+    ])
 
-            const memberships: Prisma.MembershipCreateManyInput[] = [
-                {
-                    groupId: memberGroup.groupId,
-                    userId: user.id,
-                    admin: false,
-                    active: true,
-                    order: latestOrder.order
-                },
-            ]
+    await prisma.credentials.createMany({
+        data: newDevUserSpecs.map(spec => ({
+            userId: userIdByUsername.get(spec.username)!,
+            username: spec.username,
+            email: spec.email,
+            passwordHash,
+        })),
+    })
 
-            const studyProgram = allStudyProgrammes[randomInt(allStudyProgrammes.length)]
+    // Profile images can't be batched with createMany - each upload resizes to several
+    // sizes, converts to avif and writes files to the store before any db write happens,
+    // so this stays the slow part. Batched (rather than one big Promise.all) so the cpu
+    // and db connection pool aren't overloaded from too many uploads running at once.
+    // Only uploaded the first time this dev user is created - re-seeding must not upload
+    // (and immediately destroy) a fresh profile image on every run.
+    const profileImageJobs = newDevUserSpecs
+        .filter(() => Math.random() < 0.10)
+        .map(spec => async () => userOperations.updateProfileImage({
+            params: { username: spec.username },
+            data: await spec.devProfileImage.imageUploadData({
+                name: spec.lastName,
+                alt: `Bilde av ${spec.lastName}`,
+            }),
+        }))
 
-            memberships.push({
-                groupId: studyProgram.groupId,
-                userId: user.id,
+    const imageUploadBatchSize = 8
+    for (let i = 0; i < profileImageJobs.length; i += imageUploadBatchSize) {
+        await Promise.all(profileImageJobs.slice(i, i + imageUploadBatchSize).map(job => job()))
+    }
+
+    const memberships: Prisma.MembershipCreateManyInput[] = devUserSpecs.flatMap((spec, index) => {
+        const userId = userIdByUsername.get(spec.username)!
+
+        const specMemberships: Prisma.MembershipCreateManyInput[] = [
+            {
+                groupId: omegaGroupIdOf(omegaStandingOf(index).level),
+                userId,
+                admin: false,
+                active: true,
+                order: latestOrder.order
+            },
+            {
+                groupId: allStudyProgrammes[randomInt(allStudyProgrammes.length)].groupId,
+                userId,
+                admin: false,
+                active: true,
+                order: latestOrder.order
+            },
+            {
+                groupId: allClasses[randomInt(allClasses.length)].groupId,
+                userId,
+                admin: false,
+                active: true,
+                order: latestOrder.order,
+            },
+        ]
+
+        if (Math.random() > 0.8) {
+            specMemberships.push({
+                groupId: allCommittees[randomInt(allCommittees.length)].groupId,
+                userId,
                 admin: false,
                 active: true,
                 order: latestOrder.order
             })
-
-            const classMember = allClasses[randomInt(allClasses.length)]
-            memberships.push({
-                groupId: classMember.groupId,
-                userId: user.id,
-                admin: false,
-                active: true,
-                order: latestOrder.order,
-            })
-
-            if (Math.random() > 0.8) {
-                const committee = allCommittees[randomInt(allCommittees.length)]
-
-                memberships.push({
-                    groupId: committee.groupId,
-                    userId: user.id,
-                    admin: false,
-                    active: true,
-                    order: latestOrder.order
-                })
-            }
-
-            await prisma.membership.createMany({
-                data: memberships
-            })
-
-            if (Math.random() < 0.05) {
-                const flair = allFlairs[randomInt(allFlairs.length)]
-
-                await prisma.flair.update({
-                    where: {
-                        id: flair.id,
-                    },
-                    data: {
-                        user: {
-                            connect: {
-                                id: user.id
-                            }
-                        }
-                    }
-                })
-            }
         }
-    }
+
+        return specMemberships
+    })
+
+    // A user seeded before may sit at a different level this time round, and `skipDuplicates` would
+    // leave them holding both memberships - and whichever trials went with the old one. Clearing the
+    // pair out first is what keeps a re-seed from inventing a state the system says cannot exist.
+    const devUserIds = devUserSpecs.map(spec => userIdByUsername.get(spec.username)!)
+
+    await prisma.membership.deleteMany({
+        where: {
+            userId: { in: devUserIds },
+            group: { groupType: 'OMEGA_MEMBERSHIP_GROUP' },
+        },
+    })
+    await prisma.admissionTrial.deleteMany({
+        where: { userId: { in: devUserIds } },
+    })
+
+    await prisma.membership.createMany({
+        data: memberships,
+        skipDuplicates: true,
+    })
+
+    await prisma.admissionTrial.createMany({
+        data: devUserSpecs.flatMap((spec, index) => omegaStandingOf(index).trials.map(admission => ({
+            userId: userIdByUsername.get(spec.username)!,
+            admission,
+        }))),
+        skipDuplicates: true,
+    })
+
+    await Promise.all(devUserSpecs
+        .filter(() => Math.random() < 0.05)
+        .map(spec => prisma.flair.update({
+            where: {
+                id: allFlairs[randomInt(allFlairs.length)].id,
+            },
+            data: {
+                user: {
+                    connect: {
+                        id: userIdByUsername.get(spec.username)!
+                    }
+                }
+            }
+        })))
 
     const existingHarambe = await prisma.user.findUnique({
         where: { email: 'harambe@harambesen.io' },
@@ -163,6 +231,11 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
             credentials: {
                 create: {
                     passwordHash,
+                },
+            },
+            ledgerAccount: {
+                create: {
+                    type: 'USER',
                 },
             },
             emailVerified: new Date(),
@@ -189,32 +262,6 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         }
     })
 
-    await prisma.membership.createMany({
-        data: [
-            {
-                groupId: memberGroup.groupId,
-                userId: harambe.id,
-                admin: false,
-                active: true,
-                order: latestOrder.order
-            },
-            {
-                groupId: studyProgrammeMTTK.groupId,
-                userId: harambe.id,
-                admin: false,
-                active: true,
-                order: latestOrder.order
-            },
-            {
-                groupId: harambecom.groupId,
-                userId: harambe.id,
-                admin: false,
-                active: true,
-                order: latestOrder.order
-            }
-        ]
-    })
-
     const existingVever = await prisma.user.findUnique({
         where: { email: 'vever@vevcom.com' },
         select: { id: true },
@@ -233,15 +280,50 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
                     passwordHash,
                 },
             },
+            ledgerAccount: {
+                create: {
+                    type: 'USER',
+                },
+            },
             emailVerified: new Date(),
             acceptedTerms: new Date(),
+        },
+    })
+
+    // Either of them may sit at another level by now, and `skipDuplicates` would leave that
+    // membership standing beside the sysken one they are given here.
+    await prisma.membership.deleteMany({
+        where: {
+            userId: { in: [harambe.id, vever.id] },
+            group: { groupType: 'OMEGA_MEMBERSHIP_GROUP' },
         },
     })
 
     await prisma.membership.createMany({
         data: [
             {
-                groupId: memberGroup.groupId,
+                groupId: syskenGroupId,
+                userId: harambe.id,
+                admin: false,
+                active: true,
+                order: latestOrder.order
+            },
+            {
+                groupId: studyProgrammeMTTK.groupId,
+                userId: harambe.id,
+                admin: false,
+                active: true,
+                order: latestOrder.order
+            },
+            {
+                groupId: harambecom.groupId,
+                userId: harambe.id,
+                admin: false,
+                active: true,
+                order: latestOrder.order
+            },
+            {
+                groupId: syskenGroupId,
                 userId: vever.id,
                 admin: false,
                 active: true,
@@ -254,9 +336,16 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
                 active: true,
                 order: latestOrder.order
             },
-        ]
+        ],
+        skipDuplicates: true,
     })
 
-    console.log(harambe)
-    console.log(vever)
+    // Both are seeded as syskens, so both have to have sat every trial.
+    await prisma.admissionTrial.createMany({
+        data: [harambe.id, vever.id].flatMap(userId => allAdmissions.map(admission => ({
+            userId,
+            admission,
+        }))),
+        skipDuplicates: true,
+    })
 })

@@ -1,26 +1,28 @@
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
-export default async function seedDevGroups(prisma: PrismaClient) {
-    const order = await prisma.omegaOrder.findFirst({
+const MANUAL_GROUP_COUNT = 10
+const COMMITTEE_COUNT = 10
+
+export const seedDevGroups = defineSeedOperation(async (prisma: PrismaClient) => {
+    const { order } = await prisma.omegaOrder.findFirstOrThrow({
         orderBy: {
             order: 'desc'
         },
     })
 
-    if (!order) {
-        throw new Error('Failed to seed groups because no omega order exists')
-    }
-
-    await prisma.committee.create({
-        data: {
-            name: 'Harambe\'s komité',
+    await prisma.committee.upsert({
+        where: { shortName: 'harcom' },
+        update: {},
+        create: {
+            name: 'Harambes komité',
             shortName: 'harcom',
             committeeArticle: {
                 create: {
-                    name: 'Harambe\'s komité',
+                    name: 'Harambes komité',
                     coverImage: {
                         create: {
-                            name: 'Harambe\'s bilde'
+                            name: 'Harambes bilde'
                         }
                     }
                 }
@@ -34,35 +36,51 @@ export default async function seedDevGroups(prisma: PrismaClient) {
             group: {
                 create: {
                     groupType: 'COMMITTEE',
-                    order: order.order,
+                    order,
+                    ledgerAccounts: {
+                        create: {
+                            ledgerAccount: {
+                                create: {
+                                    type: 'GROUP',
+                                    name: 'Kontoen til Harambes komité',
+                                }
+                            }
+                        }
+                    },
                 },
             },
         },
     })
 
-    await Promise.all([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => prisma.manualGroup.create({
-        data: {
-            name: `Testgruppe ${i}`,
-            shortName: `TG${i}`,
+    // Dev seed data is keyed as dev_<service>_<index> so re-seeding can find-or-create it by its
+    // unique short name.
+    await Promise.all(Array.from({ length: MANUAL_GROUP_COUNT }).map((_, index) => prisma.manualGroup.upsert({
+        where: { shortName: `dev_manual_groups_${index}` },
+        update: {},
+        create: {
+            name: `dev_manual_groups_${index}`,
+            shortName: `dev_manual_groups_${index}`,
             group: {
                 create: {
                     groupType: 'MANUAL_GROUP',
-                    order: order.order,
+                    order,
                 },
             },
         }
     })))
 
-    await Promise.all([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => prisma.committee.create({
-        data: {
-            name: `Testkomité ${i}`,
-            shortName: `TK${i}`,
+    await Promise.all(Array.from({ length: COMMITTEE_COUNT }).map((_, index) => prisma.committee.upsert({
+        where: { shortName: `dev_committees_${index}` },
+        update: {},
+        create: {
+            name: `dev_committees_${index}`,
+            shortName: `dev_committees_${index}`,
             committeeArticle: {
                 create: {
-                    name: `Testkomité ${i}`,
+                    name: `dev_committees_${index}`,
                     coverImage: {
                         create: {
-                            name: `Bilde for testkomité ${i}`
+                            name: `dev_committees_${index}`
                         }
                     }
                 }
@@ -76,9 +94,9 @@ export default async function seedDevGroups(prisma: PrismaClient) {
             group: {
                 create: {
                     groupType: 'COMMITTEE',
-                    order: order.order,
+                    order,
                 },
             },
         }
     })))
-}
+})

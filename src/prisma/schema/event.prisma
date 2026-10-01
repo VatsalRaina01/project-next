@@ -27,11 +27,23 @@ model Event {
   registrationEnd    DateTime
   waitingList        Boolean
   eventRegistrations EventRegistration[]
+  // Price in øre. Null means free.
+  price              Int?
+  // Only meaningful when price is set. Separate from the registration period.
+  paymentStart       DateTime?
+  paymentEnd         DateTime?
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   screenPages ScreenPage[]
   cabinEvent  Booking[]
+
+  published Boolean @default(false)
+
+  visibilityAdmin     Visibility @relation(name: "EventAdminVisibility", fields: [visibilityAdminId], references: [id], onDelete: Restrict)
+  visibilityAdminId   Int        @unique
+  visibilityRegular   Visibility @relation(name: "EventRegularVisibility", fields: [visibilityRegularId], references: [id], onDelete: Restrict)
+  visibilityRegularId Int        @unique
 
   // Legacy from old database
   company     Boolean @default(false) // If a plus one is allowed
@@ -83,6 +95,8 @@ model EventRegistration {
   manuallyPaid      Boolean @default(false)
   company           Boolean @default(false) // This is if a registrations has a plus one.
   extraFieldChoices Json?   @db.Json
+
+  ledgerTransactions LedgerTransaction[]
 
   @@unique([eventId, userId])
 }

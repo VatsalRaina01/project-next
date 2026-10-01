@@ -12,5 +12,12 @@ export const readEventAction = makeAction(eventOperations.read)
 export const readArchivedEventsPageAction = makeAction(eventOperations.readManyArchivedPage)
 
 export const updateEventAction = makeAction(eventOperations.update)
+export const setEventPublishedAction = makeAction(eventOperations.setPublished)
 export const updateEventParagraphContentAction = makeAction(eventOperations.updateParagraphContent)
 export const updateEventCmsCoverImageAction = makeAction(eventOperations.updateCmsCoverImage)
+
+export const readEventDoubleLevelVisibilityAction = makeAction(eventOperations.visibility.readDoubleLevelMatrix)
+export const updateEventRegularLevelVisibilityAction = makeAction(eventOperations.visibility.updateRegularLevel)
+export const updateEventAdminLevelVisibilityAction = makeAction(eventOperations.visibility.updateAdminLevel)
+
+export const searchEventsAction = makeAction(eventOperations.search)

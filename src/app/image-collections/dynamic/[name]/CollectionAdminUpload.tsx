@@ -83,11 +83,11 @@ export default function CollectionAdminUpload({ collectionId, refreshImages }: P
             className={styles.uploadMany}
             successCallback={refreshImages}
             closePopUpOnSuccess="UploadImages"
-            title="last opp bilder"
-            submitText="last opp"
+            title="Last opp bilder"
+            submitText="Last opp"
             action={handleBatchedUpload}
         >
-            <Dropzone label="last opp" name="files" files={files} setFiles={setFiles}/>
+            <Dropzone label="Last opp" name="files" files={files} setFiles={setFiles}/>
             <TextInput name="imageCredit" label="Kreditering" />
             <LicenseChooser name="imageLicenseId" />
             <Slider label="Bruk filnavn som navn" name="useFileName" />

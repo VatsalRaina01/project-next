@@ -15,7 +15,7 @@ export default async function ConnectStucentCard({ params }: { params: Promise<{
 
 
     return <PageWrapper
-        title="Registrert Student Kort"
+        title="Registrer studentkort"
     >
         <p>Trykk på knappen under for å registrere kortet ditt: <b>{cardParsed}</b></p>
 

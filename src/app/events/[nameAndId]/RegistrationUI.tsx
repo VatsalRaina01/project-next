@@ -4,16 +4,17 @@ import CountDown from '@/components/countDown/CountDown'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import SubmitButton from '@/components/UI/SubmitButton'
+import EventPaymentModal from '@/components/Ledger/Modals/EventPaymentModal'
 import {
     createEventRegistrationAction,
-    eventRegistrationDestroyAction,
-    eventRegistrationUpdateNotesAction
+    destroyEventRegistrationAction,
+    updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import type { EventExpanded } from '@/services/events/types'
-import type { EventRegistration } from '@/prisma-generated-pn-types'
+import type { DotPunishment, EventRegistrationWithWaitingList } from '@/services/events/registration/types'
 
 enum RegistrationButtonState {
     NOT_REGISTERED = 'NOT_REGISTERED',
@@ -23,33 +24,53 @@ enum RegistrationButtonState {
     WAITING_LIST_OPEN = 'WAITING_LIST_OPEN',
     REGISTRATION_NOT_OPEN = 'REGISTRATION_NOT_OPEN',
     REGISTRATION_CLOSED = 'REGISTRATION_CLOSED',
+    BANNED_BY_DOTS = 'BANNED_BY_DOTS',
+    NOT_ALLOWED = 'NOT_ALLOWED',
     ERROR = 'ERROR',
 }
 
 export default function RegistrationUI({
     event,
-    onWaitingList,
     registration,
+    dotPunishment,
+    availableBalance,
+    customerSessionClientSecret,
+    canRegister,
 }: {
     event: EventExpanded,
-    onWaitingList: boolean,
-    registration?: EventRegistration,
+    registration: (EventRegistrationWithWaitingList & { ledgerTransactions: { id: number }[] }) | null,
+    dotPunishment: DotPunishment | null,
+    availableBalance?: number,
+    customerSessionClientSecret?: string,
+    canRegister: boolean,
 }) {
     if (!event.takesRegistration) {
-        throw new Error('Can only show registration button for event that take registration')
+        throw new Error('Kan bare vise påmeldingsknapp for arrangement som har påmelding')
     }
 
-    const getInitialBtnState = (_onWaitingList: boolean, _registration?: EventRegistration) => {
-        if (_onWaitingList) {
-            return RegistrationButtonState.ON_WAITING_LIST
+    // Dots hold the user back past the registration start of the event, so it is the delayed start
+    // that decides when the button opens - the event opens at event.registrationStart for the rest.
+    const registrationStart = dotPunishment?.type === 'timeout' ?
+        new Date(event.registrationStart.getTime() + dotPunishment.punishmentMinutes * 60 * 1000) :
+        event.registrationStart
+
+    const getInitialBtnState = (ownRegistration: EventRegistrationWithWaitingList | null) => {
+        if (ownRegistration) {
+            return ownRegistration.onWaitingList ?
+                RegistrationButtonState.ON_WAITING_LIST :
+                RegistrationButtonState.REGISTERED
         }
-        if (_registration) {
-            return RegistrationButtonState.REGISTERED
+        if (dotPunishment?.type === 'ban') {
+            return RegistrationButtonState.BANNED_BY_DOTS
         }
-        if (event.registrationStart > new Date()) {
+        // The regular visibility level of the event decides who may register for it at all.
+        if (!canRegister) {
+            return RegistrationButtonState.NOT_ALLOWED
+        }
+        if (registrationStart > new Date()) {
             return RegistrationButtonState.REGISTRATION_NOT_OPEN
         }
-        if (event._count.eventRegistrations >= event.places) {
+        if (event.numOfRegistrations >= event.places) {
             if (event.waitingList) {
                 return RegistrationButtonState.WAITING_LIST_OPEN
             }
@@ -62,20 +83,20 @@ export default function RegistrationUI({
     }
 
     const [errorText, setErrorText] = useState('')
-    const [registrationState, setRegistrationState] = useState(registration)
+    const [registrationState, setRegistrationState] = useState<EventRegistrationWithWaitingList | null>(registration)
 
-    const [btnState, setBtnState] = useState(getInitialBtnState(onWaitingList, registration))
+    const [btnState, setBtnState] = useState(getInitialBtnState(registration))
     const [btnPending, setBtnPending] = useState(false)
     const [btnKey, setBtnKey] = useState(1)
 
     const session = useSession()
 
     useEffect(() => {
-        const timeUntilRegistration = event.registrationStart.getTime() - (new Date()).getTime()
+        const timeUntilRegistration = registrationStart.getTime() - (new Date()).getTime()
         let timeoutId: ReturnType<typeof setTimeout>
         if (timeUntilRegistration > 0) {
             timeoutId = setTimeout(() => {
-                setBtnState(RegistrationButtonState.NOT_REGISTERED)
+                setBtnState(getInitialBtnState(registrationState))
             }, timeUntilRegistration)
         }
 
@@ -94,12 +115,12 @@ export default function RegistrationUI({
         setBtnPending(true)
 
         if (registrationState) {
-            const result = await eventRegistrationDestroyAction({
+            const result = await destroyEventRegistrationAction({
                 params: { registrationId: registrationState.id },
             })
             if (result.success) {
-                setBtnState(getInitialBtnState(false, undefined))
-                setRegistrationState(undefined)
+                setBtnState(getInitialBtnState(null))
+                setRegistrationState(null)
             } else if (result.error && result.error.length > 0) {
                 const message = result.error[0].message
                 setErrorText(message)
@@ -117,12 +138,8 @@ export default function RegistrationUI({
             })
 
             if (result.success) {
-                if (result.data.onWaitingList) {
-                    setBtnState(RegistrationButtonState.ON_WAITING_LIST)
-                } else {
-                    setBtnState(RegistrationButtonState.REGISTERED)
-                }
-                setRegistrationState(result.data.result)
+                setBtnState(getInitialBtnState(result.data))
+                setRegistrationState(result.data)
             } else if (result.error && result.error.length > 0) {
                 const message = result.error[0].message
                 setErrorText(message)
@@ -136,6 +153,18 @@ export default function RegistrationUI({
         setBtnPending(false)
         setBtnKey(btnKey + 1)
     }
+
+    // Payment only applies once registration is confirmed, not while waitlisted.
+    const now = new Date()
+    const paymentOpen = Boolean(event.price && event.paymentStart && event.paymentEnd) &&
+        event.paymentStart! <= now && now <= event.paymentEnd!
+    const paymentNotYetOpen = Boolean(event.price && event.paymentStart) && event.paymentStart! > now
+    const paymentClosed = Boolean(event.price && event.paymentEnd) && event.paymentEnd! < now
+    // registration (not registrationState) is used here since it reflects payment status as of
+    // the last full page load - any payment action refreshes the page (see refreshOnSuccess on
+    // EventPaymentModal), which re-fetches this from the server.
+    const alreadyPaid = Boolean(registration?.ledgerTransactions.length)
+    const showPayment = Boolean(event.price) && btnState === RegistrationButtonState.REGISTERED && !alreadyPaid
 
     return <>
         <SubmitButton
@@ -176,15 +205,45 @@ export default function RegistrationUI({
             {btnState === RegistrationButtonState.WAITING_LIST_OPEN && 'Meld meg på venteliste'}
             {btnState === RegistrationButtonState.ERROR && errorText}
             {btnState === RegistrationButtonState.REGISTRATION_CLOSED && 'Påmeldingen er over'}
+            {btnState === RegistrationButtonState.BANNED_BY_DOTS && 'Utestengt av prikker'}
+            {btnState === RegistrationButtonState.NOT_ALLOWED && 'Du kan ikke melde deg på dette arrangementet'}
         </SubmitButton>
 
         {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && (
-            <p>Påmeldingen åpner om <CountDown referenceDate={event.registrationStart} /></p>
+            <p>Påmeldingen åpner om <CountDown referenceDate={registrationStart} /></p>
+        )}
+
+        {showPayment && event.price && paymentOpen && (
+            <EventPaymentModal
+                eventId={event.id}
+                userId={session.data.user.id}
+                price={event.price}
+                availableBalance={availableBalance}
+                customerSessionClientSecret={customerSessionClientSecret}
+                triggerLabel="Betal for arrangementet"
+            />
+        )}
+        {showPayment && paymentNotYetOpen && (
+            <p>Betaling åpner om <CountDown referenceDate={event.paymentStart!} /></p>
+        )}
+        {showPayment && paymentClosed && (
+            <p>Betalingsperioden er over.</p>
+        )}
+
+        {dotPunishment?.type === 'ban' && (
+            <p>Du har for mange prikker, og kan derfor ikke melde deg på arrangementer.</p>
+        )}
+
+        {dotPunishment?.type === 'timeout' && (
+            <p>
+                Du har prikker, og må derfor vente {dotPunishment.punishmentMinutes} minutter
+                etter ordinær påmeldingsstart med å melde deg på.
+            </p>
         )}
 
         {registrationState && event.registrationEnd > new Date() && <Form
             action={configureAction(
-                eventRegistrationUpdateNotesAction,
+                updateEventRegistrationNotesAction,
                 { params: { registrationId: registrationState.id } }
             )}
             submitText="Oppdater notat"

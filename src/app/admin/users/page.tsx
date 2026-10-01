@@ -1,10 +1,14 @@
 import styles from './page.module.scss'
+import LinkFeideAccountForm from './LinkFeideAccountForm'
 import CreateUserForm from '@/components/User/CreateUserForm'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
-export default function Users() {
+export default async function Users() {
+    await authorizeAdminPage('users')
     return (
         <div className={styles.wrapper}>
             <CreateUserForm />
+            <LinkFeideAccountForm />
         </div>
     )
 }

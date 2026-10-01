@@ -1,5 +1,5 @@
 import SimpleTable from '@/app/_components/Table/SimpleTable'
-import { displayPrice } from '@/lib/money/convert'
+import { displayAmount } from '@/lib/currency/convert'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from '@/services/cabin/booking/cabinPriceCalculator'
 import type { CabinProductExtended } from '@/services/cabin/product/constants'
 import type { CabinPriceCalculatorReturnType } from '@/services/cabin/booking/cabinPriceCalculator'
@@ -24,7 +24,7 @@ export default function CabinPriceCalculator({
     numberOfNonMembers: number,
 }) {
     if (products.length !== productAmounts.length) {
-        throw new Error('The products and product amounts must be the same length')
+        throw new Error('Produktene og produktantallene må ha samme lengde')
     }
     let priceData: CabinPriceCalculatorReturnType[] = []
     let totalPrice = 0
@@ -49,9 +49,9 @@ export default function CabinPriceCalculator({
         const displayName = priceRow.product.name + (description ? ` (${description})` : '')
         tableBody.push([
             displayName,
-            displayPrice(priceRow.productPrice.price),
+            displayAmount(priceRow.productPrice.price),
             priceRow.amount.toString(),
-            displayPrice(priceRow.amount * priceRow.productPrice.price)
+            displayAmount(priceRow.amount * priceRow.productPrice.price)
         ])
     }
 
@@ -60,6 +60,6 @@ export default function CabinPriceCalculator({
             header={['Produkt', 'Pris per natt', 'Antall', 'Total Pris']}
             body={tableBody}
         />
-        <p>Total pris {displayPrice(totalPrice)}</p>
+        <p>Total pris {displayAmount(totalPrice)}</p>
     </div>
 }

@@ -21,8 +21,8 @@ export default function UpdateSchool({ school }: PropTypes) {
             action={updateAction}
             navigateOnSuccess={data => (data ? `/admin/schools/${data.shortName}` : '/admin/schools')}
         >
-            <TextInput name="name" label="navn" defaultValue={school.name} />
-            <TextInput name="shortName" label="kortnavn" defaultValue={school.shortName} />
+            <TextInput name="name" label="Navn" defaultValue={school.name} />
+            <TextInput name="shortName" label="Kortnavn" defaultValue={school.shortName} />
         </Form>
     )
 }

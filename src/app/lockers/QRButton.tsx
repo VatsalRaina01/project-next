@@ -11,7 +11,7 @@ export default function QRButton() {
             className={styles.QRButton}
             onClick={() => { router.push('/lockers/scanner') }}
         >
-            Scan QR kode
+            Skann QR-kode
         </Button>
     )
 }

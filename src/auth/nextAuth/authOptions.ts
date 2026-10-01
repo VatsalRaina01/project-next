@@ -3,16 +3,20 @@ import VevenAdapter from './VevenAdapter'
 import { compressJwt, decompressJwt } from './jwtCompression'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
 import FeideProvider from '@/lib/feide/FeideProvider'
-import { updateUserStudyProgrammes } from '@/lib/feide/userRoutines'
+import {
+    inferClassFromStudyProgrammes,
+    inferOmegaMembershipFromStudyProgrammes,
+    updateUserStudyProgrammes,
+} from '@/lib/feide/userRoutines'
 import { prisma } from '@/prisma-pn-client-instance'
-import { readMembershipsOfUser } from '@/services/groups/memberships/read'
+import { groupOperations } from '@/services/groups/operations'
 import { updateEmailForFeideAccount } from '@/services/auth/feideAccounts/update'
 import { userOperations } from '@/services/users/operations'
 import { permissionOperations } from '@/services/permissions/operations'
+import logger from '@/lib/logger'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { encode, decode } from 'next-auth/jwt'
 import type { AuthOptions } from 'next-auth'
-import logger from '@/lib/logger'
 
 export const authOptions: AuthOptions = {
     providers: [
@@ -131,7 +135,9 @@ export const authOptions: AuthOptions = {
 
                         const userId = user ? Number(user.id) : token.user.id
 
-                        await updateUserStudyProgrammes(userId, account.access_token)
+                        const studyProgrammes = await updateUserStudyProgrammes(userId, account.access_token)
+                        await inferClassFromStudyProgrammes(userId, studyProgrammes)
+                        await inferOmegaMembershipFromStudyProgrammes(userId)
                     }
                     logger.info('Log in', { userName: user.username, userId: user.id })
                     break
@@ -184,7 +190,11 @@ export const authOptions: AuthOptions = {
                         userId,
                     }
                 }),
-                memberships: await readMembershipsOfUser(userId),
+                memberships: await groupOperations.readMembershipsOfUser.internalCall({
+                    params: {
+                        userId,
+                    }
+                }),
             }
         }
     },
@@ -199,14 +209,17 @@ export const authOptions: AuthOptions = {
             // When in development mode JWT are invalidated at each restart,
             // thus producing a lot of noise in both the logs and in the browser.
             // Therefore, we log these as warnings instead of errors.
-            const logFunction = code === 'JWT_SESSION_ERROR' ? console.warn : console.error
-            logFunction(`NextAuth error: ${code}`, metadata)
+            if (code === 'JWT_SESSION_ERROR') {
+                logger.warn(`NextAuth error: ${code}`, { code, metadata })
+            } else {
+                logger.error(`NextAuth error: ${code}`, { code, metadata })
+            }
         },
         warn(code) {
-            console.warn(`NextAuth warning: ${code}`)
+            logger.warn(`NextAuth warning: ${code}`, { code })
         },
         debug(code, metadata) {
-            console.debug(`NextAuth debug: ${code}`, metadata)
+            logger.debug(`NextAuth debug: ${code}`, { code, metadata })
         },
     }
 }

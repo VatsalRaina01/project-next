@@ -7,6 +7,7 @@ import { ServerError } from '@/services/error'
 import logger from '@/lib/logger'
 import { StandardImage } from '@/prisma-generated-pn-types'
 import { imageOperations } from '@/services/images/subservice/operations'
+import { licenseOperations } from '@/services/licenses/operations'
 import { allowedExtensions, expandedImageIncluder } from '@/services/images/subservice/constants'
 import { z } from 'zod'
 import type { ExpandedImage } from '@/services/images/subservice/types'
@@ -61,6 +62,51 @@ const generateStandardImageFromConfig = defineSubOperation({
                 uploadAsStandardImage: params.standardImage,
                 allowedExtensions,
             }
+        })
+    }
+})
+
+/**
+ * Brings an existing standard image in line with its static config. Standard images cannot be edited
+ * through the site, so the config (and the file in the standard store it points at) is the only
+ * source of truth - whatever is in the database is overwritten. The image keeps its id, so relations
+ * to it survive, and its file is only re-stored when it actually differs from the configured one.
+ */
+const updateStandardImageFromConfig = defineSubOperation({
+    paramsSchema: () => z.object({
+        standardImage: z.nativeEnum(StandardImage)
+    }),
+    opensTransaction: true,
+    operation: () => async ({ prisma, params }) => {
+        const config = StandardImageConfig[params.standardImage]
+        const image = await prisma.image.findUniqueOrThrow({
+            where: { standardImage: params.standardImage },
+            select: { id: true },
+        })
+        const licenseName = config.standardStoreFile.license()
+        const license = licenseName ? await licenseOperations.readStandardLicense.internalCall({
+            prisma,
+            params: { standardLicenseName: licenseName },
+        }) : null
+
+        await imageOperations.replaceImageFile.internalCall({
+            prisma,
+            params: { imageId: image.id },
+            data: { imageFile: await config.standardStoreFile.file() },
+            operationImplementationFields: { allowedExtensions },
+        })
+
+        // Written directly rather than through updateImageMeta, which reads an absent credit as
+        // "leave unchanged" - one removed from the config has to be removed here too.
+        return await prisma.image.update({
+            where: { id: image.id },
+            data: {
+                name: config.name,
+                alt: config.alt,
+                credit: config.standardStoreFile.credit(),
+                license: license ? { connect: { id: license.id } } : { disconnect: true },
+            },
+            include: expandedImageIncluder,
         })
     }
 })
@@ -180,4 +226,5 @@ export const standardImageCollectionOperations = {
     readStandardImage,
     readAllStandardImages,
     generateStandardImageFromConfig,
+    updateStandardImageFromConfig,
 } as const
