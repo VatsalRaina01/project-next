@@ -466,9 +466,14 @@ export const permissionConfig = {
         description: 'kan lage nyhetsartikler',
         category: 'public',
     },
-    NEWS_ADMIN: {
-        name: 'Nyhetsadministrator',
-        description: 'kan administrere alle nyhetsartikler uavhengig av synlighet',
+    BULLSHIT_WRITE: {
+        name: 'Lage bullshit',
+        description: 'Kan sende inn bullshit',
         category: 'public',
+    },
+    BULLSHIT_READ: {
+        name: 'Les bullshit',
+        description: 'Kan lese bullshit',
+        category: 'ombul',
     },
 } satisfies Record<Permission, PermissionInfo>
