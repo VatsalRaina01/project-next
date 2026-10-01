@@ -1,6 +1,5 @@
 import Item from './Item'
 import styles from './NavBar.module.scss'
-import getNavItems from './navDef'
 import UserNavigation from './UserNavigation'
 import ReportButton from './ReportButton'
 import NavBarTitle from './NavBarTitle'
@@ -9,19 +8,17 @@ import StandardImageServer from '@/components/Image/StandardImageServer'
 import ProfilePicture from '@/components/User/ProfilePicture'
 import Link from 'next/link'
 import type { ExpandedImage } from '@/services/images/subservice/types'
+import type { NavLink } from './navDef'
 
 export type PropTypes = {
-    username: string | null,
+    isLoggedIn: boolean,
     profileImage: ExpandedImage | null,
+    /** The nav items the session may open, as `visibleNavItems` leaves them. */
+    navItems: NavLink[],
 }
 
-export default async function NavBar({ username, profileImage }: PropTypes) {
-    const isLoggedIn = username !== null
-    const applicationPeriod = false
-    const isAdmin = username === 'harambe'
-
+export default async function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes) {
     const navSize = 4
-    const navItems = getNavItems(isLoggedIn, isAdmin, applicationPeriod)
     const itemsForNav = navItems.slice(0, navSize - 1)
 
     return (

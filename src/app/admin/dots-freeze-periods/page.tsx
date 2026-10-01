@@ -13,10 +13,12 @@ import {
     readDotFreezePeriodsAction,
     updateDotFreezePeriodAction,
 } from '@/services/dots/freezePeriods/actions'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 const createPopUpKey = 'createDotFreezePeriod'
 
 export default async function DotsFreezePeriods() {
+    await authorizeAdminPage('dots-freeze-periods')
     const freezePeriods = unwrapActionReturn(await readDotFreezePeriodsAction())
     const now = new Date()
 

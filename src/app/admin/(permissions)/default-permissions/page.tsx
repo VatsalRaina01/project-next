@@ -1,9 +1,11 @@
 import { updateDefaultPermissionsAction, readDefaultPermissionsAction } from '@/services/permissions/actions'
 import Form from '@/components/Form/Form'
 import DisplayAllPermissions from '@/components/Permission/DisplayAllPermissions'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import React from 'react'
 
 export default async function Defaults() {
+    await authorizeAdminPage('default-permissions')
     const defaultPermissionsRes = await readDefaultPermissionsAction()
 
     if (!defaultPermissionsRes.success) {

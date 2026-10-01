@@ -3,9 +3,11 @@ import PermissionCheckbox from './PermissionCheckbox'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { permissionConfig } from '@/services/permissions/constants'
 import { readPermissionMatrixAction } from '@/services/permissions/actions'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import type { Permission } from '@/prisma-generated-pn-types'
 
 export default async function PermissionGroups() {
+    await authorizeAdminPage('group-permissions')
     const permissionMatrix = unwrapActionReturn(await readPermissionMatrixAction())
 
     const permissionList = Object.keys(permissionConfig)

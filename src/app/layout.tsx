@@ -15,6 +15,7 @@ import ThemeEnabler from '@/UI/ThemeEnabler'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
 import GlobalSearch from '@/UI/GlobalSearch'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
+import { visibleNavItems } from '@/components/NavBar/navDef'
 import { Inter } from 'next/font/google'
 import '@/styles/globals.scss'
 import { config } from '@fortawesome/fontawesome-svg-core'
@@ -74,6 +75,7 @@ export default async function RootLayout({ children }: PropTypes) {
     // The nav components get the fields they actually render rather than the whole profile,
     // so nothing beyond these reaches the client components among them.
     const navUser = profile?.user ?? null
+    const navItems = visibleNavItems(serverSession)
 
     return (
         <html lang="en">
@@ -86,19 +88,20 @@ export default async function RootLayout({ children }: PropTypes) {
                         defaultPermissions={defaultPermissions}
                         standardImages={standardImages}
                     >
-                        <GlobalSearch profile={profile} />
+                        <GlobalSearch navItems={navItems} />
                         <EditModeProvider>
                             <PopUpProvider>
                                 <PageTitleProvider>
                                     <div className={styles.wrapper}>
                                         <div className={styles.navBar}>
                                             <NavBar
-                                                username={navUser?.username ?? null}
+                                                isLoggedIn={navUser !== null}
                                                 profileImage={navUser?.image ?? null}
+                                                navItems={navItems}
                                             />
                                         </div>
                                         <aside className={styles.sideBar}>
-                                            <DesktopSideBar username={navUser?.username ?? null} />
+                                            <DesktopSideBar navItems={navItems} />
                                         </aside>
                                         <main className={styles.content}>
                                             {children}
@@ -106,6 +109,7 @@ export default async function RootLayout({ children }: PropTypes) {
                                         <div className={styles.mobileNavBar}>
                                             <MobileNavBar
                                                 isLoggedIn={navUser !== null}
+                                                navItems={navItems}
                                             />
                                         </div>
                                     </div>

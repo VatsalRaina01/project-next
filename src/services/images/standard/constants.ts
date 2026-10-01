@@ -14,7 +14,7 @@ export const StandardImageConfig = {
         alt: 'Et kamera med en linse',
     },
     DEFAULT_PROFILE_IMAGE: {
-        standardStoreFile: standardStoreFiles.magiskHattWhite,
+        standardStoreFile: standardStoreFiles.magiskHatt,
         name: 'default_profile_image',
         alt: 'standard profilbilde (ikke funnet)',
     },

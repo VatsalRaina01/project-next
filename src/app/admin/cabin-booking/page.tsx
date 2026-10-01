@@ -3,9 +3,11 @@ import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { displayDate } from '@/lib/dates/displayDate'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 
 export default async function CabinBooking() {
+    await authorizeAdminPage('cabin-booking')
     const bookings = unwrapActionReturn(await readCabinBookingsAction())
 
     const displayNames = bookings.map(booking => {

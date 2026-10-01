@@ -11,8 +11,10 @@ import LicenseChooser from '@/components/LicenseChooser/LicenseChooser'
 import SimpleTable from '@/components/Table/SimpleTable'
 import Image from '@/components/Image/Image'
 import DateDisplay from '@/components/Date/Date'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 export default async function PromoAdminPage() {
+    await authorizeAdminPage('promo')
     const promos = unwrapActionReturn(await readAllPromosAction())
     const now = new Date()
 

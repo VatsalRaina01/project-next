@@ -5,7 +5,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import UserSelectionProvider from '@/contexts/UserSelection'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { dotAuth } from '@/services/dots/auth'
 import { readDotsForUserAction } from '@/services/dots/actions'
 import { readUserAction } from '@/services/users/actions'
@@ -16,6 +16,7 @@ import type { SearchParamsServerSide } from '@/lib/queryParams/types'
 type PropTypes = SearchParamsServerSide
 
 export default async function Dots({ searchParams }: PropTypes) {
+    const session = await authorizeAdminPage('dots')
     const userId = QueryParams.userId.decode(await searchParams)
     const onlyActive = QueryParams.onlyActive.decode(await searchParams) ?? false
 
@@ -47,7 +48,6 @@ export default async function Dots({ searchParams }: PropTypes) {
 
     // This page is only about administrating dots, so the crud of them is offered outright to
     // whoever is authorized for it - no edit mode to enter first.
-    const session = await ServerSession.fromNextAuth()
 
     return (
         <PageWrapper title={`Prikker for ${user.firstname} ${user.lastname}`}>

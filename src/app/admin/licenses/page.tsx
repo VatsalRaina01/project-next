@@ -10,9 +10,11 @@ import {
 } from '@/services/licenses/actions'
 import TextInput from '@/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
 
 export default async function Licenses() {
+    await authorizeAdminPage('licenses')
     const licenses = unwrapActionReturn(await readAllLicensesAction())
 
     return (

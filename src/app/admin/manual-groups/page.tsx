@@ -5,18 +5,16 @@ import { readManualGroupsAction, readManualGroupsExpandedAction } from '@/servic
 import { readCurrentOmegaOrderAction } from '@/services/omegaOrder/actions'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { ServerSession } from '@/auth/session/ServerSession'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import PopUp from '@/components/PopUp/PopUp'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 
 export default async function ManualGroups() {
-    const session = await ServerSession.fromNextAuth()
-    manualGroupAuth.readMany.dynamicFields({}).auth(session)
-        .redirectOnUnauthorized({ returnUrl: '/admin/manual-groups' })
+    const session = await authorizeAdminPage('manual-groups')
 
     const [manualGroups, expandedGroups, currentOrder] = await Promise.all([
         readManualGroupsAction().then(unwrapActionReturn),

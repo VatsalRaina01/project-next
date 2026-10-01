@@ -46,3 +46,5 @@ export const registerNewEmailAction = makeAction(userOperations.registerNewEmail
 export const registerUser = makeAction(userOperations.register)
 
 export const connectStudentCardAction = makeAction(userOperations.connectStudentCard)
+
+export const searchUsersAction = makeAction(userOperations.search)
