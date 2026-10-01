@@ -1,7 +1,8 @@
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 
-export async function seedDevBullshit(prisma: PrismaClient) {
+export const seedDevBullshit = defineSeedOperation(async (prisma: PrismaClient) => {
     const user = await prisma.user.findFirst({})
     if (!user) {
         return
@@ -16,4 +17,4 @@ export async function seedDevBullshit(prisma: PrismaClient) {
             },
         }
     })))
-}
+})
