@@ -21,14 +21,16 @@
     "dobbelOmega:generate": "npx prisma generate --schema ./src/prisma/owSchema/schema.ow.prisma",
     "dobbelOmega:run": "npx prisma migrate reset --force && MIGRATE_FROM_OW=true npm run seed:data",
     "docker:dobbelOmega:run": "docker compose -f docker-compose.dev.yml exec projectnext /bin/sh -c 'npm run dobbelOmega:run'",
-    "docker:seed": "docker compose -f docker-compose.dev.yml exec projectnext /bin/sh -c 'npm run seed'",
-    "seed": "npx prisma db push --force-reset && npm run seed:data",
+    "docker:seed": "docker compose -f docker-compose.dev.yml exec projectnext /bin/sh -c 'npm run seed:dev'",
+    "docker:migrate:dev": "docker compose -f docker-compose.dev.yml run --rm projectnext npm run migrate:dev --",
+    "docker:prisma-studio": "docker compose -f docker-compose.dev.yml run --rm -p 5555:5555 projectnext npm run prisma-studio",
+    "seed:dev": "npx prisma migrate reset --force && npm run seed:data",
     "seed:data": "IGNORE_SERVER_ONLY=true npx prisma db seed",
-    "dev-seed": "(if [ ! -d './node_modules/.prisma-dobbel-omega' ]; then npm run dobbelOmega:generate; fi) && npm run seed && npm run dev",
+    "dev-seed": "(if [ ! -d './node_modules/.prisma-dobbel-omega' ]; then npm run dobbelOmega:generate; fi) && npm run seed:dev && npm run dev",
     "migrate:dev": "npx prisma migrate dev",
     "migrate:deploy": "npx prisma migrate deploy",
     "migrate:deploy-and-seed": "npm run migrate:deploy && npm run seed:data",
-    "prisma-studio": "DB_URI=\"postgresql://user:password@localhost/devdb\" npx prisma studio"
+    "prisma-studio": "npx prisma studio --port 5555 --browser none"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.2.0",

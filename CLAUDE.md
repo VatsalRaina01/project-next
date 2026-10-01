@@ -45,6 +45,11 @@ Reseed the database (deletes all data and re-seeds):
 npm run docker:seed
 ```
 
+Create a migration after schema changes (writes `src/prisma/migrations/<timestamp>_<name>/`, which must be committed). The dev database is built from migrations, so a schema change only reaches it through one. Works whether or not the dev environment is running:
+```bash
+npm run docker:migrate:dev -- --name <name>
+```
+
 Regenerate Prisma client after schema changes:
 ```bash
 npx prisma generate
@@ -52,7 +57,7 @@ npx prisma generate
 
 Access Prisma Studio for database exploration:
 ```bash
-npm run prisma-studio
+npm run docker:prisma-studio
 ```
 
 Access the container shell:
