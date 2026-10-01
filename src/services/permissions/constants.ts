@@ -466,6 +466,11 @@ export const permissionConfig = {
         description: 'kan lage nyhetsartikler',
         category: 'public',
     },
+    NEWS_ADMIN: {
+        name: 'Nyhetsadministrator',
+        description: 'kan administrere alle nyhetsartikler uavhengig av synlighet',
+        category: 'public',
+    },
     BULLSHIT_WRITE: {
         name: 'Lage bullshit',
         description: 'Kan sende inn bullshit',
