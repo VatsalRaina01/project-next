@@ -108,7 +108,7 @@ export const seedArticleCategoriesConfig = [
 ] as const satisfies SeedArticleCategoryConfig[]
 
 /**
- * This upserts the existance of all categories.
+ * This upserts the existance of all categories - an existing category is not changed.
  * Then upserts the existance of all articles in each category.
  * If the article exists - it is not changed at all
  * If the article does not exist - it is created with all its sections and content
@@ -121,13 +121,7 @@ export const seedArticleCategories = defineSeedOperation(async (prisma) => {
             create: () => articleCategoryOperations.create({
                 data: { name: category.name, description: category.description }
             }),
-            update: async () => {
-                const existingCategory = await articleCategoryOperations.read({ params: { name: category.name } })
-                return articleCategoryOperations.update({
-                    params: { id: existingCategory.id },
-                    data: { description: category.description }
-                })
-            },
+            update: () => articleCategoryOperations.read({ params: { name: category.name } }),
         })
 
         for (const article of category.articles) {
