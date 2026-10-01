@@ -8,12 +8,14 @@ export type MapProps = {
     height: string,
 }
 
-export default function Map({ height, src, href, title, invertColors = false }: MapProps & {
+type PropTypes = MapProps & {
     src: string,
-    href: string,
+    href?: string,
     title: string,
     invertColors?: boolean,
-}) {
+}
+
+export default function Map({ height, src, href, title, invertColors = false }: PropTypes) {
     const [active, setActive] = useState(false)
     const iframeRef = useRef<HTMLIFrameElement>(null)
 
@@ -38,7 +40,7 @@ export default function Map({ height, src, href, title, invertColors = false }: 
                 aria-label="Aktiver kartet for interaksjon"
             />}
         </div>
-        <a href={href} target="_blank" rel="noopener noreferrer">Åpne i {title}</a>
+        {href && <a href={href} target="_blank" rel="noopener noreferrer">Åpne i {title}</a>}
         {active && <Button type="button" color="secondary" onClick={() => setActive(false)}>
             Deaktiver kartet
         </Button>}

@@ -5,7 +5,9 @@ import { getMazeMapUrls } from '@/lib/maps/mazeMap'
 import type { MapProps } from '@/components/Map/Map'
 import type { MazeMapLocation } from '@/lib/maps/mazeMap'
 
-export default function MazeMap({ height, ...location }: MapProps & MazeMapLocation) {
+type PropTypes = MapProps & MazeMapLocation
+
+export default function MazeMap({ height, ...location }: PropTypes) {
     const urls = getMazeMapUrls(location)
     return <Map key={urls.src} height={height} {...urls} title="MazeMap" invertColors />
 }
