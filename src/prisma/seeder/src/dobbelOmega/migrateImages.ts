@@ -128,8 +128,6 @@ export default async function migrateImages(
     //correct names if there are duplicates. Kept separate from the OW `name` field (used to fetch the
     //file from Omegaweb-basic below) since that field is a store token, not the display name.
     const namesTaken: { name: string, times: number }[] = []
-    // null, not falsy: a limit of 0 means migrate no images, the same way limits.mailaliases of 0
-    // means migrate no aliases. Treating it as falsy made 0 migrate every image instead.
     const imagesToMigrate = limits.images === null
         ? imagesWithCollection
         : imagesWithCollection.slice(0, limits.images)

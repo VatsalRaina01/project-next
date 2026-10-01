@@ -80,8 +80,6 @@ export default async function migrateCommittees(
         ...committee.CommitteeMembers.map(member => member.order),
         ...committee.CommitteeMembersHist.map(member => member.order),
     ]))
-    // One createMany rather than a Promise.all of upserts: concurrent upserts of the same order
-    // race each other, and the loser fails on OmegaOrder.order's unique constraint.
     await pnPrisma.omegaOrder.createMany({
         data: Array.from(membershipOrders, order => ({ order })),
         skipDuplicates: true,
