@@ -28,6 +28,16 @@ export function readLocationMap(value: unknown): LocationMap | null {
     return result.success ? result.data : null
 }
 
+/** Clear fields belonging to the other provider when switching map type. */
+export function getLocationMapData(location: LocationMap) {
+    return {
+        provider: location.provider,
+        url: location.provider === 'MAZEMAP' ? location.url : null,
+        latitude: location.provider === 'OPENSTREETMAP' ? location.latitude : null,
+        longitude: location.provider === 'OPENSTREETMAP' ? location.longitude : null,
+    }
+}
+
 export function getOpenStreetMapUrls({ latitude, longitude }: OpenStreetMapLocation) {
     const bbox = [
         Math.max(-180, longitude - 0.005),

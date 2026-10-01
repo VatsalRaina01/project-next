@@ -10,7 +10,12 @@ import { readLocationMap } from '@/lib/maps/locationMap'
 import { useState } from 'react'
 import type { LocationMap } from '@/lib/maps/locationMap'
 
-export default function EventLocationInput({ name, defaultValue }: { name: string, defaultValue?: unknown }) {
+type PropTypes = {
+    name: string,
+    defaultValue?: unknown,
+}
+
+export default function EventLocationInput({ name, defaultValue }: PropTypes) {
     const initialLocation = readLocationMap(defaultValue)
     const [preview, setPreview] = useState<LocationMap | null>(initialLocation)
     const [provider, setProvider] = useState(initialLocation?.provider ?? 'NONE')
@@ -61,7 +66,9 @@ export default function EventLocationInput({ name, defaultValue }: { name: strin
             />
         </>}
         {provider === 'OPENSTREETMAP' && <>
-            <p>Oppgi koordinater for steder uten MazeMap-dekning.</p>
+            <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">
+                Finn koordinater i Google Maps
+            </a>
             <div className={styles.coordinates}>
                 <NumberInput
                     name={`${name}Latitude`}

@@ -17,11 +17,11 @@ import { configureAction } from '@/services/configureAction'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
-import type { Event, EventTag as EventTagT } from '@/prisma-generated-pn-types'
+import type { Event, EventLocationMap, EventTag as EventTagT } from '@/prisma-generated-pn-types'
 import type { ChangeEvent } from 'react'
 
 type PropTypes = {
-    event?: Event & { tags: EventTagT[] }
+    event?: Event & { tags: EventTagT[], locationMap: EventLocationMap | null }
     eventTags: EventTagT[]
 }
 
