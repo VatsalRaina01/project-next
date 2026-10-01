@@ -12,6 +12,7 @@ model Event {
   coverImageId   Int             @unique
   eventTagEvents EventTagEvent[]
   location       String?
+  locationMap    Json?
 
   eventStart         DateTime
   eventEnd           DateTime

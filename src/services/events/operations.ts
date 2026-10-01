@@ -18,9 +18,10 @@ import {
     toMatrix,
     visibilityIncluder
 } from '@/services/visibility/implement'
+import { Prisma } from '@/prisma-generated-pn-client'
 import { z } from 'zod'
 import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
-import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
+import type { EventCanView } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
 
 const visibility = implementDoubleLevelVisibilityOperations({
@@ -190,6 +191,7 @@ export const eventOperations = {
                 data: {
                     name: data.name,
                     location: data.location,
+                    locationMap: data.locationMap ?? Prisma.DbNull,
                     eventStart: data.eventStart,
                     eventEnd: data.eventEnd,
                     takesRegistration: data.takesRegistration,
@@ -361,7 +363,7 @@ export const eventOperations = {
         authorizer: async ({ params, prisma }) => eventAuth.update.dynamicFields({
             doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
         }),
-        operation: async ({ prisma, params, data: { tagIds, ...data } }) => {
+        operation: async ({ prisma, params, data: { tagIds, locationMap, ...data } }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id }
             })
@@ -395,7 +397,10 @@ export const eventOperations = {
 
             const eventUpdate = await prisma.event.update({
                 where: { id: params.id },
-                data,
+                data: {
+                    ...data,
+                    locationMap: locationMap === null ? Prisma.DbNull : locationMap,
+                },
             })
             if (!tagIds) return eventUpdate
 
