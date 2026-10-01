@@ -1,6 +1,6 @@
 'use client'
 
-import BullshitQuote from './BullshitQuote'
+import BullshitQuote from './BullshitBullshit'
 import { BullshitPagingContext } from '@/contexts/paging/BullshitPaging'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import React, { useContext } from 'react'

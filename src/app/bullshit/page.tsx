@@ -1,5 +1,5 @@
-import BullshitList from './BullshitQuoteList'
-import BullshitBullshit from './BullshitQuote'
+import BullshitList from './BullshitList'
+import BullshitBullshit from './BullshitBullshit'
 import BullshitForm from './CreateBullshitForm'
 import { BullshitPagingProvider } from '@/contexts/paging/BullshitPaging'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -9,7 +9,6 @@ import { bullshitAuth } from '@/services/bullshit/auth'
 import { notFound } from 'next/navigation'
 import { v4 as uuid } from 'uuid'
 import type { PageSizeBullshit } from '@/contexts/paging/BullshitPaging'
-
 export default async function Bullshit() {
     const session = await ServerSession.fromNextAuth()
     const showCreateButton = session.user && bullshitAuth.create.dynamicFields({

@@ -1,12 +1,12 @@
 'use client'
 
 import styles from './CreateBullshitFrom.module.scss'
-import PopUp from '@/components/PopUp/PopUp'
 import Form from '@/components/Form/Form'
 import { createBullshitAction } from '@/services/bullshit/actions'
 import Textarea from '@/components/UI/Textarea'
 import { configureAction } from '@/services/configureAction'
 import { useSession } from '@/auth/session/useSession'
+import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { useRouter } from 'next/navigation'
 
 export default function CreateBullshitForm() {
@@ -15,13 +15,9 @@ export default function CreateBullshitForm() {
     if (session.loading || !session.session.user) return null
 
     return (
-        <PopUp
-            popUpKey="new_bullshit"
-            showButtonContent="Ny bullshit"
-            showButtonClass={styles.button}
-        >
+        <AddHeaderItemPopUp popUpKey="new_omega_bullshit">
             <Form
-                title="Ny bullshit"
+                title="Ny Bullshit"
                 submitText="Legg til"
                 action={configureAction(
                     createBullshitAction,
@@ -32,11 +28,11 @@ export default function CreateBullshitForm() {
             >
                 <Textarea
                     name="quote"
-                    label="bullshit"
-                    placeholder="bullshit"
+                    label="Bullshit"
+                    placeholder="Bullshit"
                     className={styles.textarea}
                 />
             </Form>
-        </PopUp>
+        </AddHeaderItemPopUp>
     )
 }
