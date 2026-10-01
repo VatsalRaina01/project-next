@@ -3,7 +3,7 @@ import styles from './page.module.scss'
 import sectionStyles from './Section.module.scss'
 import InfoBubbles from './InfoBubbles'
 import { MazeMapLophtet } from '@/components/MazeMap/MazeMap'
-import SocialIcons from '@/components/SocialIcons/SocialIcons'
+import SpecialSocialIcons from '@/components/SocialIcons/SpecialSocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import YouTube from '@/components/YouTube/YouTube'
 import { ServerSession } from '@/auth/session/ServerSession'
@@ -57,7 +57,7 @@ export default async function LoggedOutLandingPage() {
                     id="firstSection"
                 >
                     <div className={sectionStyles.socials}>
-                        <SocialIcons />
+                        <SpecialSocialIcons special="FRONTPAGE" />
                     </div>
                 </Section>
 

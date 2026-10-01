@@ -223,6 +223,22 @@
             margin-bottom: 0.5em;
             color: ohma.$colors-text;
         }
+
+        .socials {
+            display: flex;
+            gap: ohma.$gap;
+            margin-top: 1em;
+            font-size: 1.5em;
+
+            a {
+                color: ohma.$colors-text;
+                transition: color ohma.$transitionTime;
+
+                &:hover {
+                    color: ohma.$colors-accent-blue;
+                }
+            }
+        }
     }
 
     @include ohma.screenMobile {

@@ -11,6 +11,9 @@ import { userAuth } from '@/services/users/auth'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { readStudyProgrammesAction } from '@/services/groups/studyProgrammes/actions'
+import { readSocialsAction } from '@/services/socials/actions'
+import { authorizeSocialOwner, socialAuth } from '@/services/socials/auth'
+import SocialsEditor from '@/components/SocialIcons/SocialsEditor'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { configureAction } from '@/services/configureAction'
 import { notFound } from 'next/navigation'
@@ -31,6 +34,14 @@ export default async function UserSettings({ params }: PropTypes) {
     const canManageStudyProgrammes = studyProgrammeAuth.update.dynamicFields({}).auth(session).authorized
     const studyProgrammes = canManageStudyProgrammes
         ? unwrapActionReturn(await readStudyProgrammesAction())
+        : []
+
+    // A user's socials are theirs to maintain; an administrator with USERS_UPDATE may do it for
+    // them, which is exactly who else this page opens for anyway.
+    const socialsOwner = { type: 'USER', userId: userDataFull.id } as const
+    const canEditSocials = authorizeSocialOwner(socialAuth.upsertSocial, socialsOwner).auth(session).authorized
+    const socials = canEditSocials
+        ? unwrapActionReturn(await readSocialsAction({ params: { owner: socialsOwner } }))
         : []
 
     return (
@@ -58,6 +69,15 @@ export default async function UserSettings({ params }: PropTypes) {
                                 groupId: membership.group.id,
                                 order: membership.order,
                             }))}
+                    />
+                </UserProfileSettingsCard>
+            )}
+            {canEditSocials && (
+                <UserProfileSettingsCard>
+                    <SocialsEditor
+                        title="Sosiale medier"
+                        owner={socialsOwner}
+                        socials={socials}
                     />
                 </UserProfileSettingsCard>
             )}

@@ -1,6 +1,6 @@
 import styles from './Footer.module.scss'
 import FooterSponsors from './FooterSponsors'
-import SocialIcons from '@/components/SocialIcons/SocialIcons'
+import SpecialSocialIcons from '@/components/SocialIcons/SpecialSocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 
 async function Footer() {
@@ -30,7 +30,7 @@ async function Footer() {
                         canEdit prop went with the hardcoded sponsor slots when this footer moved
                         onto the company sponsor tiers. Restore both when the icon is ready. */}
                     <div className={styles.icons}>
-                        <SocialIcons />
+                        <SpecialSocialIcons special="FRONTPAGE" />
                     </div>
                 </div>
             </div>

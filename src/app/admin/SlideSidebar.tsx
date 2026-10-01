@@ -229,6 +229,10 @@ const navigations = [
                 href: '/admin/flairs'
             },
             {
+                title: 'Sosiale medier',
+                href: '/admin/socials'
+            },
+            {
                 title: 'Komponenter',
                 href: '/admin/component-test'
             },

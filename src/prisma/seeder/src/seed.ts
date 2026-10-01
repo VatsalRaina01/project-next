@@ -26,6 +26,7 @@ import { seedArticleCategories } from './standardContent/seedArticleCategories'
 import { seedImages } from './standardContent/seedImages'
 import { seedSpecialCms } from './standardContent/seedSpecialCms'
 import { seedFlairs } from './standardContent/seedFlairs'
+import { seedSocials } from './standardContent/seedSocials'
 import { seedNews } from './standardContent/seedNews'
 import { seedCompanies } from './standardContent/seedCompanies'
 import { seedInterestGroups } from './standardContent/seedInterestGroups'
@@ -57,6 +58,7 @@ export default async function seed(
         await step('Upserting standard event tags', () => seedEventTags())
         await step('Upserting admin user', () => seedAdmin())
         await step('Upserting standard flairs', () => seedFlairs())
+        await step('Upserting standard socials', () => seedSocials())
         await step('Upserting standard interest groups', () => seedInterestGroups())
     })
 

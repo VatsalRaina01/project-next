@@ -1,0 +1,41 @@
+@use "@/styles/ohma";
+
+.SocialsEditor {
+    display: flex;
+    flex-direction: column;
+    gap: ohma.$gap;
+
+    .empty {
+        opacity: 0.7;
+    }
+
+    .socials {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: ohma.$gap;
+    }
+
+    .social {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: ohma.$gap;
+
+        .platform {
+            display: flex;
+            align-items: center;
+            gap: calc(0.5 * #{ohma.$gap});
+            min-width: 8rem;
+        }
+
+        .urlForm {
+            flex: 1 1 15rem;
+        }
+    }
+
+    .addForm {
+        border-top: 2px solid ohma.$colors-surface-subtle;
+        padding-top: ohma.$gap;
+    }
+}

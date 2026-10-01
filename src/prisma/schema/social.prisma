@@ -1,0 +1,41 @@
+enum SocialPlatform {
+  FACEBOOK
+  INSTAGRAM
+  TWITTER
+  LINKEDIN
+  GITHUB
+  YOUTUBE
+  TIKTOK
+  SNAPCHAT
+  DISCORD
+  STRAVA
+  SPOTIFY
+  WEBSITE
+}
+
+// The socials that are not owned by a user, addressed by a fixed name rather than by id - the
+// same idea as the special CMS parts. The frontpage and the footer render the same set, so there
+// is one value covering both.
+enum SpecialSocials {
+  FRONTPAGE
+}
+
+// A link to an account on another platform. Exactly one of 'userId' and 'special' is set: a social
+// belongs either to a user or to one of the special, site-wide sets. Postgres treats NULLs as
+// distinct in a unique index, so the two @@unique's each only constrain the rows of their own kind,
+// which is what makes "one link per platform per owner" hold for both.
+model Social {
+  id       Int            @id @default(autoincrement())
+  platform SocialPlatform
+  url      String
+
+  user    User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  Int?
+  special SpecialSocials?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, platform])
+  @@unique([special, platform])
+}

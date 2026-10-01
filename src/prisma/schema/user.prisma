@@ -88,6 +88,9 @@ model User {
   // The flairs to display next to the user's name.
   flairs Flair[] @relation(name: "userFlairs")
 
+  // The user's links to their accounts on other platforms.
+  socials Social[]
+
   // We need to explicitly mark the combination of 'id', 'username' and 'email' as
   // unique to make the relation to 'Credentials' work.
   @@unique([id, username, email])

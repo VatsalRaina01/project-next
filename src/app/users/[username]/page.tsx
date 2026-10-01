@@ -7,6 +7,8 @@ import { readUserProfileAction } from '@/services/users/actions'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { sexConfig } from '@/services/users/constants'
 import { readUserFlairsAction } from '@/services/flairs/actions'
+import { readSocialsAction } from '@/services/socials/actions'
+import SocialIcons from '@/components/SocialIcons/SocialIcons'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
@@ -65,6 +67,9 @@ export default async function User({ params }: PropTypes) {
     const activeCommitteeMemberships = committeeMemberships.filter(membership => membership.active)
 
     const omegaMembership = profile.omegaMembership
+    const socials = unwrapActionReturn(await readSocialsAction({
+        params: { owner: { type: 'USER', userId: profile.user.id } }
+    }))
     const flairs = unwrapActionReturn(await readUserFlairsAction({ params: { userId: profile.user.id } })).sort(
         (a, b) => a.rank - b.rank
     )
@@ -242,6 +247,12 @@ export default async function User({ params }: PropTypes) {
                                 <span className={styles.username}>Klasse:</span>
                                 {profile.class ? ClassLevelConfig[profile.class.level].name : 'Ingen klasse'}
                             </p>
+
+                            {socials.length > 0 && (
+                                <div className={styles.socials}>
+                                    <SocialIcons socials={socials} />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
