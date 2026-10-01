@@ -125,6 +125,7 @@ export const userNavDef: UserNavItem[] = [
         path: 'settings',
         authorizers: ({ username, userId }) => [
             userAuth.updateProfile.dynamicFields({ username }),
+            userAuth.updateBioParagraphContent.dynamicFields({ userId }),
             userAuth.registerNewEmail.dynamicFields({ userId }),
             userAuth.updateProfileImage.dynamicFields({ username }),
             userAuth.update.dynamicFields({}),

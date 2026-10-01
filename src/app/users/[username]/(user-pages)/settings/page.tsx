@@ -7,8 +7,9 @@ import ChangeClassForm from './ChangeClassForm'
 import ManageUserStudyProgrammes from './ManageUserStudyProgrammes'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import Image from '@/components/Image/Image'
+import CmsParagraphEditorForm from '@/components/Cms/CmsParagraph/CmsParagraphEditorForm'
 import ImageUploader from '@/components/Image/ImageUploader'
-import { updateUserProfileImageAction } from '@/services/users/actions'
+import { updateUserBioParagraphContentAction, updateUserProfileImageAction } from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
@@ -35,6 +36,18 @@ export default async function UserSettings({ params }: PropTypes) {
             {userAuth.updateProfile.dynamicFields({ username: profile.user.username }).auth(session).authorized && (
                 <UserProfileSettingsCard>
                     <UserSettingsForm user={profile.user} emailDomain={process.env.EMAIL_DOMAIN} />
+                </UserProfileSettingsCard>
+            )}
+            {userAuth.updateBioParagraphContent.dynamicFields({ userId: profile.user.id }).auth(session).authorized && (
+                <UserProfileSettingsCard>
+                    <h2>Bio</h2>
+                    <CmsParagraphEditorForm
+                        cmsParagraph={profile.user.bioParagraph}
+                        updateCmsParagraphAction={configureAction(
+                            updateUserBioParagraphContentAction,
+                            { implementationParams: { userId: profile.user.id } }
+                        )}
+                    />
                 </UserProfileSettingsCard>
             )}
             {userAuth.registerNewEmail.dynamicFields({ userId: profile.user.id }).auth(session).authorized && (
