@@ -159,7 +159,12 @@ export const articleOperations = {
                     })
                 }
             }
-            return updatedArticle
+            return await prisma.article.findUniqueOrThrow({
+                where: {
+                    id: params.articleId,
+                },
+                include: articleRealtionsIncluder,
+            })
         }
     }),
     reorderSections: defineSubOperation({
