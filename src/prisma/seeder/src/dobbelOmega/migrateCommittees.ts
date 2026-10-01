@@ -80,11 +80,12 @@ export default async function migrateCommittees(
         ...committee.CommitteeMembers.map(member => member.order),
         ...committee.CommitteeMembersHist.map(member => member.order),
     ]))
-    await Promise.all(Array.from(membershipOrders, order => pnPrisma.omegaOrder.upsert({
-        where: { order },
-        update: {},
-        create: { order },
-    })))
+    // One createMany rather than a Promise.all of upserts: concurrent upserts of the same order
+    // race each other, and the loser fails on OmegaOrder.order's unique constraint.
+    await pnPrisma.omegaOrder.createMany({
+        data: Array.from(membershipOrders, order => ({ order })),
+        skipDuplicates: true,
+    })
 
     // Committees land in the order omega is in now. Hardcoding one meant every migrated committee
     // was behind from the moment it arrived, which blocks the next increment until each is migrated.

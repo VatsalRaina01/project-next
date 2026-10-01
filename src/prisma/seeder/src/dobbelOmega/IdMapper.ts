@@ -31,10 +31,17 @@ export function owIdToPnId(
     if (!owId) return null
     const id = mapper.find(_id => _id.owId === owId)?.pnId
     if (!id) {
-        const hint = resource === 'images'
-            ? ' - likely skipped by migration limits (see migrationLimits.ts), not necessarily a bug'
-            : ''
-        logger.error(`No pnId found for owId ${owId} while mapping ${resource}${hint}`)
+        // A missing image is routine - migration limits leave the map short on purpose, and a limited
+        // run would otherwise fill the log with lines at error level for something that is not a
+        // failure. Any other resource going missing is a genuine gap in the migration.
+        if (resource === 'images') {
+            logger.warn(
+                `No pnId found for owId ${owId} while mapping images` +
+                ' - expected if images were limited, see migrationLimits.ts'
+            )
+            return null
+        }
+        logger.error(`No pnId found for owId ${owId} while mapping ${resource}`)
         return null
     }
     return id

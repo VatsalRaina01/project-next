@@ -40,13 +40,17 @@ export default async function migrateImages(
     migrateImageCollectionIdMap: IdMapper,
     limits: Limits
 ) {
+    // Keyed on the name it actually creates: looking up 'Garbage' never matched the row this
+    // creates, so the upsert always took the create branch and a second run died on the unique
+    // name before migrating anything.
+    const garbageCollectionName = 'Søppel fra Omegaweb-basic'
     const garbageCollection = await pnPrisma.imageCollection.upsert({
         where: {
-            name: 'Garbage'
+            name: garbageCollectionName
         },
         update: {},
         create: {
-            name: 'Søppel fra Omegaweb-basic',
+            name: garbageCollectionName,
             description: 'Denne samlingen inneholder bilder som ikke tilhørete noen samling i omegaweb-basic',
             visibilityRegular: {
                 create: {},
@@ -124,7 +128,11 @@ export default async function migrateImages(
     //correct names if there are duplicates. Kept separate from the OW `name` field (used to fetch the
     //file from Omegaweb-basic below) since that field is a store token, not the display name.
     const namesTaken: { name: string, times: number }[] = []
-    const imagesToMigrate = limits.images ? imagesWithCollection.slice(0, limits.images) : imagesWithCollection
+    // null, not falsy: a limit of 0 means migrate no images, the same way limits.mailaliases of 0
+    // means migrate no aliases. Treating it as falsy made 0 migrate every image instead.
+    const imagesToMigrate = limits.images === null
+        ? imagesWithCollection
+        : imagesWithCollection.slice(0, limits.images)
     const imagesWithCorrectedName = imagesToMigrate.map(image => {
         const baseName = image.originalName.split('.').slice(0, -1).join('.')
         const nameTaken = namesTaken.find(nameTakenItem => nameTakenItem.name === baseName)
