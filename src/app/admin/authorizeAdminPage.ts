@@ -25,9 +25,11 @@ export async function authorizeAdminPage(path: string | null) {
         throw new Error(`The admin page '${path}' has no entry in adminNavDef to be authorized with.`)
     }
 
-    if (!authorizers.some(authorizer => authorizer.auth(session).authorized)) {
+    if (!authorizers.some(authorizer => authorizer.authorize(session).authorized)) {
         // Any one of them would have done, so the first is as good as another to be turned away by.
-        authorizers[0].auth(session).redirectOnUnauthorized({ returnUrl: path === null ? '/admin' : `/admin/${path}` })
+        authorizers[0].authorize(session).redirectOnUnauthorized({
+            returnUrl: path === null ? '/admin' : `/admin/${path}`
+        })
     }
 
     return session

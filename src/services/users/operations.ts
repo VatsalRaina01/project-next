@@ -320,7 +320,7 @@ export const userOperations = {
      */
     search: defineOperation({
         paramsSchema: userSchemas.search,
-        authorizer: () => userAuth.search.dynamicFields({}),
+        authorizer: () => userAuth.search,
         operation: async ({ prisma, params }) => {
             const words = params.query.split(/\s+/).filter(Boolean)
 

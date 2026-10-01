@@ -8,7 +8,7 @@ export const authAuth = {
     sendResetPasswordEmail: Require.nothing(),
     sendLinkFeideAccountEmail: Require.user(),
     readFeideLoginMatch: Require.user(),
-    verifyLinkFeideAccountToken: (token: string) => Require.jwt(token, 'linkfeideaccount'),
-    linkFeideAccount: (token: string) => Require.jwt(token, 'linkfeideaccount'),
+    verifyLinkFeideAccountToken: Require.nothing(),
+    linkFeideAccount: Require.nothing(),
     adminLinkFeideAccount: Require.permission('USERS_ADMIN'),
 }

@@ -20,12 +20,9 @@ const linkFeideAccountClaimsSchema = z.object({
     feideEmail: z.string(),
 }).transform(({ sub, ...claims }) => ({ targetUserId: sub, ...claims }))
 
-/**
- * Reads the claims of a link Feide account token. Must only be called after the
- * token has been verified, which the authorizers of the operations using it do.
- */
+/** Verifies and reads the claims of a link Feide account token. */
 function readLinkFeideAccountClaims(token: string) {
-    const claims = linkFeideAccountClaimsSchema.safeParse(readJWTPayload(token))
+    const claims = linkFeideAccountClaimsSchema.safeParse(verifyJWT(token, 'linkfeideaccount'))
 
     if (!claims.success) {
         throw new ServerError('JWT INVALID', 'The JWT does not contain the mandatory fields')
@@ -226,7 +223,7 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string(),
         }),
-        authorizer: ({ params }) => authAuth.verifyLinkFeideAccountToken(params.token),
+        authorizer: () => authAuth.verifyLinkFeideAccountToken,
         operation: async ({ prisma, params }) => {
             const claims = readLinkFeideAccountClaims(params.token)
 
@@ -249,7 +246,7 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string(),
         }),
-        authorizer: ({ params }) => authAuth.linkFeideAccount(params.token),
+        authorizer: () => authAuth.linkFeideAccount,
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
             const claims = readLinkFeideAccountClaims(params.token)

@@ -334,7 +334,7 @@ export const eventOperations = {
      */
     search: defineOperation({
         paramsSchema: eventSchemas.search,
-        authorizer: () => eventAuth.search.dynamicFields({}),
+        authorizer: () => eventAuth.search,
         operation: async ({ prisma, params }, visibilityWhereFilter) => await prisma.event.findMany({
             take: params.limit ?? defaultSearchResultLimit,
             select: {
