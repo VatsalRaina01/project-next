@@ -3,7 +3,10 @@ import { ClassLevelConfig } from '@/services/groups/constants'
 import Button from '@/components/UI/Button'
 import ProfilePicture from '@/components/User/ProfilePicture'
 import UserDisplayName from '@/components/User/UserDisplayName'
-import { readUserProfileAction } from '@/services/users/actions'
+import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
+import { readUserProfileAction, updateUserBioParagraphContentAction } from '@/services/users/actions'
+import { userAuth } from '@/services/users/auth'
+import { configureAction } from '@/services/configureAction'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { sexConfig } from '@/services/users/constants'
 import { readUserFlairsAction } from '@/services/flairs/actions'
@@ -191,10 +194,20 @@ export default async function User({ params }: PropTypes) {
                         <div className={styles.profileMain}>
 
 
-                            {(profile.user.bio !== '') &&
+                            {/* An empty bio is only worth showing to someone who can write it, in edit mode. */}
+                            {(profile.user.bioParagraph.contentHtml !== '' || userAuth.updateBioParagraphContent
+                                .dynamicFields({ userId: profile.user.id }).auth(session).authorized) &&
                                 <div className={styles.bio}>
                                     <h2>Bio:</h2>
-                                    <p>{profile.user.bio}</p>
+                                    <CmsParagraph
+                                        cmsParagraph={profile.user.bioParagraph}
+                                        updateCmsParagraphAction={configureAction(
+                                            updateUserBioParagraphContentAction,
+                                            { implementationParams: { userId: profile.user.id } }
+                                        )}
+                                        canEdit={userAuth.updateBioParagraphContent
+                                            .dynamicFields({ userId: profile.user.id }).auth(session).toJsObject()}
+                                    />
                                 </div>
                             }
 

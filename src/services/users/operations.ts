@@ -23,6 +23,7 @@ import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { z } from 'zod'
 import type { UserPagingReturn } from './types'
 
@@ -44,6 +45,7 @@ export const userOperations = {
             const user = await prisma.user.create({
                 data: {
                     ...data,
+                    bioParagraph: { create: {} },
                     memberships: {
                         create: [{
                             groupId: omegaMembership.groupId,
@@ -127,7 +129,7 @@ export const userOperations = {
                 where: { id: userId },
                 select: {
                     ...userFilterSelection,
-                    bio: true,
+                    bioParagraph: true,
                     image: { include: expandedImageIncluder },
                 },
             }).then(async userData => ({
@@ -395,6 +397,19 @@ export const userOperations = {
         })
     }),
 
+    updateBioParagraphContent: cmsParagraphOperations.updateContent.implement({
+        implementationParamsSchema: z.object({
+            userId: z.number(),
+        }),
+        authorizer: ({ implementationParams }) =>
+            userAuth.updateBioParagraphContent.dynamicFields({ userId: implementationParams.userId }),
+        ownershipCheck: async ({ prisma, implementationParams, params }) =>
+            (await prisma.user.findUniqueOrThrow({
+                where: { id: implementationParams.userId },
+                select: { bioParagraphId: true },
+            })).bioParagraphId === params.paragraphId,
+    }),
+
     updatePassword: defineOperation({
         paramsSchema: z.object({
             id: z.number(),
@@ -646,10 +661,14 @@ export const userOperations = {
         }),
         authorizer: () => userAuth.destroy.dynamicFields({}),
         operation: async ({ prisma, params }) => {
-            await prisma.user.delete({
+            const user = await prisma.user.delete({
                 where: {
                     id: params.id,
-                }
+                },
+                select: { bioParagraphId: true },
+            })
+            await cmsParagraphOperations.destroy.internalCall({
+                params: { paragraphId: user.bioParagraphId }
             })
         }
     }),

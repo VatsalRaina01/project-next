@@ -15,7 +15,6 @@ export const userSchema = z.object({
     firstname: z.string().max(50).min(2),
     lastname: z.string().max(50).min(2),
     allergies: z.string().max(150).optional().nullable(),
-    bio: z.string().max(2047).optional(),
     relationshipStatusText: z.string().max(150).optional(),
     relationshipStatus: z.nativeEnum(RelationshipStatus).optional(),
     studentCard: studentCardSchema,
@@ -58,7 +57,6 @@ export const userSchemas = {
         mobile: true,
         allergies: true,
         sex: true,
-        bio: true,
         imageConsent: true,
         relationshipStatusText: true,
         relationshipStatus: true,
@@ -67,7 +65,6 @@ export const userSchemas = {
     updateProfile: userSchema.partial().pick({
         allergies: true,
         sex: true,
-        bio: true,
         imageConsent: true,
         relationshipStatusText: true,
         relationshipStatus: true,
