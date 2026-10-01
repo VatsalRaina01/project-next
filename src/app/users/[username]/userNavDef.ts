@@ -7,6 +7,9 @@ import { omegaMembershipGroupAuth } from '@/services/groups/omegaMembershipGroup
 import { notificationSubscriptionAuth } from '@/services/notifications/subscription/auth'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
+import { committeeAuth } from '@/services/groups/committees/auth'
+import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
+import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { RequireUsername } from '@/auth/authorizer/RequireUsername'
 import {
     faCircleDot,
@@ -17,6 +20,7 @@ import {
     faPaperPlane,
     faSwatchbook,
     faUser,
+    faUsers,
 } from '@fortawesome/free-solid-svg-icons'
 import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
@@ -63,6 +67,20 @@ export const userNavDef: UserNavItem[] = [
             admissionAuth.createTrial.dynamicFields({}),
             omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}),
             omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}),
+        ],
+    },
+    {
+        // Every group type guards its own memberships, and any one of them is something to show.
+        name: 'Grupper',
+        icon: faUsers,
+        path: 'groups',
+        authorizers: ({ userId }) => [
+            omegaMembershipGroupAuth.readMembershipsOfUser.dynamicFields({ userId }),
+            classAuth.readMembershipsOfUser.dynamicFields({ userId }),
+            studyProgrammeAuth.readMembershipsOfUser.dynamicFields({ userId }),
+            committeeAuth.readMembershipsOfUser.dynamicFields({ userId }),
+            interestGroupAuth.readMembershipsOfUser.dynamicFields({ userId }),
+            manualGroupAuth.readMembershipsOfUser.dynamicFields({ userId }),
         ],
     },
     {
