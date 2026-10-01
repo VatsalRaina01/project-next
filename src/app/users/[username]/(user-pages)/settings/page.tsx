@@ -6,21 +6,17 @@ import ChangeClassForm from './ChangeClassForm'
 import ManageUserStudyProgrammes from './ManageUserStudyProgrammes'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import Image from '@/components/Image/Image'
-import { readUserProfileAction, updateUserProfileImageAction } from '@/services/users/actions'
+import { updateUserProfileImageAction } from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { readStudyProgrammesAction } from '@/services/groups/studyProgrammes/actions'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { configureAction } from '@/services/configureAction'
-import { notFound } from 'next/navigation'
 import type { PropTypes } from '@/app/users/[username]/page'
 
 export default async function UserSettings({ params }: PropTypes) {
     const { profile, session } = await getProfileForUserPage(await params, 'settings')
-    const profileRes = await readUserProfileAction({ params: { username: (await params).username } })
-    if (!profileRes.success) return notFound()
-    const userDataFull = profileRes.data.user
 
     const canUpdateImage = userAuth.updateProfileImage.dynamicFields({
         username: profile.user.username
@@ -36,28 +32,25 @@ export default async function UserSettings({ params }: PropTypes) {
     return (
         <div className={styles.wrapper}>
             <UserProfileSettingsCard>
-                <UserSettingsForm user={userDataFull} emailDomain={process.env.EMAIL_DOMAIN} />
+                <UserSettingsForm user={profile.user} emailDomain={process.env.EMAIL_DOMAIN} />
             </UserProfileSettingsCard>
             {canChangeClass && (
                 <UserProfileSettingsCard>
                     <ChangeClassForm
-                        userId={userDataFull.id}
-                        currentLevel={profileRes.data.class?.level ?? null}
+                        userId={profile.user.id}
+                        currentLevel={profile.class?.level ?? null}
                     />
                 </UserProfileSettingsCard>
             )}
             {canManageStudyProgrammes && (
                 <UserProfileSettingsCard>
                     <ManageUserStudyProgrammes
-                        userId={userDataFull.id}
+                        userId={profile.user.id}
                         studyProgrammes={studyProgrammes}
-                        memberships={profileRes.data.user.memberships
-                            .filter(membership => membership.group.groupType === 'STUDY_PROGRAMME')
-                            .filter(membership => membership.active)
-                            .map(membership => ({
-                                groupId: membership.group.id,
-                                order: membership.order,
-                            }))}
+                        memberships={profile.groups.activeStudyProgrammes.map(({ groupId, order }) => ({
+                            groupId,
+                            order,
+                        }))}
                     />
                 </UserProfileSettingsCard>
             )}

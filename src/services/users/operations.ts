@@ -11,7 +11,6 @@ import { userProfileImageOperations } from './profileImageCollection'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
-import { groupOperations } from '@/services/groups/operations'
 import { classOperations } from '@/services/groups/classes/operations'
 import { NTNUEmailDomain } from '@/services/mail/constants'
 import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
@@ -130,53 +129,59 @@ export const userOperations = {
                     ...userFilterSelection,
                     bio: true,
                     image: { include: expandedImageIncluder },
-                    memberships: {
-                        where: {
-                            OR: [
-                                {
-                                    group: {
-                                        groupType: 'COMMITTEE'
-                                    }
-                                },
-                                {
-                                    group: {
-                                        groupType: 'OMEGA_MEMBERSHIP_GROUP'
-                                    },
-                                },
-                                {
-                                    group: {
-                                        groupType: 'STUDY_PROGRAMME'
-                                    },
-                                },
-                                {
-                                    group: {
-                                        groupType: 'INTEREST_GROUP'
-                                    },
-                                },
-                            ]
-                        },
-                        include: {
-                            group: {
-                                include: {
-                                    committee: true,
-                                    interestGroup: true,
-                                    omegaMembershipGroup: true,
-                                    studyProgramme: true
-                                }
-                            }
-                        }
-                    }
                 },
             }).then(async userData => ({
                 ...userData,
                 image: userData.image || defaultProfileImage,
             }))
 
-            const memberships = await groupOperations.readMembershipsOfUser.internalCall({
-                params: {
-                    userId,
-                }
-            })
+            const [committeeMemberships, studyProgrammeMemberships, interestGroupMemberships] = await Promise.all([
+                prisma.membership.findMany({
+                    where: { userId, group: { groupType: 'COMMITTEE' } },
+                    select: {
+                        title: true,
+                        order: true,
+                        active: true,
+                        group: { select: { committee: { select: { name: true, shortName: true } } } },
+                    },
+                    orderBy: { order: 'desc' },
+                }),
+                prisma.membership.findMany({
+                    where: { userId, active: true, group: { groupType: 'STUDY_PROGRAMME' } },
+                    select: {
+                        groupId: true,
+                        order: true,
+                        group: { select: { studyProgramme: { select: { id: true, name: true, code: true } } } },
+                    },
+                }),
+                prisma.membership.findMany({
+                    where: { userId, active: true, group: { groupType: 'INTEREST_GROUP' } },
+                    select: {
+                        title: true,
+                        order: true,
+                        group: { select: { interestGroup: { select: { id: true, name: true } } } },
+                    },
+                    orderBy: { order: 'desc' },
+                }),
+            ])
+
+            const committees = committeeMemberships.flatMap(({ group: { committee }, ...membership }) =>
+                (committee ? [{ ...membership, committee }] : [])
+            )
+
+            const groups = {
+                committeeMemberships: {
+                    active: committees.filter(membership => membership.active),
+                    historical: committees.filter(membership => !membership.active),
+                },
+                activeStudyProgrammes: studyProgrammeMemberships.flatMap(({ group: { studyProgramme }, ...membership }) =>
+                    (studyProgramme ? [{ ...membership, studyProgramme }] : [])
+                ),
+                activeInterestGroups: interestGroupMemberships.flatMap(({ group: { interestGroup }, ...membership }) =>
+                    (interestGroup ? [{ ...membership, interestGroup }] : [])
+                ),
+            }
+
             const userClass = await classOperations.readClassOfUser({
                 params: {
                     userId
@@ -184,7 +189,7 @@ export const userOperations = {
                 bypassAuth: true,
             })
 
-            return { user, memberships, class: userClass, omegaMembership }
+            return { user, groups, class: userClass, omegaMembership }
         }
     }),
 

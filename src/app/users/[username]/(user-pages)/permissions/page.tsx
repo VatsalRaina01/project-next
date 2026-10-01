@@ -20,10 +20,6 @@ export default async function UserSettings({ params }: PropTypes) {
                     <Permission key={uuid()} permission={permission} className={styles.permission} />
                 )}
             </ul>
-            <h2>Grupper:</h2>
-            <ul>
-                {profile.memberships.map(membership => <li key={uuid()}>{membership.groupId}</li>)}
-            </ul>
         </div>
     )
 }
