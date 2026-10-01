@@ -23,7 +23,6 @@ import { getMembershipFilter } from '@/auth/getMembershipFilter'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { permissionOperations } from '@/services/permissions/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { z } from 'zod'
 import type { UserPagingReturn } from './types'
@@ -178,11 +177,6 @@ export const userOperations = {
                     userId,
                 }
             })
-            const permissions = await permissionOperations.readPermissionsOfUser.internalCall({
-                params: {
-                    userId
-                }
-            })
             const userClass = await classOperations.readClassOfUser({
                 params: {
                     userId
@@ -190,7 +184,7 @@ export const userOperations = {
                 bypassAuth: true,
             })
 
-            return { user, memberships, permissions, class: userClass, omegaMembership }
+            return { user, memberships, class: userClass, omegaMembership }
         }
     }),
 

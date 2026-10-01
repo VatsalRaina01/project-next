@@ -1,4 +1,5 @@
 import { userAuth } from '@/services/users/auth'
+import { permissionsAuth } from '@/services/permissions/auth'
 import { flairAuth } from '@/services/flairs/auth'
 import { dotAuth } from '@/services/dots/auth'
 import { admissionAuth } from '@/services/admission/auth'
@@ -86,7 +87,7 @@ export const userNavDef: UserNavItem[] = [
         name: 'Tilganger',
         icon: faKey,
         path: 'permissions',
-        authorizers: ({ username }) => [userAuth.updateProfile.dynamicFields({ username })],
+        authorizers: ({ userId }) => [permissionsAuth.readPermissionsOfUser.dynamicFields({ userId })],
     },
     {
         name: 'Kapper',
