@@ -136,9 +136,9 @@ export const authOperations = {
                 throw new ServerError('DISSALLOWED', 'This endpoint requires a user connected to the session.')
             }
 
-            // Only a fresh Feide login that has not completed registration may ask to be
-            // moved onto a migrated user - a registered user asking would end with that
-            // user being deleted by the move.
+            // Only a user created by a Feide login that has not completed registration may ask
+            // to be moved onto a migrated user - any other user asking, such as a migrated user
+            // the Feide login was linked to by email, would end with that user being deleted.
             const feideUser = await prisma.user.findUniqueOrThrow({
                 where: { id: session.user.id },
                 select: {
@@ -146,12 +146,18 @@ export const authOperations = {
                     firstname: true,
                     lastname: true,
                     acceptedTerms: true,
+                    createdByFeideLoginOnProjectNext: true,
                     credentials: { select: { userId: true } },
                     feideAccount: { select: { id: true, email: true } },
                 },
             })
 
-            if (!feideUser.feideAccount || feideUser.credentials || feideUser.acceptedTerms) {
+            if (
+                !feideUser.feideAccount ||
+                !feideUser.createdByFeideLoginOnProjectNext ||
+                feideUser.credentials ||
+                feideUser.acceptedTerms
+            ) {
                 throw new ServerError(
                     'DISSALLOWED',
                     'Bare en ny Feide-innlogging som ikke har fullført registreringen kan kobles til en gammel bruker.'
@@ -186,6 +192,35 @@ export const authOperations = {
             }
 
             return data.usernameOrEmail
+        }
+    }),
+
+    /**
+     * Reads how the Feide login of the session user was matched to a user, so registration can
+     * tell the user whether it was linked to their existing user or a new user was created.
+     * Returns null if the session user has no Feide account.
+     */
+    readFeideLoginMatch: defineOperation({
+        authorizer: () => authAuth.readFeideLoginMatch.dynamicFields({}),
+        operation: async ({ prisma, session }) => {
+            if (!session.user) {
+                throw new ServerError('DISSALLOWED', 'This endpoint requires a user connected to the session.')
+            }
+
+            const user = await prisma.user.findUniqueOrThrow({
+                where: { id: session.user.id },
+                select: {
+                    createdByFeideLoginOnProjectNext: true,
+                    feideAccount: { select: { email: true } },
+                },
+            })
+
+            if (!user.feideAccount) return null
+
+            return {
+                feideEmail: user.feideAccount.email,
+                createdByFeideLoginOnProjectNext: user.createdByFeideLoginOnProjectNext,
+            }
         }
     }),
 

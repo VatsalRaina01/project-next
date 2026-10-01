@@ -7,8 +7,9 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
  * way of logging in yet, and deletes the fresh user. This is how a user whose Feide
  * email/username no longer matches their migrated user claims that user.
  *
- * The fresh user must not have completed registration (no credentials, terms not
- * accepted), so a user holding real data can never be deleted, and the target must be
+ * The fresh user must have been created by a Feide login and not have completed registration
+ * (no credentials, terms not accepted), so a user holding real data - such as a migrated user
+ * that a Feide login was linked to by email - can never be deleted, and the target must be
  * unclaimed (no Feide account, no credentials), so an already linked user can never be
  * hijacked. Both checks run inside the transaction that performs the move.
  *
@@ -33,6 +34,7 @@ export async function moveFeideAccountToUser(
             where: { id: fromUserId },
             select: {
                 acceptedTerms: true,
+                createdByFeideLoginOnProjectNext: true,
                 credentials: { select: { userId: true } },
                 feideAccount: { select: { id: true } },
             },
@@ -44,6 +46,13 @@ export async function moveFeideAccountToUser(
 
         if (feideAccountId !== undefined && fromUser.feideAccount.id !== feideAccountId) {
             throw new ServerError('BAD PARAMETERS', 'Brukeren har ikke lenger denne Feide-kontoen.')
+        }
+
+        if (!fromUser.createdByFeideLoginOnProjectNext) {
+            throw new ServerError(
+                'BAD PARAMETERS',
+                'Feide-kontoen kan bare flyttes fra en bruker som ble opprettet ved Feide-innloggingen.'
+            )
         }
 
         if (fromUser.credentials || fromUser.acceptedTerms) {
