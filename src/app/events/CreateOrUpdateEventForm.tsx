@@ -1,5 +1,6 @@
 'use client'
 import styles from './CreateOrUpdateEventForm.module.scss'
+import EventLocationInput from './EventLocationInput'
 import Checkbox from '@/components/UI/Checkbox'
 import { SelectString } from '@/components/UI/Select'
 import DateInput from '@/components/UI/DateInput'
@@ -55,6 +56,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes)
             >
                 <TextInput label="Navn" name="name" defaultValue={event?.name} />
                 <TextInput label="Sted" name="location" defaultValue={event?.location ?? ''} />
+                <EventLocationInput name="locationMap" defaultValue={event?.locationMap} />
                 <SelectString
                     className={styles.canBeViewdBy}
                     label="Hvem kan se"
