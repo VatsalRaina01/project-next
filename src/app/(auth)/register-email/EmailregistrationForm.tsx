@@ -3,6 +3,7 @@ import { registerNewEmailAction } from '@/services/users/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
+import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { UserFiltered } from '@/services/users/types'
@@ -48,5 +49,12 @@ export default function EmailRegistrationForm({
         </Form>
 
         {feedback && <p>{feedback}</p>}
+
+        <Link href="/link-ow-user">
+            <p>
+                Hadde du bruker på gamle Omegaveven som ikke ble koblet til automatisk?
+                Koble innloggingen din til den gamle brukeren i stedet.
+            </p>
+        </Link>
     </>
 }
