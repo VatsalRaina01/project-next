@@ -4,14 +4,13 @@ import { readClassesAction, readClassesExpandedAction } from '@/services/groups/
 import { readCurrentOmegaOrderAction } from '@/services/omegaOrder/actions'
 import { classAuth } from '@/services/groups/classes/auth'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { ServerSession } from '@/auth/session/ServerSession'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
 import { CLASS_LEVEL_ORDERING } from '@/services/groups/constants'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 export default async function Classes() {
-    const session = await ServerSession.fromNextAuth()
-    classAuth.readExpanded.dynamicFields({}).auth(session).redirectOnUnauthorized({ returnUrl: '/admin/classes' })
+    const session = await authorizeAdminPage('classes')
 
     const [classRows, expandedClasses, currentOrder] = await Promise.all([
         readClassesAction().then(unwrapActionReturn),

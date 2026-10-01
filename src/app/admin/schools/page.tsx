@@ -5,8 +5,10 @@ import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { createSchoolAction, readSchoolsAction, readStandardSchoolsAction } from '@/education/schools/actions'
 import TextInput from '@/components/UI/TextInput'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 export default async function SchoolsAdmin() {
+    await authorizeAdminPage('schools')
     const standardSchoolsRes = await readStandardSchoolsAction()
     if (!standardSchoolsRes.success) {
         throw new Error(standardSchoolsRes.error?.length ? standardSchoolsRes.error[0].message : 'Ukjent feil')

@@ -4,10 +4,10 @@ import styles from './DesktopSideBar.module.scss'
 import NavTooltip from './NavTooltip'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import type { NavItem } from './navDef'
+import type { NavLink } from './navDef'
 
 type PropTypes = {
-    item: NavItem
+    item: NavLink
     expanded: boolean
 }
 

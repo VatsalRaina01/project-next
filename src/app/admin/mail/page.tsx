@@ -11,10 +11,10 @@ import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 export default async function MailSettings() {
-    const session = await ServerSession.fromNextAuth()
+    const session = await authorizeAdminPage('mail')
 
     const createMailAlias = mailAliasAuth.create.dynamicFields({}).auth(session).authorized
     const createMailingList = mailingListAuth.create.dynamicFields({}).auth(session).authorized

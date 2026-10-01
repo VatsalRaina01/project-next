@@ -5,7 +5,6 @@ import Image from '@/components/Image/Image'
 import useKeyPress from '@/hooks/useKeyPress'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import { useDebounce } from '@/hooks/useDebounce'
-import getNavItems from '@/components/NavBar/navDef'
 import { searchEventsAction } from '@/services/events/actions'
 import { searchUsersAction } from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
@@ -19,7 +18,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
-import type { Profile } from '@/services/users/types'
+import type { NavLink } from '@/components/NavBar/navDef'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
 type Category = 'all' | 'navigation' | 'users' | 'events'
@@ -42,7 +41,8 @@ type SearchSection = {
 }
 
 export type PropTypes = {
-    profile: Profile | null,
+    /** The nav items the session may open, as `visibleNavItems` leaves them. */
+    navItems: NavLink[],
 }
 
 const categoryOptions: { value: Category, label: string }[] = [
@@ -57,9 +57,7 @@ const categoryOptions: { value: Category, label: string }[] = [
  * that searches site navigation, users and events at once, grouped into tabs the user can
  * cycle through with Tab/Shift+Tab and browse with the arrow keys.
  */
-export default function GlobalSearch({ profile }: PropTypes) {
-    const isLoggedIn = profile !== null
-    const isAdmin = profile?.user.username === 'harambe'
+export default function GlobalSearch({ navItems }: PropTypes) {
     const canSearchUsers = useAuthorizer({ authorizer: userAuth.search.dynamicFields({}) }).authorized
     const availableCategories = canSearchUsers
         ? categoryOptions
@@ -131,8 +129,6 @@ export default function GlobalSearch({ profile }: PropTypes) {
             cancelled = true
         }
     }, [debouncedQuery, category, canSearchUsers])
-
-    const navItems = useMemo(() => getNavItems(isLoggedIn, isAdmin, false), [isLoggedIn, isAdmin])
 
     const trimmedQuery = query.trim().toLowerCase()
 

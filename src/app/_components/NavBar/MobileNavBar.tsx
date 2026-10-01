@@ -1,4 +1,3 @@
-import getNavItems from './navDef'
 import styles from './MobileNavBar.module.scss'
 import Menu from './Menu'
 import UserNavigation from './UserNavigation'
@@ -6,15 +5,15 @@ import StandardImageServer from '@/components/Image/StandardImageServer'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import type { NavLink } from './navDef'
 
 type PropTypes = {
     isLoggedIn: boolean
+    /** The nav items the session may open, as `visibleNavItems` leaves them. */
+    navItems: NavLink[]
 }
 
-export default async function MobileNavBar({ isLoggedIn }: PropTypes) {
-    const applicationPeriod = false //TODO
-    const isAdmin = true //TODO
-    const navItems = getNavItems(isLoggedIn, isAdmin, applicationPeriod)
+export default async function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
     const itemsForNav = navItems.slice(0, 2)
     const itemsForMenu = navItems.slice(2, navItems.length)
 

@@ -7,11 +7,13 @@ import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { sortObjectsByName } from '@/lib/sortObjects'
 import { readProductsAction } from '@/services/shop/actions'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { v4 as uuid } from 'uuid'
 import Link from 'next/link'
 
 
 export default async function ProductPage() {
+    await authorizeAdminPage('product')
     const products = unwrapActionReturn(await readProductsAction())
 
     return <PageWrapper

@@ -3,14 +3,14 @@ import MembershipStatusUserSearch from './MembershipStatusUserSearch'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { admissionDisplayNames, allAdmissions } from '@/services/admission/constants'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
-import { ServerSession } from '@/auth/session/ServerSession'
 import { userAuth } from '@/services/users/auth'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronRight, faScroll } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
 
 export default async function AdmissionTrials() {
-    const session = await ServerSession.fromNextAuth()
+    const session = await authorizeAdminPage('admission')
 
     const canSearchUsers = userAuth.readPage.dynamicFields({}).auth(session).authorized
 

@@ -4,12 +4,14 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { readApiKeysAction } from '@/services/apiKeys/actions'
 import Date from '@/components/Date/Date'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { v4 as uuid } from 'uuid'
 import Link from 'next/link'
 
 const popUpKey = 'createApiKey'
 
 export default async function ApiKeysAdmin() {
+    await authorizeAdminPage('api-keys')
     const res = await readApiKeysAction()
     if (!res.success) throw new Error(res.error?.length ? res.error[0].message : 'En feil oppstod')
     const apiKeys = res.data

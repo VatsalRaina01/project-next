@@ -2,16 +2,13 @@ import styles from './page.module.scss'
 import CreateOrder from './CreateOrder'
 import Requirements from './Requirements'
 import { readCurrentOmegaOrderAction, readOmegaOrderRequirementsAction } from '@/services/omegaOrder/actions'
-import { omegaOrderAuth } from '@/services/omegaOrder/auth'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { ServerSession } from '@/auth/session/ServerSession'
 import Date from '@/components/Date/Date'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 export default async function stateOfOmega() {
-    omegaOrderAuth.create.dynamicFields({}).auth(
-        await ServerSession.fromNextAuth()
-    ).redirectOnUnauthorized({ returnUrl: '/admin/stateOfOmega' })
+    await authorizeAdminPage('stateOfOmega')
 
     const currentOrder = unwrapActionReturn(await readCurrentOmegaOrderAction())
     const requirements = unwrapActionReturn(await readOmegaOrderRequirementsAction())

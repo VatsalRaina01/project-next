@@ -3,15 +3,13 @@ import { readAllCommitteesAction, readCommitteesExpandedAction } from '@/service
 import { readCurrentOmegaOrderAction } from '@/services/omegaOrder/actions'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { ServerSession } from '@/auth/session/ServerSession'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 
 export default async function AdminCommittee() {
-    const session = await ServerSession.fromNextAuth()
-    committeeAuth.readExpanded.dynamicFields({}).auth(session)
-        .redirectOnUnauthorized({ returnUrl: '/admin/committees' })
+    const session = await authorizeAdminPage('committees')
 
     const [committees, expandedGroups, currentOrder] = await Promise.all([
         readAllCommitteesAction().then(unwrapActionReturn),
