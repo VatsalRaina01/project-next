@@ -43,7 +43,12 @@ describe('mail server permissions', () => {
     test('MAILSERVER_USE cannot attach a list to an alias or add to a list', async () => {
         const { alias, list } = await createAliasAndList('use-denied')
         const user = await prisma.user.create({
-            data: { username: 'test-use-denied', email: 'test-use-denied@test.test', bioParagraph: { create: {} } },
+            data: {
+                username: 'test-use-denied',
+                email: 'test-use-denied@test.test',
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+            },
         })
         const session = sessionWith(['MAILSERVER_USE'])
 
