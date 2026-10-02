@@ -16,7 +16,7 @@ export const dynamicImageAuth = {
     readCollection: regularLevel,
     readCollectionPage: Require.visibilityFilter({ bypassPermission: 'IMAGE_ADMIN' }),
 
-    createCollection: Require.permission('IMAGE_USE'),
+    createCollection: Require.permission('IMAGE_ADMIN').or().permission('IMAGE_CREATE'),
     destroyCollection: adminLevel,
     updateCollection: adminLevel,
 

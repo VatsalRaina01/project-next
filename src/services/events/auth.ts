@@ -2,15 +2,17 @@ import { Require } from '@/auth/authorizer/Require'
 import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 
 /**
- * The admin level of an event decides who may edit and delete it, the regular level who may
- * register for it - and, for an event not viewable by all, who may see it at all. EVENT_ADMIN
- * bypasses both levels for every event, and is also what it takes to make one in the first place.
+ * The admin level of an event decides who may edit and delete it. The regular level decides who
+ * may register for it, and who may see it at all when it isn't viewable by everyone. EVENT_ADMIN
+ * bypasses both levels for every event.
  */
 const regularLevel = Require.permission('EVENT_ADMIN').or().visibility({ level: 'regularLevel' })
 const adminLevel = Require.permission('EVENT_ADMIN').or().visibility({ level: 'adminLevel' })
 
 export const eventAuth = {
-    create: Require.permission('EVENT_ADMIN'),
+    // A new event has no visibility matrix yet to check. EVENT_CREATE is the only gate here. The
+    // creator sets the event's own visibility, which then governs every operation below.
+    create: Require.permission('EVENT_ADMIN').or().permission('EVENT_CREATE'),
 
     readDoubleLevelMatrix: regularLevel,
     updateRegularLevel: adminLevel,

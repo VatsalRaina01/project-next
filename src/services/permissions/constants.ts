@@ -148,7 +148,7 @@ export const permissionConfig = {
         `,
         category: 'bilder',
     },
-    IMAGE_USE: {
+    IMAGE_CREATE: {
         name: 'Lage bilde samling',
         description: 'kan lage bilde samling',
         category: 'bilder',
@@ -161,6 +161,11 @@ export const permissionConfig = {
     EVENT_USE: {
         name: 'Bruke events',
         description: 'kan lese events og påmeldinger, samt melde seg på og av arrangementer',
+        category: 'events',
+    },
+    EVENT_CREATE: {
+        name: 'Lage events',
+        description: 'kan lage nye events, men administrerer kun de som egen synlighet gir tilgang til',
         category: 'events',
     },
     NOTIFICATION_ADMIN: {
@@ -361,7 +366,7 @@ export const permissionConfig = {
         `,
         category: 'diverse admin',
     },
-    NEWS_USE: {
+    NEWS_CREATE: {
         name: 'Lage nyhetsartikkel',
         description: 'kan lage nyhetsartikler',
         category: 'public',

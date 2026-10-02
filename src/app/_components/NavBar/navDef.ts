@@ -182,6 +182,6 @@ export function visibleNavItems(session: SessionMaybeUser): NavLink[] {
     const loggedIn = session.user !== null
     return navDef
         .filter(item => item.audience === undefined || (item.audience === 'loggedIn') === loggedIn)
-        .filter(item => item.authorizers().some(authorizer => authorizer.authorize(session).authorized))
+        .filter(item => item.authorizers().some(authorizer => authorizer.auth(session).authorized))
         .map(({ name, href, icon }) => ({ name, href, icon }))
 }

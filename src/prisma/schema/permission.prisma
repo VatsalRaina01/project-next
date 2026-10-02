@@ -60,11 +60,12 @@ enum Permission {
   USERS_USE
   USERS_ADMIN
 
-  IMAGE_USE
+  IMAGE_CREATE
   IMAGE_ADMIN
 
   EVENT_ADMIN
   EVENT_USE
+  EVENT_CREATE
 
   // Notifications
   NOTIFICATION_ADMIN
@@ -145,7 +146,7 @@ enum Permission {
   FLAIR_ADMIN
 
   // News
-  NEWS_USE
+  NEWS_CREATE
   NEWS_ADMIN
 }
 

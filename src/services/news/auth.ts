@@ -10,7 +10,7 @@ const regularLevel = Require.permission('NEWS_ADMIN').or().visibility({ level: '
 const adminLevel = Require.permission('NEWS_ADMIN').or().visibility({ level: 'adminLevel' })
 
 export const newsAuth = {
-    create: Require.permission('NEWS_USE'),
+    create: Require.permission('NEWS_ADMIN').or().permission('NEWS_CREATE'),
 
     readDoubleLevelMatrix: regularLevel,
     updateRegularLevel: adminLevel,

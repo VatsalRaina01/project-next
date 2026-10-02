@@ -32,7 +32,7 @@ export default async function committeeArticle({ params }: PropTypes) {
 
     const committee = await getCommittee(params)
 
-    const canEdit = committeeAuth.updateArticle.data({ groupId: committee.groupId }).authorize(
+    const canEdit = committeeAuth.updateArticle.data({ groupId: committee.groupId }).auth(
         await ServerSession.fromNextAuth()
     ).toJsObject()
 

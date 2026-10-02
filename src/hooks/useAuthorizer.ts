@@ -27,7 +27,7 @@ function useAuthorizer({
     if (session.loading) {
         return new AuthResult(Session.empty(), false, undefined)
     }
-    return authorizer.authorize(session.session)
+    return authorizer.auth(session.session)
 }
 
 export default useAuthorizer

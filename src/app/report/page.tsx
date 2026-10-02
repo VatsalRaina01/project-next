@@ -21,7 +21,7 @@ import { ServerSession } from '@/auth/session/ServerSession'
 export default async function Report() {
     const article = unwrapActionReturn(await readReportArticleAction())
 
-    const canEdit = reportAuth.update.authorize(
+    const canEdit = reportAuth.update.auth(
         await ServerSession.fromNextAuth()
     ).toJsObject()
 

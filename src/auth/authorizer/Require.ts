@@ -60,7 +60,7 @@ function evaluateGroup<PrismaWhereFilter extends object | undefined>(
  * `.permission()`) take their value immediately; conditions that depend on the request (e.g.
  * `.userId()`) instead register what they'll need in `Data`, supplied later via `.data()` - so
  * `Require.permission('X').userId()` can be defined once at module scope, with `userId` filled in
- * per call via `.data({ userId })`. `.authorize()` only exists once `Data` is fully supplied.
+ * per call via `.data({ userId })`. `.auth()` only exists once `Data` is fully supplied.
  *
  * Internally, a chain is `groups`: AND-groups OR'd together. Condition methods append to the last
  * group; `.or()` starts a new, empty one. An empty group always fails - including the whole
@@ -230,7 +230,7 @@ export class RequireBuilder<Data extends object = NoData, PrismaWhereFilter exte
 
     /** Supplies everything this chain still needs. Can be called anywhere in the chain — before or
      * after further conditions are added — as long as everything is supplied by the time
-     * `.authorize()` is called. */
+     * `.auth()` is called. */
     data(this: RequireBuilder<Data, PrismaWhereFilter>, data: Data): RequireBuilder<NoData, PrismaWhereFilter> {
         const groups = this.groups.map(group => group.map(check =>
             (args: { session: SessionMaybeUser }) => check({ ...args, ...data } as { session: SessionMaybeUser } & Data)
@@ -240,7 +240,7 @@ export class RequireBuilder<Data extends object = NoData, PrismaWhereFilter exte
 
     /** Only callable once every field `Data` required has been supplied via `.data()` — a chain
      * with anything still missing is a type error here, not a runtime surprise. */
-    authorize(this: RequireBuilder<NoData, PrismaWhereFilter>, session: SessionMaybeUser):
+    auth(this: RequireBuilder<NoData, PrismaWhereFilter>, session: SessionMaybeUser):
         AuthResult<'HAS_USER' | 'NO_USER', true, PrismaWhereFilter> | AuthResult<'HAS_USER' | 'NO_USER', false> {
         const args = { session } as { session: SessionMaybeUser } & NoData
         // An empty group poisons the whole chain - see the class doc.

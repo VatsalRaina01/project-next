@@ -7,7 +7,7 @@ import { readUserAction } from '@/services/users/actions'
 import { notFound, redirect } from 'next/navigation'
 
 export default async function Registeremail() {
-    const { authorized, session } = Require.user().authorize(await ServerSession.fromNextAuth())
+    const { authorized, session } = Require.user().auth(await ServerSession.fromNextAuth())
 
     if (!authorized || !session.user) notFound()
 

@@ -16,9 +16,9 @@ import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 export default async function MailSettings() {
     const session = await authorizeAdminPage('mail')
 
-    const createMailAlias = mailAliasAuth.create.authorize(session).authorized
-    const createMailingList = mailingListAuth.create.authorize(session).authorized
-    const createMailaddressExternal = mailAddressExternalAuth.create.authorize(session).authorized
+    const createMailAlias = mailAliasAuth.create.auth(session).authorized
+    const createMailingList = mailingListAuth.create.auth(session).authorized
+    const createMailaddressExternal = mailAddressExternalAuth.create.auth(session).authorized
 
     const showAdminPanel = createMailAlias || createMailingList || createMailaddressExternal
 

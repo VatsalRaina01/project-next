@@ -12,7 +12,7 @@ export default async function UserNavBar({ username, userId }: UserNavSubject) {
     const session = await ServerSession.fromNextAuth()
     const items = visibleUserNavItems(
         { username, userId },
-        authorizer => authorizer.authorize(session).authorized,
+        authorizer => authorizer.auth(session).authorized,
     )
 
     // only view one thing -> nav not needed

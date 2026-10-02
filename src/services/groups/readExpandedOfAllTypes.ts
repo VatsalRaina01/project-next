@@ -65,7 +65,7 @@ export const readExpandedOfAllTypes = defineOperation({
             Object.values(GroupType).map(async groupType => {
                 const { auth, readExpanded } = groupTypeExpandedReads[groupType]
 
-                if (!auth.authorize(session).authorized) {
+                if (!auth.auth(session).authorized) {
                     return [groupType, null] as const
                 }
 

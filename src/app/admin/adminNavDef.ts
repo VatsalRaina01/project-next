@@ -351,7 +351,7 @@ export function visibleAdminNav(session: SessionMaybeUser): AdminNavGroup[] {
         .map(group => ({
             ...group,
             links: group.links.filter(link => link.authorizers().some(
-                authorizer => authorizer.authorize(session).authorized
+                authorizer => authorizer.auth(session).authorized
             )),
         }))
         .filter(group => group.links.length > 0)

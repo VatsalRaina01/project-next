@@ -33,7 +33,7 @@ export default async function StudyProgrammeAdmin({ params }: PropTypes) {
     if (!Number.isInteger(id)) notFound()
 
     const session = await ServerSession.fromNextAuth()
-    studyProgrammeAuth.read.authorize(session)
+    studyProgrammeAuth.read.auth(session)
         .redirectOnUnauthorized({ returnUrl: `/admin/study-programmes/${id}` })
 
     const studyProgramme = unwrapActionReturn(await readStudyProgrammeAction({ params: { id } }))
@@ -48,9 +48,9 @@ export default async function StudyProgrammeAdmin({ params }: PropTypes) {
     if (!expanded) notFound()
 
     const canAddMembers = studyProgrammeAuth.addMembers.data({ groupId: studyProgramme.groupId })
-        .authorize(session).authorized
+        .auth(session).authorized
     const canRemoveMembers = studyProgrammeAuth.removeMembers.data({ groupId: studyProgramme.groupId })
-        .authorize(session).authorized
+        .auth(session).authorized
 
     return (
         <PageWrapper title={studyProgramme.name}>

@@ -12,7 +12,7 @@ export type Authorizer<
     UserRequieredOut extends UserRequieredOutOpt = 'USER_NOT_REQUIERED_FOR_AUTHORIZED' | 'USER_REQUIERED_FOR_AUTHORIZED',
     PrismaWhereFilter extends object | undefined = undefined
 > = {
-    authorize: (session: SessionMaybeUser) => UserRequieredOut extends 'USER_REQUIERED_FOR_AUTHORIZED'
+    auth: (session: SessionMaybeUser) => UserRequieredOut extends 'USER_REQUIERED_FOR_AUTHORIZED'
     ? (AuthResult<'HAS_USER', true, PrismaWhereFilter> | AuthResult<'HAS_USER' | 'NO_USER', false, undefined>)
     : (AuthResult<'HAS_USER' | 'NO_USER', true, PrismaWhereFilter> | AuthResult<'HAS_USER' | 'NO_USER', false, undefined>)
 }

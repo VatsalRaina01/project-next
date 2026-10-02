@@ -41,11 +41,11 @@ export async function getProfileForUserPage({ username }: Params, path: string) 
     }
 
     const authorizers = navItem.authorizers({ username, userId: profile.user.id })
-    const passes = (authorizer: Authorizer) => authorizer.authorize(session).authorized
+    const passes = (authorizer: Authorizer) => authorizer.auth(session).authorized
 
     if (!authorizers.some(passes)) {
         // Any one of them would have done, so the first is as good as another to be turned away by.
-        authorizers[0].authorize(session).redirectOnUnauthorized({ returnUrl: `/users/${username}/${path}` })
+        authorizers[0].auth(session).redirectOnUnauthorized({ returnUrl: `/users/${username}/${path}` })
     }
 
     return { profile, session }

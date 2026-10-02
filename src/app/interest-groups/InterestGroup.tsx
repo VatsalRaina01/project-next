@@ -24,13 +24,13 @@ type PropTypes = {
 }
 
 export default function InterestGroup({ interestGroup, session }: PropTypes) {
-    const canUpdate = interestGroupAuth.update.data({ groupId: interestGroup.groupId }).authorize(session)
-    const canDestroy = interestGroupAuth.destroy.authorize(session)
+    const canUpdate = interestGroupAuth.update.data({ groupId: interestGroup.groupId }).auth(session)
+    const canDestroy = interestGroupAuth.destroy.auth(session)
     // A pensioned group's article is history too: the service refuses the write, so the editing
     // controls are not offered either.
     const canEditArticleSection = (interestGroup.pensioned
         ? new AuthResult(session, false, undefined, 'Gruppen er pensjonert')
-        : interestGroupAuth.updateArticleSection.data({ groupId: interestGroup.groupId }).authorize(session)
+        : interestGroupAuth.updateArticleSection.data({ groupId: interestGroup.groupId }).auth(session)
     ).toJsObject()
 
     // The interest group's own page is where its members and migration are administered. The link
@@ -44,8 +44,8 @@ export default function InterestGroup({ interestGroup, session }: PropTypes) {
         interestGroupAuth.setMemberAdmin,
         interestGroupAuth.setMemberTitle,
         interestGroupAuth.migrateGroup,
-    ].some(authorizer => authorizer.data({ groupId: interestGroup.groupId }).authorize(session).authorized)
-    const canPension = interestGroupAuth.pension.authorize(session).authorized
+    ].some(authorizer => authorizer.data({ groupId: interestGroup.groupId }).auth(session).authorized)
+    const canPension = interestGroupAuth.pension.auth(session).authorized
     const canAdministrate = canManage || canPension
 
     const cmsArticleActionConfig = { implementationParams: { interestGroupId: interestGroup.id } }

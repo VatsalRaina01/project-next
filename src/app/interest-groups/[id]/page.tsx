@@ -43,16 +43,16 @@ export default async function InterestGroupMembers({ params }: PropTypes) {
     const expanded = expandedGroups.find(group => group.id === interestGroup.groupId)
     const session = await ServerSession.fromNextAuth()
     const canMigrate = interestGroupAuth.migrateGroup.data({ groupId: interestGroup.groupId })
-        .authorize(session).authorized
+        .auth(session).authorized
     const canAddMembers = interestGroupAuth.addMembers.data({ groupId: interestGroup.groupId })
-        .authorize(session).authorized
+        .auth(session).authorized
     const canSetMemberAdmin = interestGroupAuth.setMemberAdmin.data({ groupId: interestGroup.groupId })
-        .authorize(session).authorized
+        .auth(session).authorized
     const canSetMemberTitle = interestGroupAuth.setMemberTitle.data({ groupId: interestGroup.groupId })
-        .authorize(session).authorized
-    const canPension = interestGroupAuth.pension.authorize(session).authorized
+        .auth(session).authorized
+    const canPension = interestGroupAuth.pension.auth(session).authorized
     const canRemoveMembers = interestGroupAuth.removeMembers.data({ groupId: interestGroup.groupId })
-        .authorize(session).authorized
+        .auth(session).authorized
 
     const activeMembersOfGroupOrder = members.filter(
         member => member.active && member.order === expanded?.order

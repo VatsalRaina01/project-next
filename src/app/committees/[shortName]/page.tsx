@@ -32,7 +32,7 @@ export default async function Committee({ params }: PropTypes) {
     const paragraph = paragraphRes.data
 
     const canEditCommitteeParagraph = committeeAuth.updateParagraphContent.data({ groupId: committee.groupId })
-        .authorize(await ServerSession.fromNextAuth()).toJsObject()
+        .auth(await ServerSession.fromNextAuth()).toJsObject()
 
     return (
         <div className={styles.wrapper}>

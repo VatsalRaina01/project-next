@@ -37,7 +37,7 @@ export default async function ManualGroupAdmin({ params }: PropTypes) {
 
     // The page reads the group's members, so it guards on `readMembers` rather than `read`:
     // `MANUAL_GROUP_USE` is a default permission, held by a visitor with no session at all.
-    manualGroupAuth.readMembers.data({ groupId: manualGroup.groupId }).authorize(session)
+    manualGroupAuth.readMembers.data({ groupId: manualGroup.groupId }).auth(session)
         .redirectOnUnauthorized({ returnUrl: `/admin/manual-groups/${id}` })
 
     const [expandedGroups, members, currentOrder] = await Promise.all([
@@ -50,15 +50,15 @@ export default async function ManualGroupAdmin({ params }: PropTypes) {
     const expanded = expandedGroups.find(group => group.id === manualGroup.groupId)
     if (!expanded) notFound()
 
-    const canMigrate = manualGroupAuth.migrateGroup.data({ groupId: manualGroup.groupId }).authorize(session).authorized
-    const canAddMembers = manualGroupAuth.addMembers.data({ groupId: manualGroup.groupId }).authorize(session).authorized
+    const canMigrate = manualGroupAuth.migrateGroup.data({ groupId: manualGroup.groupId }).auth(session).authorized
+    const canAddMembers = manualGroupAuth.addMembers.data({ groupId: manualGroup.groupId }).auth(session).authorized
     const canSetMemberAdmin = manualGroupAuth.setMemberAdmin.data({ groupId: manualGroup.groupId })
-        .authorize(session).authorized
+        .auth(session).authorized
     const canSetMemberTitle = manualGroupAuth.setMemberTitle.data({ groupId: manualGroup.groupId })
-        .authorize(session).authorized
-    const canPension = manualGroupAuth.pension.authorize(session).authorized
+        .auth(session).authorized
+    const canPension = manualGroupAuth.pension.auth(session).authorized
     const canRemoveMembers = manualGroupAuth.removeMembers.data({ groupId: manualGroup.groupId })
-        .authorize(session).authorized
+        .auth(session).authorized
 
     // Only the active members of the group's own order can be carried into the next one.
     const membersOfGroupOrder = members.filter(

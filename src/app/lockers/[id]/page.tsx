@@ -29,7 +29,7 @@ export default async function Locker({ params }: PropTypes) {
     const reservation = locker.data.LockerReservation[0]
     const groupName = (isReserved && reservation.group) ? inferGroupName(assertGroupValidity(reservation.group)) : ''
 
-    const session = Require.user().authorize(
+    const session = Require.user().auth(
         await ServerSession.fromNextAuth()
     ).redirectOnUnauthorized({
         returnUrl: `/lockers/${lockerId}`
