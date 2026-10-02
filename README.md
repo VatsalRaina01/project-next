@@ -41,10 +41,10 @@ in the projectnext container
 
 #### Seeding
 
-Seeding happens automaticly in devlopment. If you want to reseed the database without restarting the docker container, run the following command. This will remove all data from the database, and then seed all the data afterwards.
+Every time the dev container starts, it applies any pending migrations and upserts the seed data, so your data survives restarts. To wipe the database and seed it from scratch, run the following command. It works whether or not the dev environment is running.
 
 ```bash
-npm run docker:seed
+npm run docker:reseed
 ```
 
 #### Reinstalling node_modules
@@ -83,15 +83,15 @@ Set `BUILDX_NO_DEFAULT_ATTESTATIONS=1` in the build environment. BuildKit otherw
 
 ### Applying database schema migrations
 
-Production schema changes go through [Prisma Migrate](https://www.prisma.io/docs/orm/prisma-migrate), not `db push` - `db push --force-reset` (what `npm run seed` uses; DobbelOmega resets through `prisma migrate reset`, see below) drops and recreates every table, which is fine for a throwaway dev database but would destroy production data.
+Schema changes go through [Prisma Migrate](https://www.prisma.io/docs/orm/prisma-migrate), in development as well as production. The dev database is built from the committed migrations (the dev reseed and DobbelOmega both use `prisma migrate reset`), so a schema change only reaches it through a migration.
 
 Whenever you change a schema file under `src/prisma/schema/`, generate a migration for it locally and commit the result:
 
 ```bash
-npm run migrate:dev
+npm run docker:migrate:dev -- --name <name>
 ```
 
-This runs against your dev database (via a Prisma shadow database) and writes a new folder under `src/prisma/migrations/` containing the SQL. Commit that folder. If the change requires backfilling existing rows - a new required column with no single sensible default, or a restructuring that has to carry data across - edit the generated `migration.sql` by hand before committing: `migrate diff` only ever emits plain DDL and will happily generate something that fails against a populated table.
+This runs in a one-off container, so it works whether or not the dev environment is running. It applies the migration to your dev database (checking it against a Prisma shadow database) and writes a new folder under `src/prisma/migrations/` containing the SQL. Commit that folder. If the change requires backfilling existing rows - a new required column with no single sensible default, or a restructuring that has to carry data across - edit the generated `migration.sql` by hand before committing: `migrate diff` only ever emits plain DDL and will happily generate something that fails against a populated table.
 
 Committed migrations are applied **automatically on every deploy**. `docker-compose.prod.yml` has a one-shot `migrate` service that runs `migrate:deploy`, and `projectnext` declares `depends_on: migrate: condition: service_completed_successfully` - so the web app does not start until migrations have exited 0, and a failed migration fails the deploy instead of booting the app against a half-applied schema. `migrate:deploy` only runs migrations that have not been applied yet, never touches existing data outside of what a migration's SQL explicitly does, and is a no-op once everything is applied, so an ordinary deploy costs nothing.
 
