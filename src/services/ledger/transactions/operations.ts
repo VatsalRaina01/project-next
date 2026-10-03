@@ -331,9 +331,10 @@ export const ledgerTransactionOperations = {
                 .filter(entry => entry.funds < 0)
                 .map(entry => entry.ledgerAccountId)
 
-            return ledgerTransactionAuth.create(
-                await resolveAccountsOwnership(prisma, { ledgerAccountIds: debitLedgerAccountIds })
-            )
+            return ledgerTransactionAuth.create({
+                debitLedgerAccountIds,
+                debitAccounts: await resolveAccountsOwnership(prisma, { ledgerAccountIds: debitLedgerAccountIds }),
+            })
         },
         paramsSchema: z.object({
             purpose: z.nativeEnum(LedgerTransactionPurpose),
