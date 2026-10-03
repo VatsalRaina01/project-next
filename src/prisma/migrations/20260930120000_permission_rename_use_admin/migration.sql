@@ -119,13 +119,14 @@ WHERE a.ctid > b.ctid
     AND a."_newPermission" = b."_newPermission";
 
 -- ApiKey.permissions: remap each array element, deduplicating within the array.
--- NULL arrays stay NULL.
+-- NULL arrays stay NULL. An empty array stays empty: array_agg over no rows is NULL, hence the
+-- COALESCE.
 ALTER TABLE "ApiKey" ADD COLUMN "_newPermissions" TEXT[];
 
 UPDATE "ApiKey" SET "_newPermissions" = CASE
     WHEN "permissions" IS NULL THEN NULL
     ELSE (
-        SELECT array_agg(DISTINCT mapped.value)
+        SELECT COALESCE(array_agg(DISTINCT mapped.value), '{}')
         FROM (
             SELECT COALESCE(
                 (SELECT "newValue" FROM "_PermissionRenameMap" WHERE "oldValue" = elem::text),
