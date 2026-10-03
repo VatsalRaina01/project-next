@@ -64,7 +64,6 @@ enum Permission {
   IMAGE_ADMIN
 
   EVENT_ADMIN
-  EVENT_USE
   EVENT_CREATE
 
   // Notifications

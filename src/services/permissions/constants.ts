@@ -158,11 +158,6 @@ export const permissionConfig = {
         description: 'kan lage og administrere events, samt gi prikker for uteblivelse',
         category: 'events',
     },
-    EVENT_USE: {
-        name: 'Bruke events',
-        description: 'kan lese events og påmeldinger, samt melde seg på og av arrangementer',
-        category: 'events',
-    },
     EVENT_CREATE: {
         name: 'Lage events',
         description: 'kan lage nye events, men administrerer kun de som egen synlighet gir tilgang til',
