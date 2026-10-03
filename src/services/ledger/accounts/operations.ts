@@ -226,17 +226,10 @@ export const ledgerAccountOperations = {
      * @returns The updated account.
      */
     update: defineOperation({
-        authorizer: async ({ params, data, prisma }) => {
-            const base = ledgerAccountAuth.update.ledgerUse
-                .allOf(ledgerAccountAuth.update.accountAccess([await resolveAccountOwnership(prisma, params)]))
-
-            // Group links decide who can access the account (ledgerAccountAccess treats an owning
-            // group's members as owners), so changing them needs LEDGER_ADMIN even for a caller
-            // who already owns the account being changed.
-            return (data.addGroupIds?.length || data.removeGroupIds?.length)
-                ? base.allOf(ledgerAccountAuth.update.groupAccess)
-                : base
-        },
+        authorizer: async ({ params, data, prisma }) => ledgerAccountAuth.update({
+            accounts: [await resolveAccountOwnership(prisma, params)],
+            changesGroupLinks: Boolean(data.addGroupIds?.length || data.removeGroupIds?.length),
+        }),
         paramsSchema: z.object({
             userId: z.number().optional(),
             ledgerAccountId: z.number().optional(),

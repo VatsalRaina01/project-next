@@ -75,6 +75,11 @@ function evaluateGroup<PrismaWhereFilter extends object | undefined>(
  * Internally, a chain is `groups`: AND-groups OR'd together. Condition methods append to the last
  * group; `.or()` starts a new, empty one. An empty group always fails - including the whole
  * chain, not just that branch - so a dangling `.or()` breaks loudly instead of quietly doing less.
+ *
+ * Chaining therefore only ever narrows the last group: on a chain `a OR b`, `.permission('P')`
+ * gives `a OR (b AND P)`, and `a` still passes on its own. To require something of a whole chain
+ * that has several groups, combine the two from `Require`: `Require.allOf(chain, extra)` is
+ * `(a AND extra) OR (b AND extra)`.
  */
 export class RequireBuilder<Data extends object = NoData, PrismaWhereFilter extends object | undefined = never> {
     /** Private: every chain starts from `Require`. `groups` are the AND-groups, OR'd together. */
@@ -242,14 +247,18 @@ export class RequireBuilder<Data extends object = NoData, PrismaWhereFilter exte
     }
 
     /** OR: authorized if any of `builders` passes. Every branch is evaluated, and on total
-     * failure the branches' messages are joined. */
+     * failure the branches' messages are joined. Like every method it extends the last group only;
+     * see the class doc. */
     anyOf<Builders extends readonly [AnyRequireBuilder, ...AnyRequireBuilder[]]>(
         ...builders: Builders
     ): RequireBuilder<Data & CombinedData<Builders>, PrismaWhereFilter> {
         return this.appendToLastGroup(builders.flatMap(builder => builder.groups))
     }
 
-    /** AND: authorized only if all of `builders` pass. Short-circuits on the first failure. */
+    /** AND: authorized only if all of `builders` pass. Short-circuits on the first failure. Like
+     * every method it extends the last group only: `chain.allOf(extra)` leaves the earlier groups
+     * of `chain` without `extra`. Use `Require.allOf(chain, extra)` to require both in full; see
+     * the class doc. */
     allOf<Builders extends readonly [AnyRequireBuilder, ...AnyRequireBuilder[]]>(
         ...builders: Builders
     ): RequireBuilder<Data & CombinedData<Builders>, PrismaWhereFilter> {

@@ -26,12 +26,17 @@ export const ledgerAccountAuth = {
 
     // Can reassign an account's owner or payout number, so ownership is required too, even
     // though updating doesn't move money.
-    update: {
-        ledgerUse: Require.permission('LEDGER_USE'),
-        accountAccess: (accounts: LedgerAccountOwnership[]) => ledgerAccountAccess('LEDGER_ADMIN', accounts),
-        // Group links decide who can access the account, so changing them is LEDGER_ADMIN only,
-        // not covered by ownership like the rest of an update.
-        groupAccess: Require.permission('LEDGER_ADMIN'),
+    //
+    // Group links decide who can access the account (ledgerAccountAccess treats an owning group's
+    // members as owners), so changing them takes LEDGER_ADMIN on top, even of a caller who already
+    // owns the account. Require.allOf rather than chaining onto the ownership chain: chaining
+    // would add LEDGER_ADMIN to its last group only.
+    update: ({ accounts, changesGroupLinks }: {
+        accounts: LedgerAccountOwnership[],
+        changesGroupLinks: boolean,
+    }) => {
+        const ownAccount = Require.permission('LEDGER_USE').allOf(ledgerAccountAccess('LEDGER_ADMIN', accounts))
+        return changesGroupLinks ? Require.allOf(ownAccount, Require.permission('LEDGER_ADMIN')) : ownAccount
     },
 
     calculateBalances: (accounts: LedgerAccountOwnership[]) => ledgerAccountAccess('LEDGER_ADMIN', accounts),
