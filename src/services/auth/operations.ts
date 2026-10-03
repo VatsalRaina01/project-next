@@ -113,7 +113,7 @@ export const authOperations = {
         operation: async ({ params, data }) => {
             const userId = await authOperations.verifyResetPasswordToken({ params })
 
-            userOperations.updatePassword({
+            await userOperations.updatePassword({
                 params: {
                     id: userId,
                 },
