@@ -9,7 +9,7 @@ import { notFound, redirect } from 'next/navigation'
 export default async function Registeremail() {
     const { authorized, session } = Require.user().auth(await ServerSession.fromNextAuth())
 
-    if (!authorized || !session.user) notFound()
+    if (!authorized) notFound()
 
     const updatedUser = await readUserAction({ params: { id: session.user.id } })
 
