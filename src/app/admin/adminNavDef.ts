@@ -201,13 +201,19 @@ export const adminNavDef: AdminNavGroup[] = [
         header: { icon: faEnvelopesBulk, title: 'Mailing tjener' },
         links: [
             {
-                title: 'Mailing lister',
-                path: 'mail',
-                authorizers: () => [
-                    mailAliasAuth.create,
-                    mailingListAuth.create,
-                    mailAddressExternalAuth.create,
-                ],
+                title: 'E-postlister',
+                path: 'mail/mailingList',
+                authorizers: () => [mailingListAuth.create],
+            },
+            {
+                title: 'E-postalias',
+                path: 'mail/alias',
+                authorizers: () => [mailAliasAuth.create],
+            },
+            {
+                title: 'Eksterne adresser',
+                path: 'mail/mailaddressExternal',
+                authorizers: () => [mailAddressExternalAuth.create],
             },
         ],
     },
