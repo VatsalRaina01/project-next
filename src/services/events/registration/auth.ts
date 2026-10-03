@@ -6,8 +6,8 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
  * takes to act on the registrations of everyone else. EVENT_ADMIN bypasses both for every event.
  * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`.
  */
-const registerLevel = Require.permission('EVENT_ADMIN').or().visibility({ level: 'regularLevel' })
-const eventAdminLevel = Require.permission('EVENT_ADMIN').or().visibility({ level: 'adminLevel' })
+const registerLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
+const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
 const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
 
 /**

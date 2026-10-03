@@ -5,8 +5,8 @@ import { Require } from '@/auth/authorizer/Require'
  * images), its regular level who may merely see it. IMAGE_ADMIN bypasses both for every collection.
  * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`.
  */
-const regularLevel = Require.permission('IMAGE_ADMIN').or().visibility({ level: 'regularLevel' })
-const adminLevel = Require.permission('IMAGE_ADMIN').or().visibility({ level: 'adminLevel' })
+const regularLevel = Require.permission('IMAGE_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
+const adminLevel = Require.permission('IMAGE_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
 
 export const dynamicImageAuth = {
     readDoubleLevelMatrix: regularLevel,

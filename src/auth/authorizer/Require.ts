@@ -161,8 +161,11 @@ export class RequireBuilder<Data extends object = NoData, PrismaWhereFilter exte
     /** Whether the session satisfies one level of a double-level visibility matrix. Needs
      * `{ visibility: DoubleLevelVisibilityMatrix }` via `.data()`. `level` picks which half, and
      * belongs in auth.ts - fixed per operation, or chosen from the resource's own data - never
-     * left for the caller to pick by supplying "the correct half" in `.data()` instead. */
-    visibility(opts: { level: 'regularLevel' | 'adminLevel', errorMessage?: string }):
+     * left for the caller to pick by supplying "the correct half" in `.data()` instead.
+     *
+     * Not `.visibility()`: that name is kept for a resource with a single level, where there is no
+     * half to choose. No resource has one yet, so that method does not exist. */
+    levelOfDoubleVisibility(opts: { level: 'regularLevel' | 'adminLevel', errorMessage?: string }):
         RequireBuilder<Data & { visibility: DoubleLevelVisibilityMatrix }> {
         return this.and<{ visibility: DoubleLevelVisibilityMatrix }>(({ session, visibility }) => (
             checkVisibility(session.memberships, visibility[opts.level])
@@ -202,7 +205,7 @@ export class RequireBuilder<Data extends object = NoData, PrismaWhereFilter exte
     }
 
     /** Starts a new group, OR'd against everything before it, e.g.
-     * `Require.permission('IMAGE_ADMIN').or().visibility({ level: 'regularLevel' })`. Takes no
+     * `Require.permission('IMAGE_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })`. Takes no
      * argument - to OR in an already-built builder, follow it with `.allOf(thatBuilder)` (`allOf`
      * of one builder is just that builder). Leaving it dangling fails the whole chain; see the
      * class doc. `anyOf`/`allOf` are for three-or-more or dynamic composition instead. */

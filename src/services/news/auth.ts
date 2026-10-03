@@ -6,8 +6,8 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
  * regular level who may see it once published. NEWS_ADMIN bypasses both levels for every article.
  * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`.
  */
-const regularLevel = Require.permission('NEWS_ADMIN').or().visibility({ level: 'regularLevel' })
-const adminLevel = Require.permission('NEWS_ADMIN').or().visibility({ level: 'adminLevel' })
+const regularLevel = Require.permission('NEWS_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
+const adminLevel = Require.permission('NEWS_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
 
 export const newsAuth = {
     create: Require.permission('NEWS_ADMIN').or().permission('NEWS_CREATE'),

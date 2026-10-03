@@ -6,8 +6,8 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
  * may register for it, and who may see it at all when it isn't viewable by everyone. EVENT_ADMIN
  * bypasses both levels for every event.
  */
-const regularLevel = Require.permission('EVENT_ADMIN').or().visibility({ level: 'regularLevel' })
-const adminLevel = Require.permission('EVENT_ADMIN').or().visibility({ level: 'adminLevel' })
+const regularLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
+const adminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
 
 export const eventAuth = {
     // A new event has no visibility matrix yet to check. EVENT_CREATE is the only gate here. The
