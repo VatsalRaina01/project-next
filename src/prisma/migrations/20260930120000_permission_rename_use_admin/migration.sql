@@ -3,9 +3,34 @@ BEGIN;
 
 -- NOTIFICATION_CREATE was granted to every committee; the new model has no committee-level
 -- notification permission, so drop those grants instead of escalating them to NOTIFICATION_ADMIN.
-DELETE FROM "GroupPermission" WHERE "permission"::text = 'NOTIFICATION_CREATE';
-DELETE FROM "DefaultPermission" WHERE "permission"::text = 'NOTIFICATION_CREATE';
-UPDATE "ApiKey" SET "permissions" = array_remove("permissions", 'NOTIFICATION_CREATE'::"Permission")
+--
+-- The NOTIFICATION_SUBSCRIPTION_* permissions are dropped for the same reason. They only let the
+-- holder read or edit the subscriptions of other users, while NOTIFICATION_ADMIN also sends
+-- notifications and manages channels. Whoever should have that is granted NOTIFICATION_ADMIN anew.
+DELETE FROM "GroupPermission" WHERE "permission"::text IN (
+    'NOTIFICATION_CREATE',
+    'NOTIFICATION_SUBSCRIPTION_READ',
+    'NOTIFICATION_SUBSCRIPTION_READ_OTHER',
+    'NOTIFICATION_SUBSCRIPTION_UPDATE',
+    'NOTIFICATION_SUBSCRIPTION_UPDATE_OTHER'
+);
+DELETE FROM "DefaultPermission" WHERE "permission"::text IN (
+    'NOTIFICATION_CREATE',
+    'NOTIFICATION_SUBSCRIPTION_READ',
+    'NOTIFICATION_SUBSCRIPTION_READ_OTHER',
+    'NOTIFICATION_SUBSCRIPTION_UPDATE',
+    'NOTIFICATION_SUBSCRIPTION_UPDATE_OTHER'
+);
+UPDATE "ApiKey" SET "permissions" = ARRAY(
+    SELECT elem FROM unnest("permissions") AS elem
+    WHERE elem::text NOT IN (
+        'NOTIFICATION_CREATE',
+        'NOTIFICATION_SUBSCRIPTION_READ',
+        'NOTIFICATION_SUBSCRIPTION_READ_OTHER',
+        'NOTIFICATION_SUBSCRIPTION_UPDATE',
+        'NOTIFICATION_SUBSCRIPTION_UPDATE_OTHER'
+    )
+)
 WHERE "permissions" IS NOT NULL;
 
 CREATE TABLE "_PermissionRenameMap" (
@@ -39,10 +64,6 @@ INSERT INTO "_PermissionRenameMap" ("oldValue", "newValue") VALUES
     ('IMAGE_COLLECTION_CREATE', 'IMAGE_CREATE'),
     ('NOTIFICATION_CHANNEL_CREATE', 'NOTIFICATION_ADMIN'),
     ('NOTIFICATION_CHANNEL_UPDATE', 'NOTIFICATION_ADMIN'),
-    ('NOTIFICATION_SUBSCRIPTION_READ', 'NOTIFICATION_ADMIN'),
-    ('NOTIFICATION_SUBSCRIPTION_READ_OTHER', 'NOTIFICATION_ADMIN'),
-    ('NOTIFICATION_SUBSCRIPTION_UPDATE', 'NOTIFICATION_ADMIN'),
-    ('NOTIFICATION_SUBSCRIPTION_UPDATE_OTHER', 'NOTIFICATION_ADMIN'),
     ('MAIL_SEND', 'MAIL_USE'),
     ('MAILALIAS_READ', 'MAILALIAS_USE'),
     ('MAILINGLIST_READ', 'MAILINGLIST_USE'),
