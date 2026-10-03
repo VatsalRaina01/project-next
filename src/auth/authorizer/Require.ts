@@ -80,6 +80,11 @@ export class RequireBuilder<Data extends object = NoData, PrismaWhereFilter exte
     /** Private: every chain starts from `Require`. `groups` are the AND-groups, OR'd together. */
     private constructor(private readonly groups: readonly RequireGroup<Data, PrismaWhereFilter>[]) {}
 
+    /** Type-only: the names of the data this chain still needs, `never` once `.data()` has supplied
+     * all of it. `Authorizer` only accepts `never` here, so handing over a chain that still lacks
+     * data is a type error that names what is missing. It is never set and must not be read. */
+    declare readonly missingData: keyof Data
+
     /** The chain with no rules yet, exported as `Require`. Its one empty group fails until a
      * condition is added to it. */
     static readonly identity = new RequireBuilder<NoData>([[]])
