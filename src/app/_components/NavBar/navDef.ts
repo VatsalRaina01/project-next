@@ -15,6 +15,7 @@ import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
 import { userAuth } from '@/services/users/auth'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
+import { bullshitAuth } from '@/services/bullshit/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
 import {
@@ -35,6 +36,7 @@ import {
     faHouseChimneyWindow,
     faPeopleLine,
     faIdCard,
+    faPoo,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer, UserRequieredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -117,6 +119,12 @@ export const navDef: NavItem[] = [
         href: '/omegaquotes',
         icon: faComment,
         authorizers: () => [omegaQuotesAuth.readPage],
+    },
+    {
+        name: 'Bullshit',
+        href: '/bullshit',
+        icon: faPoo,
+        authorizers: () => [bullshitAuth.readPage, bullshitAuth.create],
     },
     {
         name: 'Artikler',
