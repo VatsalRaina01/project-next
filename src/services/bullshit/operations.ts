@@ -10,8 +10,6 @@ export const bullshitOperations = {
         authorizer: () => bullshitAuth.create,
         dataSchema: bullshitSchemas.create,
         operation: async ({ prisma, data, session }) => {
-            // The poster is whoever is logged in, never a value the client sends along: taking it
-            // from the request would let a writer attribute a quote to any other user.
             if (!session.user) {
                 throw new Smorekopp('UNAUTHORIZED', 'Du må være logget inn for å legge ut bullshit.')
             }
