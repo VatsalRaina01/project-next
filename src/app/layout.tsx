@@ -7,6 +7,7 @@ import EditModeProvider from '@/contexts/EditMode'
 import PopUpProvider from '@/contexts/PopUp'
 import ClientDataProvider from '@/contexts/ClientData'
 import { PageTitleProvider } from '@/contexts/PageTitle'
+import GlobalSearchProvider from '@/contexts/GlobalSearch'
 import { readDefaultPermissionsAction } from '@/services/permissions/actions'
 import { readAllStandardImagesAction } from '@/services/images/standard/actions'
 import { readUserProfileAction } from '@/services/users/actions'
@@ -88,34 +89,36 @@ export default async function RootLayout({ children }: PropTypes) {
                         defaultPermissions={defaultPermissions}
                         standardImages={standardImages}
                     >
-                        <GlobalSearch navItems={navItems} />
-                        <EditModeProvider>
-                            <PopUpProvider>
-                                <PageTitleProvider>
-                                    <div className={styles.wrapper}>
-                                        <div className={styles.navBar}>
-                                            <NavBar
-                                                isLoggedIn={navUser !== null}
-                                                profileImage={navUser?.image ?? null}
-                                                navItems={navItems}
-                                            />
+                        <GlobalSearchProvider>
+                            <GlobalSearch navItems={navItems} />
+                            <EditModeProvider>
+                                <PopUpProvider>
+                                    <PageTitleProvider>
+                                        <div className={styles.wrapper}>
+                                            <div className={styles.navBar}>
+                                                <NavBar
+                                                    isLoggedIn={navUser !== null}
+                                                    profileImage={navUser?.image ?? null}
+                                                    navItems={navItems}
+                                                />
+                                            </div>
+                                            <aside className={styles.sideBar}>
+                                                <DesktopSideBar navItems={navItems} />
+                                            </aside>
+                                            <main className={styles.content}>
+                                                {children}
+                                            </main>
+                                            <div className={styles.mobileNavBar}>
+                                                <MobileNavBar
+                                                    isLoggedIn={navUser !== null}
+                                                    navItems={navItems}
+                                                />
+                                            </div>
                                         </div>
-                                        <aside className={styles.sideBar}>
-                                            <DesktopSideBar navItems={navItems} />
-                                        </aside>
-                                        <main className={styles.content}>
-                                            {children}
-                                        </main>
-                                        <div className={styles.mobileNavBar}>
-                                            <MobileNavBar
-                                                isLoggedIn={navUser !== null}
-                                                navItems={navItems}
-                                            />
-                                        </div>
-                                    </div>
-                                </PageTitleProvider>
-                            </PopUpProvider>
-                        </EditModeProvider>
+                                    </PageTitleProvider>
+                                </PopUpProvider>
+                            </EditModeProvider>
+                        </GlobalSearchProvider>
                     </ClientDataProvider>
                 </SessionProvider>
             </body>
