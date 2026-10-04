@@ -19,27 +19,27 @@ import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 const commonGroupOperations = implementGroupType({
     type: GroupType.INTEREST_GROUP,
     auth: {
-        readExpanded: interestGroupAuth.readExpanded.dynamicFields({}),
-        readMembers: ({ groupId }) => interestGroupAuth.readMembers.dynamicFields({ groupId }),
-        readMembershipsOfUser: ({ userId }) => interestGroupAuth.readMembershipsOfUser.dynamicFields({ userId }),
+        readExpanded: interestGroupAuth.readExpanded,
+        readMembers: ({ groupId }) => interestGroupAuth.readMembers.data({ groupId }),
+        readMembershipsOfUser: ({ userId }) => interestGroupAuth.readMembershipsOfUser.data({ userId }),
     },
 })
 
 const memberManagement = implementSimpleAddRemoveMembersOperation({
     type: GroupType.INTEREST_GROUP,
     auth: {
-        addMembers: ({ groupId }) => interestGroupAuth.addMembers.dynamicFields({ groupId }),
-        removeMembers: ({ groupId }) => interestGroupAuth.removeMembers.dynamicFields({ groupId }),
-        setMemberAdmin: ({ groupId }) => interestGroupAuth.setMemberAdmin.dynamicFields({ groupId }),
-        setMemberTitle: ({ groupId }) => interestGroupAuth.setMemberTitle.dynamicFields({ groupId }),
+        addMembers: ({ groupId }) => interestGroupAuth.addMembers.data({ groupId }),
+        removeMembers: ({ groupId }) => interestGroupAuth.removeMembers.data({ groupId }),
+        setMemberAdmin: ({ groupId }) => interestGroupAuth.setMemberAdmin.data({ groupId }),
+        setMemberTitle: ({ groupId }) => interestGroupAuth.setMemberTitle.data({ groupId }),
     },
 })
 
 const migration = implementManualMigrationPerGroup({
     type: GroupType.INTEREST_GROUP,
     auth: {
-        migrateGroup: ({ groupId }) => interestGroupAuth.migrateGroup.dynamicFields({ groupId }),
-        pension: () => interestGroupAuth.pension.dynamicFields({}),
+        migrateGroup: ({ groupId }) => interestGroupAuth.migrateGroup.data({ groupId }),
+        pension: () => interestGroupAuth.pension,
     },
     setPensioned: (prisma, groupId, pensioned) => prisma.interestGroup.update({
         where: { groupId },
@@ -77,7 +77,7 @@ export const interestGroupOperations = {
     pension: migration.pension,
     create: defineOperation({
         dataSchema: interestGroupSchemas.create,
-        authorizer: () => interestGroupAuth.create.dynamicFields({}),
+        authorizer: () => interestGroupAuth.create,
         operation: async ({ prisma, data }) => {
             const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -103,7 +103,7 @@ export const interestGroupOperations = {
     }),
 
     readMany: defineOperation({
-        authorizer: () => interestGroupAuth.readMany.dynamicFields({}),
+        authorizer: () => interestGroupAuth.readMany,
         operation: ({ prisma }) => prisma.interestGroup.findMany({
             include: {
                 articleSection: {
@@ -121,7 +121,7 @@ export const interestGroupOperations = {
         paramsSchema: z.object({
             id: z.number().optional(),
         }),
-        authorizer: () => interestGroupAuth.read.dynamicFields({}),
+        authorizer: () => interestGroupAuth.read,
         operation: async ({ prisma, params: { id } }) => await prisma.interestGroup.findUniqueOrThrow({
             where: {
                 id,
@@ -145,9 +145,7 @@ export const interestGroupOperations = {
                 select: { groupId: true },
             })
 
-            return interestGroupAuth.update.dynamicFields({
-                groupId,
-            })
+            return interestGroupAuth.update.data({ groupId })
         },
         operation: async ({ prisma, params: { id }, data }) => {
             await assertNotPensioned(prisma, id)
@@ -163,7 +161,7 @@ export const interestGroupOperations = {
         paramsSchema: z.object({
             id: z.number(),
         }),
-        authorizer: () => interestGroupAuth.destroy.dynamicFields({}),
+        authorizer: () => interestGroupAuth.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params: { id } }) => {
             await assertNotPensioned(prisma, id)
@@ -180,12 +178,12 @@ export const interestGroupOperations = {
     }),
 
     readSpecialCmsParagraphGeneralInfo: cmsParagraphOperations.readSpecial.implement({
-        authorizer: () => interestGroupAuth.readSpecialCmsParagraphGeneralInfo.dynamicFields({}),
+        authorizer: () => interestGroupAuth.readSpecialCmsParagraphGeneralInfo,
         ownershipCheck: ({ params }) => params.special === 'INTEREST_GROUP_GENERAL_INFO'
     }),
 
     updateSpecialCmsParagraphContentGeneralInfo: cmsParagraphOperations.updateContent.implement({
-        authorizer: () => interestGroupAuth.updateSpecialCmsParagraphContentGeneralInfo.dynamicFields({}),
+        authorizer: () => interestGroupAuth.updateSpecialCmsParagraphContentGeneralInfo,
         ownershipCheck: async ({ params }) =>
             await cmsParagraphOperations.isSpecial.internalCall({
                 params: {
@@ -203,9 +201,7 @@ export const interestGroupOperations = {
                 where: { id: implementationParams.interestGroupId },
                 select: { groupId: true }
             })
-            return interestGroupAuth.updateArticleSection.dynamicFields({
-                groupId
-            })
+            return interestGroupAuth.updateArticleSection.data({ groupId })
         },
         beforeRun: ({ prisma, implementationParams }) =>
             assertNotPensioned(prisma, implementationParams.interestGroupId),

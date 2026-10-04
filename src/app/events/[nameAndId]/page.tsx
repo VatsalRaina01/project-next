@@ -4,6 +4,7 @@ import RegistrationUI from './RegistrationUI'
 import RegistrationsList from './RegistrationsList'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import EventVisibilityAdmin from './EventVisibilityAdmin'
+import EventLocationMap from '@/components/Event/EventLocationMap'
 import Date from '@/components/Date/Date'
 import CreateOrUpdateEventForm from '@/app/events/CreateOrUpdateEventForm'
 import CmsImage from '@/components/Cms/CmsImage/CmsImage'
@@ -62,29 +63,27 @@ export default async function Event({ params }: PropTypes) {
     const doubleLevelVisibility = readDoubleLevelVisibility.success ? readDoubleLevelVisibility.data : null
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
 
-    const canEditCmsCoverImage = eventAuth.updateCmsCoverImage.dynamicFields({ doubleLevelMatrix }).auth(
+    const canEditCmsCoverImage = eventAuth.updateCmsCoverImage.data({ visibility: doubleLevelMatrix }).auth(
         session
     ).toJsObject()
-    const canEditCmsParagraph = eventAuth.updateParagraphContent.dynamicFields({ doubleLevelMatrix }).auth(
+    const canEditCmsParagraph = eventAuth.updateParagraphContent.data({ visibility: doubleLevelMatrix }).auth(
         session
     ).toJsObject()
-    const canDestroy = eventAuth.destroy.dynamicFields({ doubleLevelMatrix }).auth(
+    const canDestroy = eventAuth.destroy.data({ visibility: doubleLevelMatrix }).auth(
         session
     ).toJsObject()
 
     // Registering takes the regular level of the event, reading who is registered the same, and
     // registering on behalf of others its admin level - offering any of it to someone without the
     // level would only produce an error when they act on it.
-    const canRegister = session.user ? eventRegistrationAuth.create.dynamicFields({
+    const canRegister = session.user ? eventRegistrationAuth.create({
         userId: session.user.id,
         doubleLevelMatrix,
     }).auth(session).authorized : false
-    const canReadRegistrations = eventRegistrationAuth.readPage.dynamicFields({
-        doubleLevelMatrix
-    }).auth(session).authorized
-    const canRegisterOthers = eventRegistrationAuth.createGuest.dynamicFields({
-        doubleLevelMatrix
-    }).auth(session).authorized
+    const canReadRegistrations = eventRegistrationAuth.readPage
+        .data({ visibility: doubleLevelMatrix }).auth(session).authorized
+    const canRegisterOthers = eventRegistrationAuth.createGuest
+        .data({ visibility: doubleLevelMatrix }).auth(session).authorized
 
     // What the dots of the one visiting hold them back from - nothing to tell a visitor without a
     // user, and nothing to hide either, as it is their own dots it is read from.
@@ -215,6 +214,10 @@ export default async function Event({ params }: PropTypes) {
                         )
                     }
                 />
+                {event.locationMap && <section aria-label="Kart til arrangementet">
+                    <h2>Her finner du oss</h2>
+                    <EventLocationMap locationMap={event.locationMap} />
+                </section>}
             </main>
 
             {event.takesRegistration && canReadRegistrations && (

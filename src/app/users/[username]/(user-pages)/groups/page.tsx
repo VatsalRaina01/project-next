@@ -53,7 +53,7 @@ export default async function UserGroups({ params }: PropTypes) {
     ] as const
 
     const sections = await Promise.all(groupTypes
-        .filter(({ authorizer }) => authorizer.dynamicFields({ userId }).auth(session).authorized)
+        .filter(({ authorizer }) => authorizer.data({ userId }).auth(session).authorized)
         .map(async ({ type, readMemberships }) => ({
             type,
             memberships: unwrapActionReturn(await readMemberships({ params: { userId } })),

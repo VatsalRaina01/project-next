@@ -34,7 +34,7 @@ export const userOperations = {
      */
     create: defineOperation({
         dataSchema: userSchemas.create,
-        authorizer: () => userAuth.create.dynamicFields({}),
+        authorizer: () => userAuth.create,
         operation: async ({ prisma, data }) => {
             const omegaMembership = await omegaMembershipGroupOperations.read({
                 params: { omegaMembershipLevel: 'DEN_GEMENE_HOB' },
@@ -77,7 +77,7 @@ export const userOperations = {
             email: z.string().optional(),
             studentCard: z.string().optional(),
         }),
-        authorizer: ({ params }) => userAuth.read.dynamicFields(params),
+        authorizer: ({ params }) => userAuth.read.data({ userField: params }),
         operation: async ({ prisma, params }) => await prisma.user.findUniqueOrThrow({
             where: {
                 id: params.id,
@@ -94,7 +94,7 @@ export const userOperations = {
             email: z.string().optional(),
             studentCard: z.string().optional(),
         }),
-        authorizer: ({ params }) => userAuth.read.dynamicFields(params),
+        authorizer: ({ params }) => userAuth.read.data({ userField: params }),
         operation: async ({ prisma, params }) => await prisma.user.findUnique({
             where: {
                 id: params.id, // This is a bit wierd, but now ts is satisfied.
@@ -108,7 +108,7 @@ export const userOperations = {
         paramsSchema: z.object({
             username: z.string(),
         }),
-        authorizer: ({ params }) => userAuth.readProfile.dynamicFields({ username: params.username }),
+        authorizer: ({ params }) => userAuth.readProfile.data({ userField: { username: params.username } }),
         operation: async ({ prisma, params }) => {
             const { id: userId } = await prisma.user.findUniqueOrThrow({
                 where: { username: params.username.toLowerCase() },
@@ -197,7 +197,7 @@ export const userOperations = {
 
     readPage: defineOperation({
         paramsSchema: userSchemas.readPage,
-        authorizer: () => userAuth.readPage.dynamicFields({}),
+        authorizer: () => userAuth.readPage,
         operation: async ({ prisma, params }): Promise<UserPagingReturn[]> => {
             const { page, details } = params.paging
             const words = details.partOfName.split(' ')
@@ -321,7 +321,7 @@ export const userOperations = {
      */
     search: defineOperation({
         paramsSchema: userSchemas.search,
-        authorizer: () => userAuth.search.dynamicFields({}),
+        authorizer: () => userAuth.search,
         operation: async ({ prisma, params }) => {
             const words = params.query.split(/\s+/).filter(Boolean)
 
@@ -355,7 +355,7 @@ export const userOperations = {
     }),
 
     connectStudentCard: defineOperation({
-        authorizer: () => userAuth.connectStudentCard.dynamicFields({}),
+        authorizer: () => userAuth.connectStudentCard,
         paramsSchema: z.object({
             studentCard: z.coerce.number().int().min(0).optional(),
         }),
@@ -378,7 +378,7 @@ export const userOperations = {
     update: defineOperation({
         paramsSchema: z.union([z.object({ id: z.number() }), z.object({ username: z.string() })]),
         dataSchema: userSchemas.update,
-        authorizer: () => userAuth.update.dynamicFields({}),
+        authorizer: () => userAuth.update,
         operation: ({ prisma, params, data }) => prisma.user.update({
             where: params,
             data,
@@ -390,7 +390,7 @@ export const userOperations = {
             username: z.string()
         }),
         dataSchema: userSchemas.updateProfile,
-        authorizer: ({ params }) => userAuth.updateProfile.dynamicFields({ username: params.username }),
+        authorizer: ({ params }) => userAuth.updateProfile.data({ userField: { username: params.username } }),
         operation: ({ prisma, data, params }) => prisma.user.update({
             where: params,
             data,
@@ -402,7 +402,7 @@ export const userOperations = {
             userId: z.number(),
         }),
         authorizer: ({ implementationParams }) =>
-            userAuth.updateBioParagraphContent.dynamicFields({ userId: implementationParams.userId }),
+            userAuth.updateBioParagraphContent.data({ userId: implementationParams.userId }),
         ownershipCheck: async ({ prisma, implementationParams, params }) =>
             (await prisma.user.findUniqueOrThrow({
                 where: { id: implementationParams.userId },
@@ -415,7 +415,7 @@ export const userOperations = {
             id: z.number(),
         }),
         dataSchema: userSchemas.updatePassword,
-        authorizer: ({ params }) => userAuth.updatePassword.dynamicFields({ userId: params.id }),
+        authorizer: ({ params }) => userAuth.updatePassword.data({ userId: params.id }),
         operation: async ({ prisma, data, params }) => {
             const passwordHash = await hashAndEncryptPassword(data.password)
 
@@ -436,7 +436,7 @@ export const userOperations = {
         paramsSchema: z.object({
             id: z.number(),
         }),
-        authorizer: ({ params }) => userAuth.registerNewEmail.dynamicFields({ userId: params.id }),
+        authorizer: ({ params }) => userAuth.registerNewEmail.data({ userId: params.id }),
         dataSchema: userSchemas.registerNewEmail,
         operation: async ({ prisma, params, data }) => {
             const storedUser = await prisma.user.findUniqueOrThrow({
@@ -507,7 +507,7 @@ export const userOperations = {
             id: z.number(),
         }),
         dataSchema: userSchemas.register,
-        authorizer: ({ params }) => userAuth.register.dynamicFields({ userId: params.id }),
+        authorizer: ({ params }) => userAuth.register.data({ userId: params.id }),
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => {
             const { sex, password, mobile, allergies, imageConsent } = data
@@ -607,8 +607,8 @@ export const userOperations = {
     }),
 
     readUserWithBalance: defineOperation({
-        authorizer: ({ params }) => userAuth.read.dynamicFields({
-            username: params.username || '',
+        authorizer: ({ params }) => userAuth.read.data({
+            userField: { username: params.username || '' },
         }),
         paramsSchema: z.object({
             username: z.string().optional(),
@@ -659,7 +659,7 @@ export const userOperations = {
         paramsSchema: z.object({
             id: z.number(),
         }),
-        authorizer: () => userAuth.destroy.dynamicFields({}),
+        authorizer: () => userAuth.destroy,
         operation: async ({ prisma, params }) => {
             const user = await prisma.user.delete({
                 where: {
@@ -674,7 +674,7 @@ export const userOperations = {
     }),
 
     updateProfileImage: defineOperation({
-        authorizer: ({ params }) => userAuth.updateProfileImage.dynamicFields({ username: params.username }),
+        authorizer: ({ params }) => userAuth.updateProfileImage.data({ userField: { username: params.username } }),
         paramsSchema: z.object({
             username: z.string(),
         }),

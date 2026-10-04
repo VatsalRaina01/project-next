@@ -196,7 +196,7 @@ export default async function User({ params }: PropTypes) {
 
                             {/* An empty bio is only worth showing to someone who can write it, in edit mode. */}
                             {(profile.user.bioParagraph.contentHtml !== '' || userAuth.updateBioParagraphContent
-                                .dynamicFields({ userId: profile.user.id }).auth(session).authorized) &&
+                                .data({ userId: profile.user.id }).auth(session).authorized) &&
                                 <div className={styles.bio}>
                                     <h2>Bio:</h2>
                                     <CmsParagraph
@@ -206,7 +206,7 @@ export default async function User({ params }: PropTypes) {
                                             { implementationParams: { userId: profile.user.id } }
                                         )}
                                         canEdit={userAuth.updateBioParagraphContent
-                                            .dynamicFields({ userId: profile.user.id }).auth(session).toJsObject()}
+                                            .data({ userId: profile.user.id }).auth(session).toJsObject()}
                                     />
                                 </div>
                             }

@@ -140,17 +140,24 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         await Promise.all(profileImageJobs.slice(i, i + imageUploadBatchSize).map(job => job()))
     }
 
+    // Only the omega membership follows from the user's place in the list - the rest are random, so
+    // they are handed out once, when the user is created. Re-rolling them on every seed would give
+    // the existing dev users a new study programme, class and committee on each dev restart.
     const memberships: Prisma.MembershipCreateManyInput[] = devUserSpecs.flatMap((spec, index) => {
         const userId = userIdByUsername.get(spec.username)!
 
+        const omegaMembership: Prisma.MembershipCreateManyInput = {
+            groupId: omegaGroupIdOf(omegaStandingOf(index).level),
+            userId,
+            admin: false,
+            active: true,
+            order: latestOrder.order
+        }
+
+        if (existingUsernames.has(spec.username)) return [omegaMembership]
+
         const specMemberships: Prisma.MembershipCreateManyInput[] = [
-            {
-                groupId: omegaGroupIdOf(omegaStandingOf(index).level),
-                userId,
-                admin: false,
-                active: true,
-                order: latestOrder.order
-            },
+            omegaMembership,
             {
                 groupId: allStudyProgrammes[randomInt(allStudyProgrammes.length)].groupId,
                 userId,
@@ -208,7 +215,8 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         skipDuplicates: true,
     })
 
-    await Promise.all(devUserSpecs
+    // Flairs are random too, so only new users get one - see the memberships above.
+    await Promise.all(newDevUserSpecs
         .filter(() => Math.random() < 0.05)
         .map(spec => prisma.flair.update({
             where: {

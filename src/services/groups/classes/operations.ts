@@ -22,27 +22,27 @@ function nextClassLevel(level: ClassLevel): ClassLevel | null {
 const commonGroupOperations = implementGroupType({
     type: GroupType.CLASS,
     auth: {
-        readExpanded: classAuth.readExpanded.dynamicFields({}),
-        readMembers: () => classAuth.readMembers.dynamicFields({}),
-        readMembershipsOfUser: ({ userId }) => classAuth.readMembershipsOfUser.dynamicFields({ userId }),
+        readExpanded: classAuth.readExpanded,
+        readMembers: () => classAuth.readMembers,
+        readMembershipsOfUser: ({ userId }) => classAuth.readMembershipsOfUser.data({ userId }),
     },
 })
 
 const migration = implementStraightAwayMigration({
     type: GroupType.CLASS,
     auth: {
-        migrateGroups: classAuth.migrateGroups.dynamicFields({}),
+        migrateGroups: classAuth.migrateGroups,
     },
 })
 
 const readMany = defineOperation({
-    authorizer: () => classAuth.readMany.dynamicFields({}),
+    authorizer: () => classAuth.readMany,
     operation: async ({ prisma }) => prisma.class.findMany()
 })
 
 const read = defineOperation({
     paramsSchema: classSchemas.read,
-    authorizer: () => classAuth.read.dynamicFields({}),
+    authorizer: () => classAuth.read,
     operation: async ({ prisma, params }) => prisma.class.findUniqueOrThrow({
         where: params,
     })
@@ -61,7 +61,7 @@ const read = defineOperation({
  */
 const readClassOfUser = defineOperation({
     paramsSchema: classSchemas.readClassOfUser,
-    authorizer: () => classAuth.readClassOfUser.dynamicFields({}),
+    authorizer: () => classAuth.readClassOfUser,
     operation: async ({ prisma, params }): Promise<{ level: ClassLevel, order: number } | null> => {
         const memberships = await prisma.membership.findMany({
             where: {
@@ -115,7 +115,7 @@ const readClassOfUser = defineOperation({
 const changeClassOfUser = defineOperation({
     paramsSchema: classSchemas.changeClassOfUserParams,
     dataSchema: classSchemas.changeClassOfUser,
-    authorizer: () => classAuth.changeClassOfUser.dynamicFields({}),
+    authorizer: () => classAuth.changeClassOfUser,
     opensTransaction: true,
     operation: async ({ prisma, params, data }) => {
         const targetClass = await prisma.class.findUniqueOrThrow({
@@ -214,7 +214,7 @@ const changeClassOfUser = defineOperation({
  * leaves nothing to create for them.
  */
 const bumpClasses = defineOperation({
-    authorizer: () => classAuth.bumpClasses.dynamicFields({}),
+    authorizer: () => classAuth.bumpClasses,
     opensTransaction: true,
     operation: async ({ prisma }) => {
         const { order: currentOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })

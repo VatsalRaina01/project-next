@@ -27,18 +27,18 @@ export default async function UserSettings({ params }: PropTypes) {
 
     // Study programme membership normally comes from Feide. Putting someone on one by hand is an
     // administrator's job, so the form only shows for one - the actions check per programme anyway.
-    const studyProgrammes = studyProgrammeAuth.update.dynamicFields({}).auth(session).authorized
+    const studyProgrammes = studyProgrammeAuth.update.auth(session).authorized
         ? unwrapActionReturn(await readStudyProgrammesAction())
         : []
 
     return (
         <div className={styles.wrapper}>
-            {userAuth.updateProfile.dynamicFields({ username: profile.user.username }).auth(session).authorized && (
+            {userAuth.updateProfile.data({ userField: { username: profile.user.username } }).auth(session).authorized && (
                 <UserProfileSettingsCard>
                     <UserSettingsForm user={profile.user} emailDomain={process.env.EMAIL_DOMAIN} />
                 </UserProfileSettingsCard>
             )}
-            {userAuth.updateBioParagraphContent.dynamicFields({ userId: profile.user.id }).auth(session).authorized && (
+            {userAuth.updateBioParagraphContent.data({ userId: profile.user.id }).auth(session).authorized && (
                 <UserProfileSettingsCard>
                     <h2>Bio</h2>
                     <CmsParagraphEditorForm
@@ -50,12 +50,13 @@ export default async function UserSettings({ params }: PropTypes) {
                     />
                 </UserProfileSettingsCard>
             )}
-            {userAuth.registerNewEmail.dynamicFields({ userId: profile.user.id }).auth(session).authorized && (
+            {userAuth.registerNewEmail.data({ userId: profile.user.id }).auth(session).authorized && (
                 <UserProfileSettingsCard>
                     <ChangeEmailForm user={profile.user} />
                 </UserProfileSettingsCard>
             )}
-            {userAuth.updateProfileImage.dynamicFields({ username: profile.user.username }).auth(session).authorized && (
+            {userAuth.updateProfileImage.data({ userField: { username: profile.user.username } })
+                .auth(session).authorized && (
                 <UserProfileSettingsCard>
                     <h2>Profilbilde</h2>
                     <div className={styles.profileImage}>
@@ -71,12 +72,12 @@ export default async function UserSettings({ params }: PropTypes) {
                     </div>
                 </UserProfileSettingsCard>
             )}
-            {userAuth.update.dynamicFields({}).auth(session).authorized && (
+            {userAuth.update.auth(session).authorized && (
                 <UserProfileSettingsCard>
                     <AdminUserSettingsForm user={profile.user} />
                 </UserProfileSettingsCard>
             )}
-            {classAuth.changeClassOfUser.dynamicFields({}).auth(session).authorized && (
+            {classAuth.changeClassOfUser.auth(session).authorized && (
                 <UserProfileSettingsCard>
                     <ChangeClassForm
                         userId={profile.user.id}
@@ -84,7 +85,7 @@ export default async function UserSettings({ params }: PropTypes) {
                     />
                 </UserProfileSettingsCard>
             )}
-            {studyProgrammeAuth.update.dynamicFields({}).auth(session).authorized && (
+            {studyProgrammeAuth.update.auth(session).authorized && (
                 <UserProfileSettingsCard>
                     <ManageUserStudyProgrammes
                         userId={profile.user.id}

@@ -11,13 +11,13 @@ import { z } from 'zod'
 
 export const permissionOperations = {
     readDefaultPermissions: defineOperation({
-        authorizer: () => permissionsAuth.readDefaultPermissions.dynamicFields({}),
+        authorizer: () => permissionsAuth.readDefaultPermissions,
         operation: async ({ prisma }) =>
             (await prisma.defaultPermission.findMany()).map(perm => perm.permission)
     }),
 
     readPermissionsOfUser: defineOperation({
-        authorizer: ({ params }) => permissionsAuth.readPermissionsOfUser.dynamicFields({ userId: params.userId }),
+        authorizer: ({ params }) => permissionsAuth.readPermissionsOfUser.data({ userId: params.userId }),
         paramsSchema: z.object({
             userId: z.number(),
         }),
@@ -50,7 +50,7 @@ export const permissionOperations = {
     }),
 
     readPermissionsOfGroup: defineOperation({
-        authorizer: () => permissionsAuth.readGroupPermissions.dynamicFields({}),
+        authorizer: () => permissionsAuth.readGroupPermissions,
         paramsSchema: z.object({
             groupId: z.number()
         }),
@@ -62,7 +62,7 @@ export const permissionOperations = {
     }),
 
     readPermissionMatrix: defineOperation({
-        authorizer: () => permissionsAuth.readPermissionMatrix.dynamicFields({}),
+        authorizer: () => permissionsAuth.readPermissionMatrix,
         operation: async ({ prisma }) => {
             const groupsPermission = await prisma.group.findMany({
                 include: {
@@ -80,7 +80,7 @@ export const permissionOperations = {
     }),
 
     updateDefaultPermissions: defineOperation({
-        authorizer: () => permissionsAuth.updateDefaultPermissions.dynamicFields({}),
+        authorizer: () => permissionsAuth.updateDefaultPermissions,
         dataSchema: z.object({
             permissions: z.nativeEnum(Permission).array(),
         }),
@@ -108,7 +108,7 @@ export const permissionOperations = {
     }),
 
     updateGroupPermission: defineOperation({
-        authorizer: () => permissionsAuth.updateGroupPermission.dynamicFields({}),
+        authorizer: () => permissionsAuth.updateGroupPermission,
         paramsSchema: z.object({
             groupId: z.number(),
             permission: z.nativeEnum(Permission),
