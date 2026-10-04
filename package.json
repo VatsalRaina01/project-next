@@ -39,8 +39,8 @@
     "@fortawesome/react-fontawesome": "^3.3.0",
     "@stripe/react-stripe-js": "^3.3.0",
     "@stripe/stripe-js": "^5.9.2",
-    "@prisma/adapter-pg": "^7.3.0",
-    "@prisma/client": "^7.3.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.0.6",
@@ -79,7 +79,9 @@
     "zod-form-data": "^2.0.4"
   },
   "overrides": {
-    "nodemailer": "^10.0.14"
+    "nodemailer": "^10.0.14",
+    "mysql2": "^3.24.5",
+    "deepmerge-ts": "^8.0.2"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.28.5",
@@ -99,7 +101,7 @@
     "eslint-config-next": "^16.1.6",
     "jest": "^30.3.0",
     "postcss-scss": "^4.0.9",
-    "prisma": "^7.3.0",
+    "prisma": "^7.10.0",
     "stylelint": "^17.5.0",
     "stylelint-config-standard-scss": "^17.0.0",
     "ts-jest": "^29.4.6",
