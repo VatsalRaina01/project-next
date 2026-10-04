@@ -1,6 +1,5 @@
 import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
 import { Require } from '@/auth/authorizer/Require'
-import type { LedgerAccountOwnership } from '@/services/ledger/accounts/ownership'
 
 export const ledgerMovementAuth = {
     // A deposit credits the account rather than debiting it, so LEDGER_USE alone is enough here.
@@ -8,7 +7,7 @@ export const ledgerMovementAuth = {
     // own (not bypassed) call to paymentOperations.create enforces it there.
     createDeposit: Require.permission('LEDGER_USE'),
 
-    // A payout debits the account, so ownership is required in addition to LEDGER_USE.
-    createPayout: (accounts: LedgerAccountOwnership[]) =>
-        Require.permission('LEDGER_USE').allOf(ledgerAccountAccess('LEDGER_ADMIN', accounts)),
+    // A payout debits the account, so ownership is required in addition to LEDGER_USE. Needs
+    // `{ accounts: LedgerAccountOwnership[] }` supplied via `.data()`.
+    createPayout: Require.permission('LEDGER_USE').allOf(ledgerAccountAccess('LEDGER_ADMIN')),
 } as const

@@ -82,9 +82,9 @@ export const ledgerMovementOperations = {
      * @returns The created transaction representing the payout operation.
      */
     createPayout: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerMovementAuth.createPayout(
-            [await resolveAccountOwnership(prisma, { ledgerAccountId: params.ledgerAccountId })]
-        ),
+        authorizer: async ({ params, prisma }) => ledgerMovementAuth.createPayout.data({
+            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.ledgerAccountId })],
+        }),
         paramsSchema: z.object({
             ledgerAccountId: z.number(),
             funds: z.number().nonnegative().default(0),

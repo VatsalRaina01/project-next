@@ -75,7 +75,9 @@ export const ledgerAccountOperations = {
      * @returns The account details.
      */
     read: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerAccountAuth.read([await resolveAccountOwnership(prisma, params)]),
+        authorizer: async ({ params, prisma }) => ledgerAccountAuth.read.data({
+            accounts: [await resolveAccountOwnership(prisma, params)],
+        }),
         paramsSchema: z.object({
             userId: z.number().optional(),
             ledgerAccountId: z.number().optional(),
@@ -117,7 +119,9 @@ export const ledgerAccountOperations = {
      * matches more than one filter (e.g. it's shared by two requested groups).
      */
     readMany: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerAccountAuth.readMany(await resolveAccountsOwnership(prisma, params)),
+        authorizer: async ({ params, prisma }) => ledgerAccountAuth.readMany.data({
+            accounts: await resolveAccountsOwnership(prisma, params),
+        }),
         paramsSchema: z.object({
             ledgerAccountIds: z.number().array().optional(),
             userIds: z.number().array().optional(),
@@ -284,8 +288,9 @@ export const ledgerAccountOperations = {
      * @returns The balances of the ledger accounts.
      */
     calculateBalances: defineOperation({
-        authorizer: async ({ params, prisma }) =>
-            ledgerAccountAuth.calculateBalances(await resolveAccountsOwnership(prisma, params)),
+        authorizer: async ({ params, prisma }) => ledgerAccountAuth.calculateBalances.data({
+            accounts: await resolveAccountsOwnership(prisma, params),
+        }),
         paramsSchema: z.object({
             ledgerAccountIds: z.number().array().optional(),
             userIds: z.number().array().optional(),
@@ -375,8 +380,9 @@ export const ledgerAccountOperations = {
      * @returns The balance of the ledger account.
      */
     calculateBalance: defineOperation({
-        authorizer: async ({ params, prisma }) =>
-            ledgerAccountAuth.calculateBalance([await resolveAccountOwnership(prisma, params)]),
+        authorizer: async ({ params, prisma }) => ledgerAccountAuth.calculateBalance.data({
+            accounts: [await resolveAccountOwnership(prisma, params)],
+        }),
         paramsSchema: z.object({
             userId: z.number().optional(),
             ledgerAccountId: z.number().optional(),

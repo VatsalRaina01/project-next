@@ -2,6 +2,9 @@ import { ledgerAccountAccess } from './ownership'
 import { Require } from '@/auth/authorizer/Require'
 import type { LedgerAccountOwnership } from './ownership'
 
+// Needs `{ accounts: LedgerAccountOwnership[] }` supplied via `.data()`.
+const ownsEveryAccount = ledgerAccountAccess('LEDGER_ADMIN')
+
 // Reads are exempt from LEDGER_USE: users can always see their own accounts even if the ledger
 // is otherwise disabled. Mutations require LEDGER_USE, plus ownership whenever they act on a
 // specific account.
@@ -13,9 +16,9 @@ export const ledgerAccountAuth = {
         ledgerAdmin: Require.permission('LEDGER_ADMIN'),
     },
 
-    read: (accounts: LedgerAccountOwnership[]) => ledgerAccountAccess('LEDGER_ADMIN', accounts),
+    read: ownsEveryAccount,
 
-    readMany: (accounts: LedgerAccountOwnership[]) => ledgerAccountAccess('LEDGER_ADMIN', accounts),
+    readMany: ownsEveryAccount,
 
     // Its only caller, paymentOperations.initiate, already requires LEDGER_USE, so the account
     // creation this performs stays gated even though this authorizer alone doesn't check it.
@@ -31,14 +34,16 @@ export const ledgerAccountAuth = {
     // members as owners), so changing them takes LEDGER_ADMIN on top, even of a caller who already
     // owns the account. Require.allOf rather than chaining onto the ownership chain: chaining
     // would add LEDGER_ADMIN to its last group only.
+    //
+    // A function since which rule applies depends on the update itself.
     update: ({ accounts, changesGroupLinks }: {
         accounts: LedgerAccountOwnership[],
         changesGroupLinks: boolean,
     }) => {
-        const ownAccount = Require.permission('LEDGER_USE').allOf(ledgerAccountAccess('LEDGER_ADMIN', accounts))
+        const ownAccount = Require.permission('LEDGER_USE').allOf(ownsEveryAccount.data({ accounts }))
         return changesGroupLinks ? Require.allOf(ownAccount, Require.permission('LEDGER_ADMIN')) : ownAccount
     },
 
-    calculateBalances: (accounts: LedgerAccountOwnership[]) => ledgerAccountAccess('LEDGER_ADMIN', accounts),
-    calculateBalance: (accounts: LedgerAccountOwnership[]) => ledgerAccountAccess('LEDGER_ADMIN', accounts),
+    calculateBalances: ownsEveryAccount,
+    calculateBalance: ownsEveryAccount,
 } as const

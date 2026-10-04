@@ -399,10 +399,10 @@ export const cabinBookingOperations = {
                 select: { userId: true, secret: true },
             })
 
-            return cabinBookingAuth.createPayment(
-                booking ?? { userId: null, secret: '' },
-                params.secret,
-            )
+            return cabinBookingAuth.createPayment.data({
+                booking: booking ?? { userId: null, secret: '' },
+                providedSecret: params.secret,
+            })
         },
         opensTransaction: true,
         operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {

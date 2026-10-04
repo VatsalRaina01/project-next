@@ -24,9 +24,8 @@ export const cabinBookingAuth = {
     // matching secret for a guest booking with no session to check ownership against) or holds
     // CABIN_ADMIN. Provider/account-ownership rules are not this operation's business -
     // paymentOperations.create and ledgerTransactionOperations.create already own those.
-    createPayment: (
-        booking: { userId: number | null, secret: string },
-        providedSecret: string,
-    ) => requireBookingAccess('CABIN_ADMIN', booking, providedSecret),
+    //
+    // Needs `{ booking, providedSecret }` supplied via `.data()`.
+    createPayment: requireBookingAccess('CABIN_ADMIN'),
 } as const
 

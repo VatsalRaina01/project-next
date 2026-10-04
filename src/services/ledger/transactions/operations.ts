@@ -47,9 +47,9 @@ export const ledgerTransactionOperations = {
      * Reads a single transaction including its ledger entries, payment and manual transfer (if any).
      */
     read: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.read(
-            await resolveTransactionAccounts(prisma, params.id)
-        ),
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.read.data({
+            accounts: await resolveTransactionAccounts(prisma, params.id),
+        }),
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -96,9 +96,9 @@ export const ledgerTransactionOperations = {
      * terminal state.
      */
     cancel: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel(
-            await resolveTransactionAccounts(prisma, params.id)
-        ),
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
+            accounts: await resolveTransactionAccounts(prisma, params.id),
+        }),
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -145,9 +145,9 @@ export const ledgerTransactionOperations = {
      * Read several ledger transactions including its ledger entries, payment and manual transfer (if any).
      */
     readPage: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.readPage(
-            [await resolveAccountOwnership(prisma, { ledgerAccountId: params.paging.details.accountId })]
-        ),
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.readPage.data({
+            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.paging.details.accountId })],
+        }),
         paramsSchema: readPageInputSchemaObject(
             z.number(),
             z.object({

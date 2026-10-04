@@ -35,7 +35,7 @@ export const purchaseOperations = {
                 },
             })
 
-            return purchaseAuth.createByStudentCard(permissions)
+            return purchaseAuth.createByStudentCard.data({ permissionsOfUser: permissions })
         },
         dataSchema: purchaseSchemas.createFromStudentCard,
         opensTransaction: true,

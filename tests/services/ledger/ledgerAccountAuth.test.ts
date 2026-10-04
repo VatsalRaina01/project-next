@@ -14,6 +14,25 @@ const sessionWith = (permissions: Permission[]) => Session.fromJsObject({
 const ownedAccount = { userId: OWNER_ID, groupIds: [] }
 const foreignAccount = { userId: OWNER_ID + 1, groupIds: [] }
 
+describe('ledgerAccountAuth.read', () => {
+    const owner = sessionWith([])
+    const admin = sessionWith(['LEDGER_ADMIN'])
+
+    test('takes ownership of every account, or LEDGER_ADMIN', () => {
+        expect(ledgerAccountAuth.read.data({ accounts: [ownedAccount] }).auth(owner).authorized).toBe(true)
+
+        const withForeign = ledgerAccountAuth.read.data({ accounts: [ownedAccount, foreignAccount] })
+        expect(withForeign.auth(owner).authorized).toBe(false)
+        expect(withForeign.auth(admin).authorized).toBe(true)
+    })
+
+    test('no accounts at all takes LEDGER_ADMIN', () => {
+        const authorizer = ledgerAccountAuth.read.data({ accounts: [] })
+        expect(authorizer.auth(owner).authorized).toBe(false)
+        expect(authorizer.auth(admin).authorized).toBe(true)
+    })
+})
+
 describe('ledgerAccountAuth.update', () => {
     const owner = sessionWith(['LEDGER_USE'])
     const admin = sessionWith(['LEDGER_USE', 'LEDGER_ADMIN'])
