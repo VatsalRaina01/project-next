@@ -1,5 +1,5 @@
 import BullshitList from './BullshitList'
-import BullshitBullshit from './BullshitBullshit'
+import Bullshit from './Bullshit'
 import BullshitForm from './CreateBullshitForm'
 import { BullshitPagingProvider } from '@/contexts/paging/BullshitPaging'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -9,7 +9,7 @@ import { bullshitAuth } from '@/services/bullshit/auth'
 import { notFound } from 'next/navigation'
 import { v4 as uuid } from 'uuid'
 import type { PageSizeBullshit } from '@/contexts/paging/BullshitPaging'
-export default async function Bullshit() {
+export default async function BullshitPage() {
     const session = await ServerSession.fromNextAuth()
     const showCreateButton = session.user && bullshitAuth.create.auth(session).authorized || false
 
@@ -50,7 +50,7 @@ export default async function Bullshit() {
                 >
                     <main>
                         <BullshitList
-                            serverRendered={bullshits.map(bullshit => <BullshitBullshit key={uuid()} quote={bullshit} />)}
+                            serverRendered={bullshits.map(bullshit => <Bullshit key={uuid()} quote={bullshit} />)}
                         />
                     </main>
                 </BullshitPagingProvider>

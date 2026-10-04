@@ -1,6 +1,6 @@
 'use client'
 
-import BullshitQuote from './BullshitBullshit'
+import Bullshit from './Bullshit'
 import { BullshitPagingContext } from '@/contexts/paging/BullshitPaging'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import React, { useContext } from 'react'
@@ -19,7 +19,7 @@ export default function BullshitList({ serverRendered }: PropTypes) {
         {serverRendered} {/* Rendered on server homefully in the right way*/}
         <EndlessScroll
             pagingContext={BullshitPagingContext}
-            renderer={(quote, i) => <BullshitQuote key={i} quote={quote} />}
+            renderer={(quote, i) => <Bullshit key={i} quote={quote} />}
         />
     </>
 }

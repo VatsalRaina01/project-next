@@ -376,7 +376,7 @@ export const permissionConfig = {
         description: 'Kan sende inn bullshit',
         category: 'ombul',
     },
-    BULLSHIT_READ: {
+    BULLSHIT_USE: {
         name: 'Les bullshit',
         description: 'Kan lese bullshit',
         category: 'ombul',

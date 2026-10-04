@@ -146,7 +146,7 @@ enum Permission {
 
   //Bullshit
   BULLSHIT_WRITE
-  BULLSHIT_READ
+  BULLSHIT_USE
   // News
   NEWS_CREATE
   NEWS_ADMIN

@@ -7,7 +7,7 @@
 
 
 ALTER TYPE "Permission" ADD VALUE 'BULLSHIT_WRITE';
-ALTER TYPE "Permission" ADD VALUE 'BULLSHIT_READ';
+ALTER TYPE "Permission" ADD VALUE 'BULLSHIT_USE';
 
 -- CreateTable
 CREATE TABLE "Bullshit" (
