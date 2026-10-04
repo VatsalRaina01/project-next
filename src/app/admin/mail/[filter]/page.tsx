@@ -39,7 +39,7 @@ const mailParts = {
 
 export default async function MailPartPage({ params }: PropTypes) {
     const { filter } = await params
-    if (!(filter in mailParts)) notFound()
+    if (!Object.keys(mailParts).includes(filter)) notFound()
     const part = mailParts[filter as keyof typeof mailParts]
 
     // Each part has its own nav link, so each part page is guarded by exactly that link's
