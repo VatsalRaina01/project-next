@@ -86,9 +86,9 @@ const seedSpecialCmsArticleConfig: Record<SpecialCmsArticle, SeedSpecialArticleC
     },
     NEW_STUDENT_PAGE: {
         updateOperations: newStudentOperations.update,
-        name: 'New Student',
+        name: 'Ny Student',
         coverImage: {
-            image: { dynamicImageSeededForCmsName: 'ov' },
+            image: { dynamicImageSeededForCmsName: 'kappemann' },
         },
         articleSections: [
             {

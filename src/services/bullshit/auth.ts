@@ -1,7 +1,6 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-
+import { Require } from '@/auth/authorizer/Require'
 
 export const bullshitAuth = {
-    create: RequirePermission.staticFields({ permission: 'BULLSHIT_WRITE' }),
-    readPage: RequirePermission.staticFields({ permission: 'BULLSHIT_READ' })
+    create: Require.permission('BULLSHIT_WRITE'),
+    readPage: Require.permission('BULLSHIT_READ'),
 } as const

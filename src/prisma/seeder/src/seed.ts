@@ -29,10 +29,10 @@ import { seedFlairs } from './standardContent/seedFlairs'
 import { seedNews } from './standardContent/seedNews'
 import { seedCompanies } from './standardContent/seedCompanies'
 import { seedInterestGroups } from './standardContent/seedInterestGroups'
+import { seedDevBullshit } from './development/seedDevBullshit'
 import { createTimedStep } from './timedStep'
 import { withServiceContext } from '@/services/serviceOperation'
 import { Session } from '@/auth/session/Session'
-import { seedDevBullshit } from './development/seedDevBullshit'
 
 export default async function seed(
     shouldMigrate: boolean,
@@ -87,7 +87,7 @@ export default async function seed(
         await step('Seeding development shops', () => seedDevShop())
         await step('Seeding development events', () => seedDevEvents())
         await step('Seeding development applications and periods', () => seedDevApplicationsAndPeriods())
-        await step('Seeding development applications and periods', () => seedDevBullshit())
+        await step('Seeding development bullshit', () => seedDevBullshit())
     })
 
     finish()

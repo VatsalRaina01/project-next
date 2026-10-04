@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 export const bullshitOperations = {
     create: defineOperation({
-        authorizer: () => bullshitAuth.create.dynamicFields({}),
+        authorizer: () => bullshitAuth.create,
         dataSchema: bullshitSchemas.create,
         paramsSchema: z.object({
             bullshitAuthPosterId: z.number()
@@ -27,7 +27,7 @@ export const bullshitOperations = {
     }),
     readPage: defineOperation({
         paramsSchema: bullshitSchemas.readPage,
-        authorizer: () => bullshitAuth.readPage.dynamicFields({}),
+        authorizer: () => bullshitAuth.readPage,
         operation: async ({ prisma, params }) =>
             prisma.bullshit.findMany({
                 orderBy: {

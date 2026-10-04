@@ -11,9 +11,9 @@ import { v4 as uuid } from 'uuid'
 import type { PageSizeBullshit } from '@/contexts/paging/BullshitPaging'
 export default async function Bullshit() {
     const session = await ServerSession.fromNextAuth()
-    const showCreateButton = session.user && bullshitAuth.create.dynamicFields({}).auth(session).authorized || false
+    const showCreateButton = session.user && bullshitAuth.create.auth(session).authorized || false
 
-    const showBullshit = session.user && bullshitAuth.readPage.dynamicFields({}).auth(session).authorized || false
+    const showBullshit = session.user && bullshitAuth.readPage.auth(session).authorized || false
 
     const pageSize: PageSizeBullshit = 20
 

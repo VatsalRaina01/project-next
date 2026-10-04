@@ -16,26 +16,27 @@ import { z } from 'zod'
 const commonGroupOperations = implementGroupType({
     type: GroupType.MANUAL_GROUP,
     auth: {
-        readExpanded: manualGroupAuth.readExpanded.dynamicFields({}),
-        readMembers: ({ groupId }) => manualGroupAuth.readMembers.dynamicFields({ groupId }),
+        readExpanded: manualGroupAuth.readExpanded,
+        readMembers: ({ groupId }) => manualGroupAuth.readMembers.data({ groupId }),
+        readMembershipsOfUser: ({ userId }) => manualGroupAuth.readMembershipsOfUser.data({ userId }),
     },
 })
 
 const memberManagement = implementSimpleAddRemoveMembersOperation({
     type: GroupType.MANUAL_GROUP,
     auth: {
-        addMembers: ({ groupId }) => manualGroupAuth.addMembers.dynamicFields({ groupId }),
-        removeMembers: ({ groupId }) => manualGroupAuth.removeMembers.dynamicFields({ groupId }),
-        setMemberAdmin: ({ groupId }) => manualGroupAuth.setMemberAdmin.dynamicFields({ groupId }),
-        setMemberTitle: ({ groupId }) => manualGroupAuth.setMemberTitle.dynamicFields({ groupId }),
+        addMembers: ({ groupId }) => manualGroupAuth.addMembers.data({ groupId }),
+        removeMembers: ({ groupId }) => manualGroupAuth.removeMembers.data({ groupId }),
+        setMemberAdmin: ({ groupId }) => manualGroupAuth.setMemberAdmin.data({ groupId }),
+        setMemberTitle: ({ groupId }) => manualGroupAuth.setMemberTitle.data({ groupId }),
     },
 })
 
 const migration = implementManualMigrationPerGroup({
     type: GroupType.MANUAL_GROUP,
     auth: {
-        migrateGroup: ({ groupId }) => manualGroupAuth.migrateGroup.dynamicFields({ groupId }),
-        pension: () => manualGroupAuth.pension.dynamicFields({}),
+        migrateGroup: ({ groupId }) => manualGroupAuth.migrateGroup.data({ groupId }),
+        pension: () => manualGroupAuth.pension,
     },
     setPensioned: (prisma, groupId, pensioned) => prisma.manualGroup.update({
         where: { groupId },
@@ -45,7 +46,7 @@ const migration = implementManualMigrationPerGroup({
 
 const create = defineOperation({
     dataSchema: manualGroupSchemas.create,
-    authorizer: () => manualGroupAuth.create.dynamicFields({}),
+    authorizer: () => manualGroupAuth.create,
     operation: async ({ prisma, data }) => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -64,7 +65,7 @@ const create = defineOperation({
 })
 
 const readMany = defineOperation({
-    authorizer: () => manualGroupAuth.readMany.dynamicFields({}),
+    authorizer: () => manualGroupAuth.readMany,
     operation: async ({ prisma }) => prisma.manualGroup.findMany()
 })
 
@@ -72,7 +73,7 @@ const read = defineOperation({
     paramsSchema: z.object({
         id: z.number(),
     }),
-    authorizer: () => manualGroupAuth.read.dynamicFields({}),
+    authorizer: () => manualGroupAuth.read,
     operation: async ({ prisma, params }) => prisma.manualGroup.findUniqueOrThrow({
         where: { id: params.id },
     })
@@ -100,7 +101,7 @@ const update = defineOperation({
         id: z.number(),
     }),
     dataSchema: manualGroupSchemas.update,
-    authorizer: () => manualGroupAuth.update.dynamicFields({}),
+    authorizer: () => manualGroupAuth.update,
     operation: async ({ prisma, params, data }) => {
         await assertNotPensioned(prisma, params.id)
 
@@ -115,7 +116,7 @@ const destroy = defineOperation({
     paramsSchema: z.object({
         id: z.number(),
     }),
-    authorizer: () => manualGroupAuth.destroy.dynamicFields({}),
+    authorizer: () => manualGroupAuth.destroy,
     opensTransaction: true,
     operation: async ({ prisma, params }) => {
         await assertNotPensioned(prisma, params.id)
@@ -140,6 +141,7 @@ export const manualGroupOperations = {
     destroy,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
+    readMembershipsOfUser: commonGroupOperations.readMembershipsOfUser,
     addMembers: memberManagement.addMembers,
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,
