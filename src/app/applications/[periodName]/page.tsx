@@ -93,7 +93,7 @@ const { page, generateMetadata } = serverPage({
                     <CmsParagraph
                         className={styles.committeeParagraph}
                         canEdit={
-                            committeeAuth.updateParagraphContent.dynamicFields(
+                            committeeAuth.updateParagraphContent.data(
                                 { groupId: part.committee.groupId }
                             ).auth(
                                 sessionOfRequest

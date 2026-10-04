@@ -9,7 +9,6 @@ import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
-import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
 import logger from '@/lib/logger'
 import { LedgerTransactionPurpose } from '@/prisma-generated-pn-types'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
@@ -48,7 +47,7 @@ export const ledgerTransactionOperations = {
      * Reads a single transaction including its ledger entries, payment and manual transfer (if any).
      */
     read: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.read.dynamicFields({
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.read.data({
             accounts: await resolveTransactionAccounts(prisma, params.id),
         }),
         paramsSchema: z.object({
@@ -97,7 +96,7 @@ export const ledgerTransactionOperations = {
      * terminal state.
      */
     cancel: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.dynamicFields({
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
             accounts: await resolveTransactionAccounts(prisma, params.id),
         }),
         paramsSchema: z.object({
@@ -146,7 +145,7 @@ export const ledgerTransactionOperations = {
      * Read several ledger transactions including its ledger entries, payment and manual transfer (if any).
      */
     readPage: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.readPage.dynamicFields({
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.readPage.data({
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.paging.details.accountId })],
         }),
         paramsSchema: readPageInputSchemaObject(
@@ -204,7 +203,7 @@ export const ledgerTransactionOperations = {
      * Also, updates the fees if possible.
      */
     advance: defineOperation({
-        authorizer: () => ledgerTransactionAuth.advance.dynamicFields({}),
+        authorizer: () => ledgerTransactionAuth.advance,
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -327,25 +326,15 @@ export const ledgerTransactionOperations = {
      * The lifecycle of the transaction is automatically handled by the system.
      */
     create: defineOperation({
-        // A transaction with no debit entries at all (e.g. a deposit, where the debit side is an
-        // external payment, not a ledger entry) has nothing for rule 1 to check, so LEDGER_USE
-        // alone is sufficient for it.
         authorizer: async ({ params, prisma }) => {
-            const ledgerUse = ledgerTransactionAuth.create.ledgerUse.dynamicFields({})
-
             const debitLedgerAccountIds = params.ledgerEntries
                 .filter(entry => entry.funds < 0)
                 .map(entry => entry.ledgerAccountId)
 
-            if (debitLedgerAccountIds.length === 0) {
-                return ledgerUse
-            }
-
-            const accountAccess = ledgerTransactionAuth.create.accountAccess.dynamicFields({
-                accounts: await resolveAccountsOwnership(prisma, { ledgerAccountIds: debitLedgerAccountIds }),
+            return ledgerTransactionAuth.create({
+                debitLedgerAccountIds,
+                debitAccounts: await resolveAccountsOwnership(prisma, { ledgerAccountIds: debitLedgerAccountIds }),
             })
-
-            return andAuthorizers(ledgerUse, accountAccess)
         },
         paramsSchema: z.object({
             purpose: z.nativeEnum(LedgerTransactionPurpose),

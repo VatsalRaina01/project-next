@@ -2,8 +2,8 @@ import styles from './page.module.scss'
 import CreateOrder from './CreateOrder'
 import Requirements from './Requirements'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { omegaOrderAuth } from '@/services/omegaOrder/auth'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Date from '@/components/Date/Date'
 import type { PageOperationArgs } from '@/app/serverPage'
 
@@ -11,7 +11,7 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
         // The page's whole point is incrementing the order, so it is gated on `create`
         // rather than the read auth the operations themselves enforce.
-        omegaOrderAuth.create.dynamicFields({}).auth(session).requireAuthorized()
+        authorizeAdminPage('stateOfOmega', session)
 
         const [currentOrder, requirements] = await Promise.all([
             omegaOrderOperations.readCurrent({}),

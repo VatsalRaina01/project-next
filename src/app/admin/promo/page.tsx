@@ -12,9 +12,14 @@ import LicenseChooser from '@/components/LicenseChooser/LicenseChooser'
 import SimpleTable from '@/components/Table/SimpleTable'
 import Image from '@/components/Image/Image'
 import DateDisplay from '@/components/Date/Date'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => promoOperations.readAll({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('promo', session)
+        return promoOperations.readAll({})
+    },
     metadata: () => ({ title: 'Administrer promo' }),
     render: ({ data: promos }) => {
         const now = new Date()

@@ -87,7 +87,10 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                 throw new Error()
             }
 
-            const username = await generateUsername(prisma, user.username, user.lastname)
+            // A Feide login is never matched to an existing user by username: the username is
+            // derived from the email local part, which any Feide institution can issue. Migrated
+            // users that the exact email match misses claim their user through /link-ow-user.
+            const username = await generateUsername(prisma, user.username.toLowerCase(), user.lastname)
 
             const createdUser = await prisma.user.create({
                 data: {
@@ -96,6 +99,8 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                     lastname: user.lastname,
                     username,
                     emailVerified: null,
+                    createdByFeideLoginOnProjectNext: true,
+                    bioParagraph: { create: {} },
                 },
                 select: userFilterSelection,
             })

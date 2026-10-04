@@ -8,12 +8,14 @@ import { dotAuth } from '@/services/dots/auth'
 import { dotOperations } from '@/services/dots/operations'
 import { userOperations } from '@/services/users/operations'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ searchParams }: PageOperationArgs) => {
+    operation: async ({ searchParams, session }: PageOperationArgs) => {
+        authorizeAdminPage('dots', session)
         const userId = QueryParams.userId.decode(searchParams)
         const onlyActive = QueryParams.onlyActive.decode(searchParams) ?? false
 
@@ -32,8 +34,8 @@ const { page, generateMetadata } = serverPage({
         // This page is only about administrating dots, so the crud of them is offered outright to
         // whoever is authorized for it - no edit mode to enter first. The create authorizer needs
         // the session's own user id, so it is run inline in render rather than declared here.
-        canUpdate: () => dotAuth.update.dynamicFields({}),
-        canDestroy: () => dotAuth.destroy.dynamicFields({}),
+        canUpdate: () => dotAuth.update,
+        canDestroy: () => dotAuth.destroy,
     },
     metadata: (data) => ({
         title: data.userId === null ? 'Prikker' : `Prikker for ${data.user.firstname} ${data.user.lastname}`,
@@ -74,7 +76,7 @@ const { page, generateMetadata } = serverPage({
                         userId={data.user.id}
                         dots={data.dots}
                         showCreateForm={
-                            dotAuth.create.dynamicFields({ userId: session.user?.id ?? 0 }).auth(session).authorized
+                            dotAuth.create.data({ userId: session.user?.id ?? 0 }).auth(session).authorized
                         }
                         showUpdateForm={authChecks.canUpdate.authorized}
                         showDestroyForm={authChecks.canDestroy.authorized}

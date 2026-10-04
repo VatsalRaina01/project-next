@@ -4,6 +4,7 @@ import RegistrationUI from './RegistrationUI'
 import RegistrationsList from './RegistrationsList'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import EventVisibilityAdmin from './EventVisibilityAdmin'
+import EventLocationMap from '@/components/Event/EventLocationMap'
 import Date from '@/components/Date/Date'
 import CreateOrUpdateEventForm from '@/app/events/CreateOrUpdateEventForm'
 import CmsImage from '@/components/Cms/CmsImage/CmsImage'
@@ -96,23 +97,23 @@ const { page, generateMetadata } = serverPage({
         }
     },
     authCheckers: {
-        canEditCmsCoverImage: (data) => eventAuth.updateCmsCoverImage.dynamicFields({
-            doubleLevelMatrix: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        canEditCmsCoverImage: (data) => eventAuth.updateCmsCoverImage.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        canEditCmsParagraph: (data) => eventAuth.updateParagraphContent.dynamicFields({
-            doubleLevelMatrix: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        canEditCmsParagraph: (data) => eventAuth.updateParagraphContent.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        canDestroy: (data) => eventAuth.destroy.dynamicFields({
-            doubleLevelMatrix: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        canDestroy: (data) => eventAuth.destroy.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
         // Reading who is registered takes the regular level of the event, and registering on
         // behalf of others its admin level - offering any of it to someone without the level
         // would only produce an error when they act on it.
-        canReadRegistrations: (data) => eventRegistrationAuth.readPage.dynamicFields({
-            doubleLevelMatrix: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        canReadRegistrations: (data) => eventRegistrationAuth.readPage.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        canRegisterOthers: (data) => eventRegistrationAuth.createGuest.dynamicFields({
-            doubleLevelMatrix: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        canRegisterOthers: (data) => eventRegistrationAuth.createGuest.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
     },
     metadata: () => ({ title: 'Arrangement' }),
@@ -122,7 +123,7 @@ const { page, generateMetadata } = serverPage({
 
         // Registering takes the regular level of the event; the authorizer needs the session's own
         // user id, so it is run inline here rather than declared as an authChecker.
-        const canRegister = session.user ? eventRegistrationAuth.create.dynamicFields({
+        const canRegister = session.user ? eventRegistrationAuth.create({
             userId: session.user.id,
             doubleLevelMatrix,
         }).auth(session).authorized : false
@@ -226,6 +227,10 @@ const { page, generateMetadata } = serverPage({
                             )
                         }
                     />
+                    {event.locationMap && <section aria-label="Kart til arrangementet">
+                        <h2>Her finner du oss</h2>
+                        <EventLocationMap locationMap={event.locationMap} />
+                    </section>}
                 </main>
 
                 {event.takesRegistration && authChecks.canReadRegistrations.authorized && (

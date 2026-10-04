@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { userSchemas } from './schemas'
 import { userAuth } from './auth'
 import {
+    defaultSearchResultLimit,
     maxNumberOfGroupsInFilter,
     standardMembershipSelection,
     userFilterSelection
@@ -10,7 +11,6 @@ import { userProfileImageOperations } from './profileImageCollection'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
-import { groupOperations } from '@/services/groups/operations'
 import { classOperations } from '@/services/groups/classes/operations'
 import { NTNUEmailDomain } from '@/services/mail/constants'
 import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
@@ -22,8 +22,8 @@ import { getMembershipFilter } from '@/auth/getMembershipFilter'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { permissionOperations } from '@/services/permissions/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { z } from 'zod'
 import type { UserPagingReturn } from './types'
 
@@ -34,7 +34,7 @@ export const userOperations = {
      */
     create: defineOperation({
         dataSchema: userSchemas.create,
-        authorizer: () => userAuth.create.dynamicFields({}),
+        authorizer: () => userAuth.create,
         operation: async ({ prisma, data }) => {
             const omegaMembership = await omegaMembershipGroupOperations.read({
                 params: { omegaMembershipLevel: 'DEN_GEMENE_HOB' },
@@ -45,6 +45,7 @@ export const userOperations = {
             const user = await prisma.user.create({
                 data: {
                     ...data,
+                    bioParagraph: { create: {} },
                     memberships: {
                         create: [{
                             groupId: omegaMembership.groupId,
@@ -76,7 +77,7 @@ export const userOperations = {
             email: z.string().optional(),
             studentCard: z.string().optional(),
         }),
-        authorizer: ({ params }) => userAuth.read.dynamicFields(params),
+        authorizer: ({ params }) => userAuth.read.data({ userField: params }),
         operation: async ({ prisma, params }) => await prisma.user.findUniqueOrThrow({
             where: {
                 id: params.id,
@@ -93,7 +94,7 @@ export const userOperations = {
             email: z.string().optional(),
             studentCard: z.string().optional(),
         }),
-        authorizer: ({ params }) => userAuth.read.dynamicFields(params),
+        authorizer: ({ params }) => userAuth.read.data({ userField: params }),
         operation: async ({ prisma, params }) => await prisma.user.findUnique({
             where: {
                 id: params.id, // This is a bit wierd, but now ts is satisfied.
@@ -107,7 +108,7 @@ export const userOperations = {
         paramsSchema: z.object({
             username: z.string(),
         }),
-        authorizer: ({ params }) => userAuth.readProfile.dynamicFields({ username: params.username }),
+        authorizer: ({ params }) => userAuth.readProfile.data({ userField: { username: params.username } }),
         operation: async ({ prisma, params }) => {
             const { id: userId } = await prisma.user.findUniqueOrThrow({
                 where: { username: params.username.toLowerCase() },
@@ -128,60 +129,61 @@ export const userOperations = {
                 where: { id: userId },
                 select: {
                     ...userFilterSelection,
-                    bio: true,
+                    bioParagraph: true,
                     image: { include: expandedImageIncluder },
-                    memberships: {
-                        where: {
-                            OR: [
-                                {
-                                    group: {
-                                        groupType: 'COMMITTEE'
-                                    }
-                                },
-                                {
-                                    group: {
-                                        groupType: 'OMEGA_MEMBERSHIP_GROUP'
-                                    },
-                                },
-                                {
-                                    group: {
-                                        groupType: 'STUDY_PROGRAMME'
-                                    },
-                                },
-                                {
-                                    group: {
-                                        groupType: 'INTEREST_GROUP'
-                                    },
-                                },
-                            ]
-                        },
-                        include: {
-                            group: {
-                                include: {
-                                    committee: true,
-                                    interestGroup: true,
-                                    omegaMembershipGroup: true,
-                                    studyProgramme: true
-                                }
-                            }
-                        }
-                    }
                 },
             }).then(async userData => ({
                 ...userData,
                 image: userData.image || defaultProfileImage,
             }))
 
-            const memberships = await groupOperations.readMembershipsOfUser.internalCall({
-                params: {
-                    userId,
-                }
-            })
-            const permissions = await permissionOperations.readPermissionsOfUser.internalCall({
-                params: {
-                    userId
-                }
-            })
+            const [committeeMemberships, studyProgrammeMemberships, interestGroupMemberships] = await Promise.all([
+                prisma.membership.findMany({
+                    where: { userId, group: { groupType: 'COMMITTEE' } },
+                    select: {
+                        title: true,
+                        order: true,
+                        active: true,
+                        group: { select: { committee: { select: { name: true, shortName: true } } } },
+                    },
+                    orderBy: { order: 'desc' },
+                }),
+                prisma.membership.findMany({
+                    where: { userId, active: true, group: { groupType: 'STUDY_PROGRAMME' } },
+                    select: {
+                        groupId: true,
+                        order: true,
+                        group: { select: { studyProgramme: { select: { id: true, name: true, code: true } } } },
+                    },
+                }),
+                prisma.membership.findMany({
+                    where: { userId, active: true, group: { groupType: 'INTEREST_GROUP' } },
+                    select: {
+                        title: true,
+                        order: true,
+                        group: { select: { interestGroup: { select: { id: true, name: true } } } },
+                    },
+                    orderBy: { order: 'desc' },
+                }),
+            ])
+
+            const committees = committeeMemberships.flatMap(({ group: { committee }, ...membership }) =>
+                (committee ? [{ ...membership, committee }] : [])
+            )
+
+            const groups = {
+                committeeMemberships: {
+                    active: committees.filter(membership => membership.active),
+                    historical: committees.filter(membership => !membership.active),
+                },
+                activeStudyProgrammes: studyProgrammeMemberships.flatMap(({ group: { studyProgramme }, ...membership }) =>
+                    (studyProgramme ? [{ ...membership, studyProgramme }] : [])
+                ),
+                activeInterestGroups: interestGroupMemberships.flatMap(({ group: { interestGroup }, ...membership }) =>
+                    (interestGroup ? [{ ...membership, interestGroup }] : [])
+                ),
+            }
+
             const userClass = await classOperations.readClassOfUser({
                 params: {
                     userId
@@ -189,13 +191,13 @@ export const userOperations = {
                 bypassAuth: true,
             })
 
-            return { user, memberships, permissions, class: userClass, omegaMembership }
+            return { user, groups, class: userClass, omegaMembership }
         }
     }),
 
     readPage: defineOperation({
         paramsSchema: userSchemas.readPage,
-        authorizer: () => userAuth.readPage.dynamicFields({}),
+        authorizer: () => userAuth.readPage,
         operation: async ({ prisma, params }): Promise<UserPagingReturn[]> => {
             const { page, details } = params.paging
             const words = details.partOfName.split(' ')
@@ -312,8 +314,48 @@ export const userOperations = {
         }
     }),
 
+    /**
+     * The user half of the global search: the few users best matching a free text query, for a
+     * search box to show while the user types. Every word of the query must occur in some part of
+     * the name of the user, so that "ola nor" finds "Ola Nordmann".
+     */
+    search: defineOperation({
+        paramsSchema: userSchemas.search,
+        authorizer: () => userAuth.search,
+        operation: async ({ prisma, params }) => {
+            const words = params.query.split(/\s+/).filter(Boolean)
+
+            const users = await prisma.user.findMany({
+                take: params.limit ?? defaultSearchResultLimit,
+                select: {
+                    id: true,
+                    username: true,
+                    firstname: true,
+                    lastname: true,
+                    image: { include: expandedImageIncluder },
+                },
+                where: {
+                    AND: words.map(word => ({
+                        OR: [
+                            { firstname: { contains: word, mode: 'insensitive' } },
+                            { lastname: { contains: word, mode: 'insensitive' } },
+                            { username: { contains: word, mode: 'insensitive' } },
+                        ],
+                    })),
+                },
+                orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
+            })
+
+            const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
+                params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
+            })
+
+            return users.map(user => ({ ...user, image: user.image ?? defaultProfileImage }))
+        }
+    }),
+
     connectStudentCard: defineOperation({
-        authorizer: () => userAuth.connectStudentCard.dynamicFields({}),
+        authorizer: () => userAuth.connectStudentCard,
         paramsSchema: z.object({
             studentCard: z.coerce.number().int().min(0).optional(),
         }),
@@ -336,7 +378,7 @@ export const userOperations = {
     update: defineOperation({
         paramsSchema: z.union([z.object({ id: z.number() }), z.object({ username: z.string() })]),
         dataSchema: userSchemas.update,
-        authorizer: () => userAuth.update.dynamicFields({}),
+        authorizer: () => userAuth.update,
         operation: ({ prisma, params, data }) => prisma.user.update({
             where: params,
             data,
@@ -347,12 +389,25 @@ export const userOperations = {
         paramsSchema: z.object({
             username: z.string()
         }),
-        dataSchema: userSchemas.update,
-        authorizer: ({ params }) => userAuth.updateProfile.dynamicFields({ username: params.username }),
+        dataSchema: userSchemas.updateProfile,
+        authorizer: ({ params }) => userAuth.updateProfile.data({ userField: { username: params.username } }),
         operation: ({ prisma, data, params }) => prisma.user.update({
             where: params,
             data,
         })
+    }),
+
+    updateBioParagraphContent: cmsParagraphOperations.updateContent.implement({
+        implementationParamsSchema: z.object({
+            userId: z.number(),
+        }),
+        authorizer: ({ implementationParams }) =>
+            userAuth.updateBioParagraphContent.data({ userId: implementationParams.userId }),
+        ownershipCheck: async ({ prisma, implementationParams, params }) =>
+            (await prisma.user.findUniqueOrThrow({
+                where: { id: implementationParams.userId },
+                select: { bioParagraphId: true },
+            })).bioParagraphId === params.paragraphId,
     }),
 
     updatePassword: defineOperation({
@@ -360,7 +415,7 @@ export const userOperations = {
             id: z.number(),
         }),
         dataSchema: userSchemas.updatePassword,
-        authorizer: ({ params }) => userAuth.updatePassword.dynamicFields({ userId: params.id }),
+        authorizer: ({ params }) => userAuth.updatePassword.data({ userId: params.id }),
         operation: async ({ prisma, data, params }) => {
             const passwordHash = await hashAndEncryptPassword(data.password)
 
@@ -381,7 +436,7 @@ export const userOperations = {
         paramsSchema: z.object({
             id: z.number(),
         }),
-        authorizer: ({ params }) => userAuth.registerNewEmail.dynamicFields({ userId: params.id }),
+        authorizer: ({ params }) => userAuth.registerNewEmail.data({ userId: params.id }),
         dataSchema: userSchemas.registerNewEmail,
         operation: async ({ prisma, params, data }) => {
             const storedUser = await prisma.user.findUniqueOrThrow({
@@ -398,8 +453,13 @@ export const userOperations = {
                 }
             })
 
-            // This test may not be needed if we let users change their email later. Maybe just remove this check
-            if (storedUser.emailVerified) throw new ServiceError('BAD PARAMETERS', 'Brukeren er allerede verifisert')
+            // Used both to set the email during sign-up and to change it afterwards.
+            if (data.email === storedUser.email && storedUser.emailVerified) {
+                return {
+                    verified: true,
+                    email: data.email,
+                }
+            }
 
             if (data.email === storedUser.feideAccount?.email) {
                 await prisma.user.update({
@@ -407,6 +467,7 @@ export const userOperations = {
                         id: params.id,
                     },
                     data: {
+                        email: data.email,
                         emailVerified: (new Date()).toISOString()
                     }
                 })
@@ -446,7 +507,7 @@ export const userOperations = {
             id: z.number(),
         }),
         dataSchema: userSchemas.register,
-        authorizer: ({ params }) => userAuth.register.dynamicFields({ userId: params.id }),
+        authorizer: ({ params }) => userAuth.register.data({ userId: params.id }),
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => {
             const { sex, password, mobile, allergies, imageConsent } = data
@@ -546,8 +607,8 @@ export const userOperations = {
     }),
 
     readUserWithBalance: defineOperation({
-        authorizer: ({ params }) => userAuth.read.dynamicFields({
-            username: params.username || '',
+        authorizer: ({ params }) => userAuth.read.data({
+            userField: { username: params.username || '' },
         }),
         paramsSchema: z.object({
             username: z.string().optional(),
@@ -598,18 +659,22 @@ export const userOperations = {
         paramsSchema: z.object({
             id: z.number(),
         }),
-        authorizer: () => userAuth.destroy.dynamicFields({}),
+        authorizer: () => userAuth.destroy,
         operation: async ({ prisma, params }) => {
-            await prisma.user.delete({
+            const user = await prisma.user.delete({
                 where: {
                     id: params.id,
-                }
+                },
+                select: { bioParagraphId: true },
+            })
+            await cmsParagraphOperations.destroy.internalCall({
+                params: { paragraphId: user.bioParagraphId }
             })
         }
     }),
 
     updateProfileImage: defineOperation({
-        authorizer: ({ params }) => userAuth.updateProfileImage.dynamicFields({ username: params.username }),
+        authorizer: ({ params }) => userAuth.updateProfileImage.data({ userField: { username: params.username } }),
         paramsSchema: z.object({
             username: z.string(),
         }),

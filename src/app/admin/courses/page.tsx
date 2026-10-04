@@ -1,11 +1,17 @@
-import PageTitleSetter from '@/contexts/PageTitleSetter'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default function CoursesAdmin() {
-    return (
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('courses', session),
+    metadata: () => ({ title: 'Emnekatalog' }),
+    render: () => (
         <PageWrapper>
-            <PageTitleSetter title="Emnekatalog" />
             <h1>Emnene</h1>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

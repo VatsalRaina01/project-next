@@ -21,7 +21,7 @@ const { page, generateMetadata } = serverPage({
         },
     }),
     authCheckers: {
-        canAdministrateSchools: () => schoolAuth.create.dynamicFields({}),
+        canAdministrateSchools: () => schoolAuth.create,
     },
     metadata: () => ({ title: 'Skoler' }),
     render: ({ data: serverRenderedData, authChecks, session }) => (

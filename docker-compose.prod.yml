@@ -20,18 +20,28 @@ services:
             migrate:
                 condition: service_completed_successfully
 
-    # Applies committed migrations, then exits.
+    # Applies committed migrations, upserts the standard content (see seed.ts), then exits.
+    # The seed only ever creates what is missing and refreshes what users cannot edit, so it is
+    # safe - and meant - to run on every deploy.
     migrate:
         extends:
             file: docker-compose.base.yml
             service: projectnext
         build:
             target: tools
-        command: ["npm", "run", "migrate:deploy"]
+        command: ["npm", "run", "migrate:deploy-and-seed"]
+        environment:
+            # seed.ts runs DobbelOmega - a full import on top of the database - whenever this is
+            # 'true'. A value left in the stack env from an import must never do that on every deploy.
+            MIGRATE_FROM_OW: 'false'
         healthcheck:
             disable: true
         networks:
             - dokploy-network
+        # The seeder writes the standard images' files to the store, which the app serves them from.
+        volumes:
+            - store:/usr/src/app/store
+            - logs:/usr/src/app/logs
         restart: "no"
 
     imageworker:

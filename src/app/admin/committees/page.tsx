@@ -6,9 +6,12 @@ import { serverPage } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => {
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('committees', session)
         const [committees, expandedGroups, currentOrder] = await Promise.all([
             committeeOperations.readAll({}),
             committeeOperations.readExpanded({}),
@@ -17,7 +20,7 @@ const { page, generateMetadata } = serverPage({
         return { committees, expandedGroups, currentOrder }
     },
     authCheckers: {
-        canCreate: () => committeeAuth.create.dynamicFields({}),
+        canCreate: () => committeeAuth.create,
     },
     metadata: () => ({ title: 'Komitéer' }),
     render: ({ data, authChecks }) => {

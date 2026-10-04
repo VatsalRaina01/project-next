@@ -5,11 +5,16 @@ import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { sortObjectsByName } from '@/lib/sortObjects'
 import { shopOperations } from '@/services/shop/shop/operations'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
 import { v4 as uuid } from 'uuid'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => shopOperations.readMany({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('shop', session)
+        return shopOperations.readMany({})
+    },
     metadata: () => ({ title: 'Butikker' }),
     render: ({ data: shops }) => (
         <PageWrapper

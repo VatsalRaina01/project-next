@@ -73,10 +73,10 @@ const { page, generateMetadata } = serverPage({
         }
     },
     authCheckers: {
-        canBookCabin: () => cabinBookingAuth.createCabinBookingNoUser.dynamicFields({}),
-        canBookBed: () => cabinBookingAuth.createBedBookingNoUser.dynamicFields({}),
+        canBookCabin: () => cabinBookingAuth.createCabinBookingNoUser,
+        canBookBed: () => cabinBookingAuth.createBedBookingNoUser,
         canEditSpecialCmsParagraphContract: () =>
-            cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract.dynamicFields({}),
+            cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract,
     },
     metadata: () => ({ title: 'Hyttebooking' }),
     render: ({ data, authChecks }) => {

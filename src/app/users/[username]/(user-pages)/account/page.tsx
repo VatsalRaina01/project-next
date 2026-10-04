@@ -3,13 +3,13 @@ import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOve
 import LedgerAccountPaymentMethods from '@/components/Ledger/Accounts/LedgerAccountPaymentMethodsCard'
 import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
-import { RequireUser } from '@/auth/authorizer/RequireUser'
+import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/serverPage'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        const { user } = RequireUser.staticFields({}).dynamicFields({})
+        const { user } = Require.user()
             .auth(session).requireAuthorized().session
 
         const ledgerAccount = await ledgerAccountOperations.read({ params: { userId: user.id } })

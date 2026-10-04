@@ -32,7 +32,7 @@ const { page, generateMetadata } = serverPage({
         const { profile } = await getProfileForUserPage(params, 'membership-status', session)
         const userId = profile.user.id
 
-        const canReadTrials = admissionAuth.readTrial.dynamicFields({ userId }).auth(session)
+        const canReadTrials = admissionAuth.readTrial.data({ userId }).auth(session)
         const sittedTrials = canReadTrials.authorized
             ? (await admissionOperations.readTrial({ params: { userId } })).map(trial => trial.admission)
             : []
@@ -40,10 +40,10 @@ const { page, generateMetadata } = serverPage({
         return { profile, sittedTrials }
     },
     authCheckers: {
-        canReadTrials: (data) => admissionAuth.readTrial.dynamicFields({ userId: data.profile.user.id }),
-        canRegisterTrial: () => admissionAuth.createTrial.dynamicFields({}),
-        canChangeLevel: () => omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}),
-        canChangeOrder: () => omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}),
+        canReadTrials: (data) => admissionAuth.readTrial.data({ userId: data.profile.user.id }),
+        canRegisterTrial: () => admissionAuth.createTrial,
+        canChangeLevel: () => omegaMembershipGroupAuth.updateUserLevel,
+        canChangeOrder: () => omegaMembershipGroupAuth.updateUserOrder,
     },
     render: ({ data, authChecks }) => {
         const { profile } = data

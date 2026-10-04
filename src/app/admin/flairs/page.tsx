@@ -14,10 +14,15 @@ import Flair from '@/components/Flair/Flair'
 import ImageUploader from '@/components/Image/ImageUploader'
 import PopUp from '@/components/PopUp/PopUp'
 import { configureAction } from '@/services/configureAction'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import type { FlairRow } from './FlairTable'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => flairOperations.readAll({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('flairs', session)
+        return flairOperations.readAll({})
+    },
     metadata: () => ({ title: 'Administrer flairs' }),
     render: ({ data: flairs }) => {
         const rows: FlairRow[] = [...flairs].sort((one, two) => one.rank - two.rank).map(flair => ({

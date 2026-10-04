@@ -60,7 +60,10 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
     const panelRef = useClickOutsideRef(handleClickOutside)
 
     const handleSizeChange = (size: string) => {
-        if (size === 'TINY' || size === 'SMALL' || size === 'MEDIUM' || size === 'LARGE' || size === 'ORIGINAL') {
+        if (
+            size === 'MICRO' || size === 'TINY' || size === 'SMALL' || size === 'MEDIUM' ||
+            size === 'LARGE' || size === 'HUGE' || size === 'ORIGINAL'
+        ) {
             setImageSize(size)
         }
     }
@@ -140,6 +143,10 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                             label="Oppløsning"
                             options={[
                                 {
+                                    label: 'Ørliten',
+                                    value: 'MICRO'
+                                },
+                                {
                                     label: 'Veldig liten',
                                     value: 'TINY'
                                 },
@@ -154,6 +161,10 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                                 {
                                     label: 'Stor',
                                     value: 'LARGE'
+                                },
+                                {
+                                    label: 'Veldig stor',
+                                    value: 'HUGE'
                                 },
                                 {
                                     label: 'Original',

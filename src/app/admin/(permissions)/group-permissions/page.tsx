@@ -3,10 +3,15 @@ import PermissionCheckbox from './PermissionCheckbox'
 import { permissionConfig } from '@/services/permissions/constants'
 import { permissionOperations } from '@/services/permissions/operations'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import type { Permission } from '@/prisma-generated-pn-types'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => permissionOperations.readPermissionMatrix({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('group-permissions', session)
+        return permissionOperations.readPermissionMatrix({})
+    },
     metadata: () => ({ title: 'Gruppetillatelser' }),
     render: ({ data: permissionMatrix }) => {
         const permissionList = Object.keys(permissionConfig)

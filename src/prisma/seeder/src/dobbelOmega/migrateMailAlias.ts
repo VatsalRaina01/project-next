@@ -18,7 +18,14 @@ export default async function migrateMailAliases(
         }
     })
 
-    await pnPrisma.mailAlias.deleteMany()
+    // Aliases a notification channel points at must survive - that FK restricts.
+    await pnPrisma.$executeRaw`
+        DELETE FROM "MailAlias"
+        WHERE NOT EXISTS (
+            SELECT 1 FROM "NotificationChannel"
+            WHERE "NotificationChannel"."mailAliasId" = "MailAlias"."id"
+        )
+    `
     await pnPrisma.mailingList.deleteMany()
     await pnPrisma.mailAddressExternal.deleteMany()
 
@@ -28,7 +35,8 @@ export default async function migrateMailAliases(
             description: a.name,
             createdAt: a.createdAt,
             updatedAt: a.updatedAt,
-        }))
+        })),
+        skipDuplicates: true,
     })
 
 

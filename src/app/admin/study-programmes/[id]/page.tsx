@@ -38,10 +38,10 @@ const { page, generateMetadata } = serverPage({
         return { studyProgramme, expanded, members }
     },
     authCheckers: {
-        canAddMembers: (data) => studyProgrammeAuth.addMembers.dynamicFields({
+        canAddMembers: (data) => studyProgrammeAuth.addMembers.data({
             groupId: data.studyProgramme.groupId,
         }),
-        canRemoveMembers: (data) => studyProgrammeAuth.removeMembers.dynamicFields({
+        canRemoveMembers: (data) => studyProgrammeAuth.removeMembers.data({
             groupId: data.studyProgramme.groupId,
         }),
     },

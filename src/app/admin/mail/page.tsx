@@ -11,9 +11,12 @@ import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => {
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('mail', session)
         const [mailAliases, mailingLists, mailAddressesExternal] = await Promise.all([
             aliasOperations.readMany({}),
             mailingListOperations.readMany({}),
@@ -22,9 +25,9 @@ const { page, generateMetadata } = serverPage({
         return { mailAliases, mailingLists, mailAddressesExternal }
     },
     authCheckers: {
-        canCreateMailAlias: () => mailAliasAuth.create.dynamicFields({}),
-        canCreateMailingList: () => mailingListAuth.create.dynamicFields({}),
-        canCreateMailaddressExternal: () => mailAddressExternalAuth.create.dynamicFields({}),
+        canCreateMailAlias: () => mailAliasAuth.create,
+        canCreateMailingList: () => mailingListAuth.create,
+        canCreateMailaddressExternal: () => mailAddressExternalAuth.create,
     },
     metadata: () => ({ title: 'Innkommende elektronisk post' }),
     render: ({ data, authChecks }) => {

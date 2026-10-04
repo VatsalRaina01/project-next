@@ -1,12 +1,15 @@
 import styles from './page.module.scss'
 import UserSettingsForm from './UserProfileSettingsForm'
 import UserProfileSettingsCard from './UserProfileSettingsCard'
-import ProfileImageUploader from './ProfileImageUploader'
+import ChangeEmailForm from './ChangeEmailForm'
+import AdminUserSettingsForm from './AdminUserSettingsForm'
 import ChangeClassForm from './ChangeClassForm'
 import ManageUserStudyProgrammes from './ManageUserStudyProgrammes'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import Image from '@/components/Image/Image'
-import { updateUserProfileImageAction } from '@/services/users/actions'
+import CmsParagraphEditorForm from '@/components/Cms/CmsParagraph/CmsParagraphEditorForm'
+import ImageUploader from '@/components/Image/ImageUploader'
+import { updateUserBioParagraphContentAction, updateUserProfileImageAction } from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
@@ -15,6 +18,10 @@ import { serverPage } from '@/app/serverPage'
 import { configureAction } from '@/services/configureAction'
 import type { PageOperationArgs } from '@/app/serverPage'
 
+/**
+ * The first cards are what the user may change about themselves, which an administrator may change
+ * for them as well. The rest is for administrators only.
+ */
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
         const { profile } = await getProfileForUserPage(params, 'settings', session)
@@ -22,28 +29,73 @@ const { page, generateMetadata } = serverPage({
         // Study programme membership normally comes from Feide. Putting someone on one by hand is
         // an administrator's job, so the form only shows for one - the actions check per programme
         // anyway.
-        const canManageStudyProgrammes = studyProgrammeAuth.update.dynamicFields({}).auth(session)
-        const studyProgrammes = canManageStudyProgrammes.authorized
+        const studyProgrammes = studyProgrammeAuth.update.auth(session).authorized
             ? await studyProgrammeOperations.readMany({})
             : []
 
         return { profile, studyProgrammes }
     },
     authCheckers: {
-        canUpdateImage: (data) => userAuth.updateProfileImage.dynamicFields({
-            username: data.profile.user.username
+        canUpdateProfile: ({ profile }) => userAuth.updateProfile.data({
+            userField: { username: profile.user.username }
         }),
-        canChangeClass: () => classAuth.changeClassOfUser.dynamicFields({}),
-        canManageStudyProgrammes: () => studyProgrammeAuth.update.dynamicFields({}),
+        canUpdateBio: ({ profile }) => userAuth.updateBioParagraphContent.data({ userId: profile.user.id }),
+        canRegisterNewEmail: ({ profile }) => userAuth.registerNewEmail.data({ userId: profile.user.id }),
+        canUpdateImage: ({ profile }) => userAuth.updateProfileImage.data({
+            userField: { username: profile.user.username }
+        }),
+        canUpdateUser: () => userAuth.update,
+        canChangeClass: () => classAuth.changeClassOfUser,
+        canManageStudyProgrammes: () => studyProgrammeAuth.update,
     },
     render: ({ data, authChecks }) => {
         const { profile, studyProgrammes } = data
 
         return (
             <div className={styles.wrapper}>
-                <UserProfileSettingsCard>
-                    <UserSettingsForm user={profile.user} emailDomain={process.env.EMAIL_DOMAIN} />
-                </UserProfileSettingsCard>
+                {authChecks.canUpdateProfile.authorized && (
+                    <UserProfileSettingsCard>
+                        <UserSettingsForm user={profile.user} emailDomain={process.env.EMAIL_DOMAIN} />
+                    </UserProfileSettingsCard>
+                )}
+                {authChecks.canUpdateBio.authorized && (
+                    <UserProfileSettingsCard>
+                        <h2>Bio</h2>
+                        <CmsParagraphEditorForm
+                            cmsParagraph={profile.user.bioParagraph}
+                            updateCmsParagraphAction={configureAction(
+                                updateUserBioParagraphContentAction,
+                                { implementationParams: { userId: profile.user.id } }
+                            )}
+                        />
+                    </UserProfileSettingsCard>
+                )}
+                {authChecks.canRegisterNewEmail.authorized && (
+                    <UserProfileSettingsCard>
+                        <ChangeEmailForm user={profile.user} />
+                    </UserProfileSettingsCard>
+                )}
+                {authChecks.canUpdateImage.authorized && (
+                    <UserProfileSettingsCard>
+                        <h2>Profilbilde</h2>
+                        <div className={styles.profileImage}>
+                            <Image width={300} image={profile.user.image} alt={profile.user.image.alt} />
+                            <ImageUploader
+                                title="Endre profilbilde"
+                                uploadImageAction={configureAction(
+                                    updateUserProfileImageAction,
+                                    { params: { username: profile.user.username } }
+                                )}
+                                refreshOnSuccess
+                            />
+                        </div>
+                    </UserProfileSettingsCard>
+                )}
+                {authChecks.canUpdateUser.authorized && (
+                    <UserProfileSettingsCard>
+                        <AdminUserSettingsForm user={profile.user} />
+                    </UserProfileSettingsCard>
+                )}
                 {authChecks.canChangeClass.authorized && (
                     <UserProfileSettingsCard>
                         <ChangeClassForm
@@ -57,30 +109,13 @@ const { page, generateMetadata } = serverPage({
                         <ManageUserStudyProgrammes
                             userId={profile.user.id}
                             studyProgrammes={studyProgrammes}
-                            memberships={profile.user.memberships
-                                .filter(membership => membership.group.groupType === 'STUDY_PROGRAMME')
-                                .filter(membership => membership.active)
-                                .map(membership => ({
-                                    groupId: membership.group.id,
-                                    order: membership.order,
-                                }))}
+                            memberships={profile.groups.activeStudyProgrammes.map(({ groupId, order }) => ({
+                                groupId,
+                                order,
+                            }))}
                         />
                     </UserProfileSettingsCard>
                 )}
-                {/* TODO: add Email registration form and admin user settings */}
-                <UserProfileSettingsCard>
-                    <h2>Generelle Instillinger</h2>
-                    <div className={styles.profileImage}>
-                        <Image width={300} image={profile.user.image} />
-                        <ProfileImageUploader
-                            canEdit={authChecks.canUpdateImage.toJsObject()}
-                            uploadImageAction={configureAction(
-                                updateUserProfileImageAction,
-                                { params: { username: profile.user.username } }
-                            )}
-                        />
-                    </div>
-                </UserProfileSettingsCard>
             </div>
         )
     },

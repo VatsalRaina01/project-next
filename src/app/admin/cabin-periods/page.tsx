@@ -3,9 +3,12 @@ import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => {
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('cabin-periods', session)
         const [releasePeriods, pricePeriods] = await Promise.all([
             cabinReleasePeriodOperations.readMany({}),
             cabinPricePeriodOperations.readMany({}),

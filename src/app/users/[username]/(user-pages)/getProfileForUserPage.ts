@@ -2,7 +2,7 @@ import { userOperations } from '@/services/users/operations'
 import { userNavDef } from '@/app/users/[username]/userNavDef'
 import { notFound, redirect } from 'next/navigation'
 import type { ServerPageSession } from '@/app/serverPage'
-import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
+import type { Authorizer } from '@/auth/authorizer/Authorizer'
 
 type Params = {
     username: string
@@ -40,7 +40,7 @@ export async function getProfileForUserPage({ username }: Params, path: string, 
     }
 
     const authorizers = navItem.authorizers({ username, userId: profile.user.id })
-    const passes = (authorizer: AuthorizerDynamicFieldsBound) => authorizer.auth(session).authorized
+    const passes = (authorizer: Authorizer) => authorizer.auth(session).authorized
 
     if (!authorizers.some(passes)) {
         authorizers[0].auth(session).requireAuthorized()

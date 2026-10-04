@@ -5,8 +5,10 @@ import Image from '@/components/Image/Image'
 import useKeyPress from '@/hooks/useKeyPress'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import { useDebounce } from '@/hooks/useDebounce'
-import getNavItems from '@/components/NavBar/navDef'
-import { searchUsersAction, searchEventsAction } from '@/services/search/actions'
+import { searchEventsAction } from '@/services/events/actions'
+import { searchUsersAction } from '@/services/users/actions'
+import { userAuth } from '@/services/users/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { displayDate } from '@/lib/dates/displayDate'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -16,7 +18,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
-import type { Profile } from '@/services/users/types'
+import type { NavLink } from '@/components/NavBar/navDef'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
 type Category = 'all' | 'navigation' | 'users' | 'events'
@@ -39,7 +41,8 @@ type SearchSection = {
 }
 
 export type PropTypes = {
-    profile: Profile | null,
+    /** The nav items the session may open, as `visibleNavItems` leaves them. */
+    navItems: NavLink[],
 }
 
 const categoryOptions: { value: Category, label: string }[] = [
@@ -54,10 +57,11 @@ const categoryOptions: { value: Category, label: string }[] = [
  * that searches site navigation, users and events at once, grouped into tabs the user can
  * cycle through with Tab/Shift+Tab and browse with the arrow keys.
  */
-export default function GlobalSearch({ profile }: PropTypes) {
-    const isLoggedIn = profile !== null
-    const isAdmin = profile?.user.username === 'harambe'
-    const availableCategories = isLoggedIn ? categoryOptions : categoryOptions.slice(0, 2)
+export default function GlobalSearch({ navItems }: PropTypes) {
+    const canSearchUsers = useAuthorizer({ authorizer: userAuth.search }).authorized
+    const availableCategories = canSearchUsers
+        ? categoryOptions
+        : categoryOptions.filter(option => option.value !== 'users')
 
     const [isOpen, setIsOpen] = useState(false)
     const [category, setCategory] = useState<Category>('all')
@@ -106,17 +110,17 @@ export default function GlobalSearch({ profile }: PropTypes) {
     }, [isOpen])
 
     useEffect(() => {
-        if (!isLoggedIn || !debouncedQuery) return undefined
+        if (!debouncedQuery) return undefined
 
         let cancelled = false
         const limit = category === 'all' ? undefined : 20
 
         Promise.all([
-            searchUsersAction({ params: { query: debouncedQuery, limit } }),
+            canSearchUsers ? searchUsersAction({ params: { query: debouncedQuery, limit } }) : null,
             searchEventsAction({ params: { query: debouncedQuery, limit } }),
         ]).then(([usersResult, eventsResult]) => {
             if (cancelled) return
-            setUserResults(usersResult.success ? usersResult.data : [])
+            setUserResults(usersResult?.success ? usersResult.data : [])
             setEventResults(eventsResult.success ? eventsResult.data : [])
             setLoading(false)
         })
@@ -124,9 +128,7 @@ export default function GlobalSearch({ profile }: PropTypes) {
         return () => {
             cancelled = true
         }
-    }, [debouncedQuery, category, isLoggedIn])
-
-    const navItems = useMemo(() => getNavItems(isLoggedIn, isAdmin, false), [isLoggedIn, isAdmin])
+    }, [debouncedQuery, category, canSearchUsers])
 
     const trimmedQuery = query.trim().toLowerCase()
 
@@ -178,7 +180,7 @@ export default function GlobalSearch({ profile }: PropTypes) {
         setActiveIndex(0)
         updateDebouncedQuery(value)
         if (value.trim()) {
-            if (isLoggedIn) setLoading(true)
+            setLoading(true)
         } else {
             setDebouncedQuery('')
             setUserResults([])
@@ -190,7 +192,7 @@ export default function GlobalSearch({ profile }: PropTypes) {
     const handleCategoryChange = (value: Category) => {
         setCategory(value)
         setActiveIndex(0)
-        if (isLoggedIn && debouncedQuery) setLoading(true)
+        if (debouncedQuery) setLoading(true)
         // ModeSwitch's tab buttons take focus on click, which would otherwise leave the
         // arrow-key/Enter handling on the input dead until the user clicks back into it.
         inputRef.current?.focus()

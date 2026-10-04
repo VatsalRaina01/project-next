@@ -20,7 +20,7 @@ import Link from 'next/link'
 const { page, generateMetadata } = serverPage({
     operation: async () => cabinArticleOperations.read({}),
     authCheckers: {
-        canEdit: () => cabinArticleAuth.update.dynamicFields({}),
+        canEdit: () => cabinArticleAuth.update,
     },
     metadata: () => ({ title: 'Heutten' }),
     render: ({ data: article, authChecks }) => (

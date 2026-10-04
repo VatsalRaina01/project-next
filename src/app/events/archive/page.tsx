@@ -20,9 +20,9 @@ const { page, generateMetadata } = serverPage({
         return { tagNames, eventTags }
     },
     authCheckers: {
-        canUpdateTags: () => eventTagAuth.update.dynamicFields({}),
-        canCreateTags: () => eventTagAuth.create.dynamicFields({}),
-        canDestroyTags: () => eventTagAuth.destroy.dynamicFields({}),
+        canUpdateTags: () => eventTagAuth.update,
+        canCreateTags: () => eventTagAuth.create,
+        canDestroyTags: () => eventTagAuth.destroy,
     },
     metadata: () => ({ title: 'Hvad der har hendt' }),
     render: ({ data, authChecks }) => {

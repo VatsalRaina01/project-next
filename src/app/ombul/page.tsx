@@ -17,7 +17,7 @@ const { page, generateMetadata } = serverPage({
         return { latestOmbul, ombuls }
     },
     authCheckers: {
-        canCreate: () => ombulAuth.create.dynamicFields({}),
+        canCreate: () => ombulAuth.create,
     },
     metadata: () => ({ title: 'Ombul' }),
     render: ({ data, authChecks }) => {

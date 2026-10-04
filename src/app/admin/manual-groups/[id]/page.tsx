@@ -28,7 +28,7 @@ const { page, generateMetadata } = serverPage({
 
         // The page reads the group's members, so it guards on `readMembers` rather than `read`:
         // `MANUAL_GROUP_READ` is a default permission, held by a visitor with no session at all.
-        manualGroupAuth.readMembers.dynamicFields({ groupId: manualGroup.groupId })
+        manualGroupAuth.readMembers.data({ groupId: manualGroup.groupId })
             .auth(session).requireAuthorized()
 
         const [expandedGroups, members, currentOrder] = await Promise.all([
@@ -43,14 +43,14 @@ const { page, generateMetadata } = serverPage({
         return { manualGroup, expanded, members, currentOrder }
     },
     authCheckers: {
-        canMigrate: (data) => manualGroupAuth.migrateGroup.dynamicFields({ groupId: data.manualGroup.groupId }),
-        canAddMembers: (data) => manualGroupAuth.addMembers.dynamicFields({ groupId: data.manualGroup.groupId }),
-        canSetMemberAdmin: (data) => manualGroupAuth.setMemberAdmin.dynamicFields({ groupId: data.manualGroup.groupId }),
-        canSetMemberTitle: (data) => manualGroupAuth.setMemberTitle.dynamicFields({
+        canMigrate: (data) => manualGroupAuth.migrateGroup.data({ groupId: data.manualGroup.groupId }),
+        canAddMembers: (data) => manualGroupAuth.addMembers.data({ groupId: data.manualGroup.groupId }),
+        canSetMemberAdmin: (data) => manualGroupAuth.setMemberAdmin.data({ groupId: data.manualGroup.groupId }),
+        canSetMemberTitle: (data) => manualGroupAuth.setMemberTitle.data({
             groupId: data.manualGroup.groupId,
         }),
-        canPension: () => manualGroupAuth.pension.dynamicFields({}),
-        canRemoveMembers: (data) => manualGroupAuth.removeMembers.dynamicFields({ groupId: data.manualGroup.groupId }),
+        canPension: () => manualGroupAuth.pension,
+        canRemoveMembers: (data) => manualGroupAuth.removeMembers.data({ groupId: data.manualGroup.groupId }),
     },
     metadata: (data) => ({ title: data.manualGroup.name }),
     render: ({ data, authChecks }) => {

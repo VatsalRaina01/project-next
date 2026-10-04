@@ -8,7 +8,7 @@ import logger from '@/lib/logger'
 import { visibilityOperations } from '@/services/visibility/operations'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
 import type { ExpandedImageCollection } from '@/services/images/subservice/types'
-import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
+import type { Authorizer } from '@/auth/authorizer/Authorizer'
 
 export function implementSpecialCollection({
     special,
@@ -17,7 +17,7 @@ export function implementSpecialCollection({
     config
 }: {
     special: SpecialCollection,
-    imagePanelAuther: AuthorizerDynamicFieldsBound
+    imagePanelAuther: Authorizer
     /**
      * Which of the image system's extensions this collection accepts on upload.
      * Some special collection may only for example expect svg files, while others may only expect
@@ -29,8 +29,28 @@ export function implementSpecialCollection({
         description: string,
     }
 }) {
+    /**
+     * Special collections are not editable through the site, so an existing one is brought in line
+     * with the config (name and description), while a missing one is created.
+     */
     const generateCollectionFromConfig = defineSubOperation({
         operation: () => async ({ prisma }) => {
+            const existing = await prisma.imageCollection.findUnique({
+                where: { special },
+                select: { id: true },
+            })
+            if (existing) {
+                const updated = await prisma.imageCollection.update({
+                    where: { special },
+                    data: {
+                        name: config.name,
+                        description: config.description,
+                    },
+                    include: expandedImageCollectionIncluder,
+                })
+                return expandImageCollection(updated, null)
+            }
+
             // Special collections don't use visibility for authorization. Instead, authorization is handled
             // by the owning service's panel authorizer (imagePanelAuther passed at construction). This is
             // because each special collection's access model is specific to its owning service.
@@ -39,25 +59,22 @@ export function implementSpecialCollection({
             const visibilityRegular = await visibilityOperations.create.internalCall({})
             const visibilityAdmin = await visibilityOperations.create.internalCall({})
 
-            const data = {
-                name: config.name,
-                description: config.description,
-                visibilityAdmin: {
-                    connect: {
-                        id: visibilityAdmin.id,
+            const created = await prisma.imageCollection.create({
+                data: {
+                    special,
+                    name: config.name,
+                    description: config.description,
+                    visibilityAdmin: {
+                        connect: {
+                            id: visibilityAdmin.id,
+                        }
+                    },
+                    visibilityRegular: {
+                        connect: {
+                            id: visibilityRegular.id,
+                        }
                     }
                 },
-                visibilityRegular: {
-                    connect: {
-                        id: visibilityRegular.id,
-                    }
-                }
-            }
-
-            const created = await prisma.imageCollection.upsert({
-                where: { special },
-                update: data,
-                create: { ...data, special },
                 include: expandedImageCollectionIncluder,
             })
             return expandImageCollection(created, null)

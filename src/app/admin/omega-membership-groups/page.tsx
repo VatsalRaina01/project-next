@@ -5,9 +5,12 @@ import { OmegaMembershipLevelConfig } from '@/services/groups/constants'
 import { serverPage } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => {
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('omega-membership-groups', session)
         const [membershipGroups, expandedGroups, currentOrder] = await Promise.all([
             omegaMembershipGroupOperations.readMany({}),
             omegaMembershipGroupOperations.readExpanded({}),

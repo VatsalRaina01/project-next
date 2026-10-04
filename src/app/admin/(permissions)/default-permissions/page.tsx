@@ -3,10 +3,15 @@ import { permissionOperations } from '@/services/permissions/operations'
 import Form from '@/components/Form/Form'
 import DisplayAllPermissions from '@/components/Permission/DisplayAllPermissions'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import React from 'react'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => permissionOperations.readDefaultPermissions({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('default-permissions', session)
+        return permissionOperations.readDefaultPermissions({})
+    },
     metadata: () => ({ title: 'Standard Tilganger' }),
     render: ({ data: defaultPermissions }) => (
         <>

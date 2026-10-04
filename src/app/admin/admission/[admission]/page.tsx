@@ -19,7 +19,7 @@ const { page, generateMetadata } = serverPage({
         return { admission: params.admission, publicKey }
     },
     authCheckers: {
-        canSearchUsers: () => userAuth.readPage.dynamicFields({}),
+        canSearchUsers: () => userAuth.readPage,
     },
     metadata: (data) => ({ title: `Registrer opptak for ${admissionDisplayNames[data.admission]}` }),
     render: ({ data, authChecks }) => (

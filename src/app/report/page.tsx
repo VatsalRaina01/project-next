@@ -20,7 +20,7 @@ import { serverPage } from '@/app/serverPage'
 const { page, generateMetadata } = serverPage({
     operation: async () => reportOperations.read({}),
     authCheckers: {
-        canEdit: () => reportAuth.update.dynamicFields({}),
+        canEdit: () => reportAuth.update,
     },
     metadata: () => ({ title: 'Varsling' }),
     render: ({ data: article, authChecks }) => (

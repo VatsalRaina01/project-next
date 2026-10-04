@@ -39,13 +39,13 @@ const { page, generateMetadata } = serverPage({
         return { committee, expanded, members, currentOrder }
     },
     authCheckers: {
-        canEditLogo: (data) => committeeAuth.updateLogo.dynamicFields({ groupId: data.committee.groupId }),
-        canMigrate: (data) => committeeAuth.migrateGroup.dynamicFields({ groupId: data.committee.groupId }),
-        canAddMembers: (data) => committeeAuth.addMembers.dynamicFields({ groupId: data.committee.groupId }),
-        canSetMemberAdmin: (data) => committeeAuth.setMemberAdmin.dynamicFields({ groupId: data.committee.groupId }),
-        canSetMemberTitle: (data) => committeeAuth.setMemberTitle.dynamicFields({ groupId: data.committee.groupId }),
-        canRemoveMembers: (data) => committeeAuth.removeMembers.dynamicFields({ groupId: data.committee.groupId }),
-        canPension: () => committeeAuth.pension.dynamicFields({}),
+        canEditLogo: (data) => committeeAuth.updateLogo.data({ groupId: data.committee.groupId }),
+        canMigrate: (data) => committeeAuth.migrateGroup.data({ groupId: data.committee.groupId }),
+        canAddMembers: (data) => committeeAuth.addMembers.data({ groupId: data.committee.groupId }),
+        canSetMemberAdmin: (data) => committeeAuth.setMemberAdmin.data({ groupId: data.committee.groupId }),
+        canSetMemberTitle: (data) => committeeAuth.setMemberTitle.data({ groupId: data.committee.groupId }),
+        canRemoveMembers: (data) => committeeAuth.removeMembers.data({ groupId: data.committee.groupId }),
+        canPension: () => committeeAuth.pension,
     },
     metadata: (data) => ({ title: `Administrer ${data.committee.name}` }),
     render: ({ data, authChecks }) => {

@@ -13,11 +13,16 @@ import {
 } from '@/services/dots/freezePeriods/actions'
 import { dotFreezePeriodOperations } from '@/services/dots/freezePeriods/operations'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const createPopUpKey = 'createDotFreezePeriod'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => dotFreezePeriodOperations.readAll({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('dots-freeze-periods', session)
+        return dotFreezePeriodOperations.readAll({})
+    },
     metadata: () => ({ title: 'Frysperioder for prikker' }),
     render: ({ data: freezePeriods }) => {
         const now = new Date()

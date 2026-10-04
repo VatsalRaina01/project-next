@@ -39,7 +39,7 @@ const { page, generateMetadata } = serverPage({
         return { articleCategory, article }
     },
     authCheckers: {
-        canEdit: () => articleCategoryAuth.updateArticle.dynamicFields({}),
+        canEdit: () => articleCategoryAuth.updateArticle,
     },
     metadata: (data) => ({ title: data.article.name }),
     render: ({ data, authChecks }) => (

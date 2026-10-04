@@ -1,24 +1,26 @@
 import styles from './page.module.scss'
 import { SchoolAdminList } from './SchoolAdminList'
-import PageTitleSetter from '@/contexts/PageTitleSetter'
 import Form from '@/components/Form/Form'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { createSchoolAction, readSchoolsAction, readStandardSchoolsAction } from '@/education/schools/actions'
+import { createSchoolAction } from '@/education/schools/actions'
+import { schoolOperations } from '@/education/schools/operations'
 import TextInput from '@/components/UI/TextInput'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default async function SchoolsAdmin() {
-    const standardSchoolsRes = await readStandardSchoolsAction()
-    if (!standardSchoolsRes.success) {
-        throw new Error(standardSchoolsRes.error?.length ? standardSchoolsRes.error[0].message : 'Ukjent feil')
-    }
-    const standardSchools = standardSchoolsRes.data
-
-    const schoolsRes = await readSchoolsAction({ params: { onlyNonStandard: true } })
-    if (!schoolsRes.success) throw new Error(schoolsRes.error?.length ? schoolsRes.error[0].message : 'Ukjent feil')
-    const schools = schoolsRes.data
-
-    return (
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('schools', session)
+        const [standardSchools, schools] = await Promise.all([
+            schoolOperations.readStandard({}),
+            schoolOperations.readMany({ params: { onlyNonStandard: true } }),
+        ])
+        return { standardSchools, schools }
+    },
+    metadata: () => ({ title: 'Skoler' }),
+    render: ({ data: { standardSchools, schools } }) => (
         <PageWrapper headerItem={
             <AddHeaderItemPopUp popUpKey="CreateSchool">
                 <Form
@@ -30,7 +32,6 @@ export default async function SchoolsAdmin() {
                 </Form>
             </AddHeaderItemPopUp>
         }>
-            <PageTitleSetter title="Skoler" />
             <div className={styles.wrapper}>
                 <p>Skoler er brukt på fagveven</p>
                 <h2>Standard Skoler</h2>
@@ -39,5 +40,8 @@ export default async function SchoolsAdmin() {
                 <SchoolAdminList schools={schools} />
             </div>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

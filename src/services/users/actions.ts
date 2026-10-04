@@ -17,10 +17,18 @@ export const createUserAction = makeAction(userOperations.create)
  */
 export const readUserPageAction = makeAction(userOperations.readPage)
 
+/**
+ * updateUserAction is meant for admin updates while
+ * updateUserProfileAction is meant for standard profile updates
+ */
+export const updateUserAction = makeAction(userOperations.update)
 export const updateUserProfileAction = makeAction(userOperations.updateProfile)
 export const updateUserProfileImageAction = makeAction(userOperations.updateProfileImage)
+export const updateUserBioParagraphContentAction = makeAction(userOperations.updateBioParagraphContent)
 
 export const registerNewEmailAction = makeAction(userOperations.registerNewEmail)
 export const registerUser = makeAction(userOperations.register)
 
 export const connectStudentCardAction = makeAction(userOperations.connectStudentCard)
+
+export const searchUsersAction = makeAction(userOperations.search)

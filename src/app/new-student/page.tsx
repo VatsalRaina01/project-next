@@ -19,7 +19,7 @@ import { serverPage } from '@/app/serverPage'
 const { page, generateMetadata } = serverPage({
     operation: async () => newStudentOperations.read({}),
     authCheckers: {
-        canEdit: () => newStudentAuth.update.dynamicFields({}),
+        canEdit: () => newStudentAuth.update,
     },
     metadata: () => ({ title: 'Ny student' }),
     render: ({ data: article, authChecks }) => (

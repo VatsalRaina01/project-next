@@ -1,13 +1,14 @@
 import EmailRegistrationForm from './EmailregistrationForm'
-import { RequireUser } from '@/auth/authorizer/RequireUser'
+import { Require } from '@/auth/authorizer/Require'
 import { userOperations } from '@/services/users/operations'
+import { authOperations } from '@/services/auth/operations'
 import { serverPage } from '@/app/serverPage'
 import { notFound, redirect } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        const authResult = RequireUser.staticFields({}).dynamicFields({}).auth(session)
+        const authResult = Require.user().auth(session)
         if (!authResult.authorized) return notFound()
 
         const updatedUser = await userOperations.read({ params: { id: authResult.session.user.id } })
@@ -20,9 +21,12 @@ const { page, generateMetadata } = serverPage({
             redirect('/register')
         }
 
-        return updatedUser
+        const feideLoginMatch = await authOperations.readFeideLoginMatch({})
+        return { updatedUser, feideLoginMatch }
     },
-    render: ({ data: updatedUser }) => <EmailRegistrationForm user={updatedUser} />,
+    render: ({ data: { updatedUser, feideLoginMatch } }) => (
+        <EmailRegistrationForm user={updatedUser} feideLoginMatch={feideLoginMatch} />
+    ),
 })
 
 export default page

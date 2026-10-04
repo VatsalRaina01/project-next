@@ -27,9 +27,9 @@ export default async function Committee({ params, children }: PropTypes) {
             // editing controls are not offered on any of its pages either.
             canEditCoverImage: (committeeOfPage.pensioned
                 ? new AuthResult(session, false, undefined, 'Komiteen er pensjonert')
-                : committeeAuth.updateArticle.dynamicFields({ groupId: committeeOfPage.groupId }).auth(session)
+                : committeeAuth.updateArticle.data({ groupId: committeeOfPage.groupId }).auth(session)
             ).toJsObject(),
-            canReadCommitteeApplication: committeeParticipationAuth.readAll.dynamicFields({
+            canReadCommitteeApplication: committeeParticipationAuth.readAll.data({
                 groupId: committeeOfPage.groupId,
             }).auth(session).toJsObject(),
         }

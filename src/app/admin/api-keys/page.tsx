@@ -5,13 +5,18 @@ import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { apiKeyOperations } from '@/services/apiKeys/operations'
 import { serverPage } from '@/app/serverPage'
 import Date from '@/components/Date/Date'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { v4 as uuid } from 'uuid'
 import Link from 'next/link'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const popUpKey = 'createApiKey'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => apiKeyOperations.readMany({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('api-keys', session)
+        return apiKeyOperations.readMany({})
+    },
     metadata: () => ({ title: 'API-nøkler' }),
     render: ({ data: apiKeys }) => (
         <PageWrapper headerItem={

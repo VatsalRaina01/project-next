@@ -37,20 +37,20 @@ const { page, generateMetadata } = serverPage({
         return { interestGroup, members, expanded, currentOrder }
     },
     authCheckers: {
-        canMigrate: (data) => interestGroupAuth.migrateGroup.dynamicFields({
+        canMigrate: (data) => interestGroupAuth.migrateGroup.data({
             groupId: data.interestGroup.groupId,
         }),
-        canAddMembers: (data) => interestGroupAuth.addMembers.dynamicFields({
+        canAddMembers: (data) => interestGroupAuth.addMembers.data({
             groupId: data.interestGroup.groupId,
         }),
-        canSetMemberAdmin: (data) => interestGroupAuth.setMemberAdmin.dynamicFields({
+        canSetMemberAdmin: (data) => interestGroupAuth.setMemberAdmin.data({
             groupId: data.interestGroup.groupId,
         }),
-        canSetMemberTitle: (data) => interestGroupAuth.setMemberTitle.dynamicFields({
+        canSetMemberTitle: (data) => interestGroupAuth.setMemberTitle.data({
             groupId: data.interestGroup.groupId,
         }),
-        canPension: () => interestGroupAuth.pension.dynamicFields({}),
-        canRemoveMembers: (data) => interestGroupAuth.removeMembers.dynamicFields({
+        canPension: () => interestGroupAuth.pension,
+        canRemoveMembers: (data) => interestGroupAuth.removeMembers.data({
             groupId: data.interestGroup.groupId,
         }),
     },

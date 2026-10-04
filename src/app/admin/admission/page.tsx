@@ -1,23 +1,24 @@
 import styles from './page.module.scss'
 import MembershipStatusUserSearch from './MembershipStatusUserSearch'
-import PageTitleSetter from '@/contexts/PageTitleSetter'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { admissionDisplayNames, allAdmissions } from '@/services/admission/constants'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
-import { ServerSession } from '@/auth/session/ServerSession'
 import { userAuth } from '@/services/users/auth'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import { serverPage } from '@/app/serverPage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronRight, faScroll } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default async function AdmissionTrials() {
-    const session = await ServerSession.fromNextAuth()
-
-    const canSearchUsers = userAuth.readPage.dynamicFields({}).auth(session).authorized
-
-    return (
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('admission', session),
+    authCheckers: {
+        canSearchUsers: () => userAuth.readPage,
+    },
+    metadata: () => ({ title: 'Opptak' }),
+    render: ({ authChecks }) => (
         <PageWrapper>
-            <PageTitleSetter title="Opptak" />
             <div className={styles.wrapper}>
                 <section className={styles.section}>
                     <h2>Registrer opptaksprøve</h2>
@@ -44,7 +45,7 @@ export default async function AdmissionTrials() {
                     <p className={styles.lead}>
                         Søk opp en bruker for å se hvilke prøver de har tatt, og for å endre medlemskapet deres.
                     </p>
-                    {canSearchUsers ? (
+                    {authChecks.canSearchUsers.authorized ? (
                         <UserPagingProvider
                             startPage={{ page: 0, pageSize: 50 }}
                             serverRenderedData={[]}
@@ -60,5 +61,8 @@ export default async function AdmissionTrials() {
                 </section>
             </div>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

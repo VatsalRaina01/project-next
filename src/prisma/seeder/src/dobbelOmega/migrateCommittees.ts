@@ -1,6 +1,6 @@
 import { owIdToPnId } from './IdMapper'
 import { createProgressBar } from './progressBar'
-import { cmsParagraphOperations } from '@/services/cms/paragraphs/operations'
+import { createCmsParagraph } from './createCmsParagraph'
 import logger from '@/lib/logger'
 import { readFile } from 'fs/promises'
 import { dirname, join } from 'path'
@@ -21,21 +21,6 @@ async function readCommitteMarkdown(filename: string): Promise<string> {
     } catch {
         return ''
     }
-}
-
-/**
- * Creates a CmsParagraph with rendered contentHtml by delegating to the same
- * cmsParagraphOperations.updateContent used by the live app, instead of duplicating
- * the markdown->html pipeline here.
- */
-async function createCmsParagraph(pnPrisma: PrismaClientPn, markdown: string) {
-    const paragraph = await pnPrisma.cmsParagraph.create({ data: {} })
-    await cmsParagraphOperations.updateContent.internalCall({
-        prisma: pnPrisma,
-        params: { paragraphId: paragraph.id },
-        data: { markdown },
-    })
-    return paragraph
 }
 
 async function createCommitteArticleSection(
@@ -80,11 +65,10 @@ export default async function migrateCommittees(
         ...committee.CommitteeMembers.map(member => member.order),
         ...committee.CommitteeMembersHist.map(member => member.order),
     ]))
-    await Promise.all(Array.from(membershipOrders, order => pnPrisma.omegaOrder.upsert({
-        where: { order },
-        update: {},
-        create: { order },
-    })))
+    await pnPrisma.omegaOrder.createMany({
+        data: Array.from(membershipOrders, order => ({ order })),
+        skipDuplicates: true,
+    })
 
     // Committees land in the order omega is in now. Hardcoding one meant every migrated committee
     // was behind from the moment it arrived, which blocks the next increment until each is migrated.

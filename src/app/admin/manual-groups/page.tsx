@@ -8,12 +8,15 @@ import { serverPage } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import PopUp from '@/components/PopUp/PopUp'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => {
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('manual-groups', session)
         const [manualGroups, expandedGroups, currentOrder] = await Promise.all([
             manualGroupOperations.readMany({}),
             manualGroupOperations.readExpanded({}),
@@ -22,7 +25,7 @@ const { page, generateMetadata } = serverPage({
         return { manualGroups, expandedGroups, currentOrder }
     },
     authCheckers: {
-        canAdmin: () => manualGroupAuth.update.dynamicFields({}),
+        canAdmin: () => manualGroupAuth.update,
     },
     metadata: () => ({ title: 'Andre grupper' }),
     render: ({ data, authChecks }) => {

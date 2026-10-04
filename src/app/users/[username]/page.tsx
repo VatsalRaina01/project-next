@@ -3,7 +3,11 @@ import { ClassLevelConfig } from '@/services/groups/constants'
 import Button from '@/components/UI/Button'
 import ProfilePicture from '@/components/User/ProfilePicture'
 import UserDisplayName from '@/components/User/UserDisplayName'
+import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
+import { updateUserBioParagraphContentAction } from '@/services/users/actions'
 import { userOperations } from '@/services/users/operations'
+import { userAuth } from '@/services/users/auth'
+import { configureAction } from '@/services/configureAction'
 import { sexConfig } from '@/services/users/constants'
 import { flairOperations } from '@/services/flairs/operations'
 import { serverPage } from '@/app/serverPage'
@@ -42,30 +46,18 @@ const { page, generateMetadata } = serverPage({
             flairs: [...flairs].sort((flairOne, flairTwo) => flairOne.rank - flairTwo.rank),
         }
     },
+    authCheckers: {
+        canUpdateBio: ({ profile }) => userAuth.updateBioParagraphContent.data({ userId: profile.user.id }),
+    },
     metadata: () => ({ title: 'Profil' }),
-    render: ({ data, session }) => {
+    render: ({ data, authChecks, session }) => {
         const { profile, flairs } = data
 
-        const committeeMemberships = profile.user.memberships
-            .filter(membership => membership.group.groupType === 'COMMITTEE')
-            .filter(membership => membership.group.committee !== null)
-
-        // Which study programmes someone is on is a statement about now, so only the active ones.
-        const studyProgrammes = profile.user.memberships
-            .filter(membership => membership.group.groupType === 'STUDY_PROGRAMME' && membership.active)
-            .map(membership => membership.group.studyProgramme).filter(membership => membership !== null)
-
-        const interestGroupMemberships = profile.user.memberships
-            .filter(membership => membership.group.groupType === 'INTEREST_GROUP')
-            .filter(membership => membership.group.interestGroup !== null)
+        const { committeeMemberships, activeStudyProgrammes, activeInterestGroups } = profile.groups
 
         // Newest order first: the history reads from the most recent membership downwards.
-        const byOrderDescending = <T extends { order: number }>(memberships: T[]) => [...memberships]
+        const committeeMembershipsByOrder = [...committeeMemberships.active, ...committeeMemberships.historical]
             .sort((membershipOne, membershipTwo) => membershipTwo.order - membershipOne.order)
-
-        const committeeMembershipsByOrder = byOrderDescending(committeeMemberships)
-        const interestGroupMembershipsByOrder = byOrderDescending(interestGroupMemberships)
-        const activeCommitteeMemberships = committeeMemberships.filter(membership => membership.active)
 
         const omegaMembership = profile.omegaMembership
 
@@ -107,11 +99,7 @@ const { page, generateMetadata } = serverPage({
                 <div className={styles.profile}>
                     <div className={styles.profileContent} style={{ ...borderColour, ...flairColour }}>
                         <div className={styles.profileContentInner}>
-                            <ProfilePicture
-                                width={240}
-                                profileImage={profile.user.image}
-                                className={styles.profilePicture}
-                            />
+                            <ProfilePicture width={240} profileImage={profile.user.image} className={styles.profilePicture}/>
                             <div className={styles.header}>
                                 <div className={styles.nameAndId}>
                                     <h1><UserDisplayName
@@ -124,10 +112,10 @@ const { page, generateMetadata } = serverPage({
                                 </p>
 
                                 <div className={styles.committeesWrapper}>
-                                    {activeCommitteeMemberships.map(membership =>
+                                    {committeeMemberships.active.map(membership =>
                                         <div className={styles.committee} key={uuid()}>
-                                            <Link href={`/committees/${membership.group.committee?.shortName}`}>
-                                                <p>{membership.title} i {membership.group.committee?.name}</p>
+                                            <Link href={`/committees/${membership.committee.shortName}`}>
+                                                <p>{membership.title} i {membership.committee.name}</p>
                                             </Link>
                                         </div>
                                     )}
@@ -137,42 +125,42 @@ const { page, generateMetadata } = serverPage({
 
                                 {committeeMembershipsByOrder.length > 0 && (
                                     <section className={styles.groupSection}>
-                                        <h2>Komitéer:</h2>
+                                        <h2>Komitémedlemskap:</h2>
                                         {committeeMembershipsByOrder.map(membership =>
                                             <Link
                                                 key={uuid()}
-                                                href={`/committees/${membership.group.committee?.shortName}`}
+                                                href={`/committees/${membership.committee.shortName}`}
                                             >
                                                 <p className={styles.studyProgramme}>
                                                     {membership.title} udaf {membership.order}´dis orden i{' '}
-                                                    {membership.group.committee?.name}
+                                                    {membership.committee.name}
                                                 </p>
                                             </Link>
                                         )}
                                     </section>
                                 )}
 
-                                {interestGroupMembershipsByOrder.length > 0 && (
+                                {activeInterestGroups.length > 0 && (
                                     <section className={styles.groupSection}>
-                                        <h2>Interessegrupper:</h2>
-                                        {interestGroupMembershipsByOrder.map(membership =>
+                                        <h2>Aktive Interessegruppemedlemskap:</h2>
+                                        {activeInterestGroups.map(membership =>
                                             <Link
                                                 key={uuid()}
-                                                href={`/interest-groups/${membership.group.interestGroup?.id}`}
+                                                href={`/interest-groups/${membership.interestGroup.id}`}
                                             >
                                                 <p className={styles.studyProgramme}>
                                                     {membership.title} udaf {membership.order}´dis orden i{' '}
-                                                    {membership.group.interestGroup?.name}
+                                                    {membership.interestGroup.name}
                                                 </p>
                                             </Link>
                                         )}
                                     </section>
                                 )}
 
-                                {studyProgrammes.length > 0 && (
+                                {activeStudyProgrammes.length > 0 && (
                                     <section className={styles.groupSection}>
                                         <h2>Studier:</h2>
-                                        {studyProgrammes.map(studyProgramme =>
+                                        {activeStudyProgrammes.map(({ studyProgramme }) =>
                                             <p key={studyProgramme.id} className={styles.studyProgramme}>
                                                 {studyProgramme.name} {`(${studyProgramme.code})`}
                                             </p>
@@ -210,10 +198,18 @@ const { page, generateMetadata } = serverPage({
                             <div className={styles.profileMain}>
 
 
-                                {(profile.user.bio !== '') &&
+                                {/* An empty bio is only worth showing to someone who can write it, in edit mode. */}
+                                {(profile.user.bioParagraph.contentHtml !== '' || authChecks.canUpdateBio.authorized) &&
                                     <div className={styles.bio}>
                                         <h2>Bio:</h2>
-                                        <p>{profile.user.bio}</p>
+                                        <CmsParagraph
+                                            cmsParagraph={profile.user.bioParagraph}
+                                            updateCmsParagraphAction={configureAction(
+                                                updateUserBioParagraphContentAction,
+                                                { implementationParams: { userId: profile.user.id } }
+                                            )}
+                                            canEdit={authChecks.canUpdateBio.toJsObject()}
+                                        />
                                     </div>
                                 }
 

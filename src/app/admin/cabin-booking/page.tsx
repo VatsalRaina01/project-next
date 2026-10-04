@@ -3,9 +3,14 @@ import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
 import { serverPage } from '@/app/serverPage'
 import { displayDate } from '@/lib/dates/displayDate'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => cabinBookingOperations.readMany({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('cabin-booking', session)
+        return cabinBookingOperations.readMany({})
+    },
     metadata: () => ({ title: 'Hytte bookinger' }),
     render: ({ data: bookings }) => {
         const displayNames = bookings.map(booking => {

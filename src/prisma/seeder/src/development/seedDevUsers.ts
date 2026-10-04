@@ -84,6 +84,14 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
     const existingUsernames = new Set(existingUsers.map(user => user.username))
     const newDevUserSpecs = devUserSpecs.filter(spec => !existingUsernames.has(spec.username))
 
+    // createMany can't create relations, so the bio paragraphs are made up front - named after the user
+    // they are for, since the order createManyAndReturn returns rows in is not guaranteed.
+    const bioParagraphs = await prisma.cmsParagraph.createManyAndReturn({
+        data: newDevUserSpecs.map(spec => ({ name: `userBio-${spec.username}` })),
+        select: { id: true, name: true },
+    })
+    const bioParagraphIdByName = new Map(bioParagraphs.map(paragraph => [paragraph.name, paragraph.id]))
+
     const createdUsers = await prisma.user.createManyAndReturn({
         data: newDevUserSpecs.map(spec => ({
             firstname: spec.firstName,
@@ -92,6 +100,7 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
             username: spec.username,
             studentCard: `${spec.username}s studentkort`,
             acceptedTerms: new Date(),
+            bioParagraphId: bioParagraphIdByName.get(`userBio-${spec.username}`)!,
         })),
         select: { id: true, username: true },
     })
@@ -131,17 +140,24 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         await Promise.all(profileImageJobs.slice(i, i + imageUploadBatchSize).map(job => job()))
     }
 
+    // Only the omega membership follows from the user's place in the list - the rest are random, so
+    // they are handed out once, when the user is created. Re-rolling them on every seed would give
+    // the existing dev users a new study programme, class and committee on each dev restart.
     const memberships: Prisma.MembershipCreateManyInput[] = devUserSpecs.flatMap((spec, index) => {
         const userId = userIdByUsername.get(spec.username)!
 
+        const omegaMembership: Prisma.MembershipCreateManyInput = {
+            groupId: omegaGroupIdOf(omegaStandingOf(index).level),
+            userId,
+            admin: false,
+            active: true,
+            order: latestOrder.order
+        }
+
+        if (existingUsernames.has(spec.username)) return [omegaMembership]
+
         const specMemberships: Prisma.MembershipCreateManyInput[] = [
-            {
-                groupId: omegaGroupIdOf(omegaStandingOf(index).level),
-                userId,
-                admin: false,
-                active: true,
-                order: latestOrder.order
-            },
+            omegaMembership,
             {
                 groupId: allStudyProgrammes[randomInt(allStudyProgrammes.length)].groupId,
                 userId,
@@ -199,7 +215,8 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
         skipDuplicates: true,
     })
 
-    await Promise.all(devUserSpecs
+    // Flairs are random too, so only new users get one - see the memberships above.
+    await Promise.all(newDevUserSpecs
         .filter(() => Math.random() < 0.05)
         .map(spec => prisma.flair.update({
             where: {
@@ -226,7 +243,12 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
             email: 'harambe@harambesen.io',
             mobile: '12345678',
             username: 'harambe',
-            bio: 'Harambe did nothing wrong',
+            bioParagraph: {
+                create: {
+                    contentMd: 'Harambe did nothing wrong',
+                    contentHtml: '<p>Harambe did nothing wrong</p>',
+                },
+            },
             studentCard: 'harambeCard',
             credentials: {
                 create: {
@@ -274,6 +296,7 @@ export const seedDevUsers = defineSeedOperation(async (prisma: PrismaClient) => 
             email: 'vever@vevcom.com',
             mobile: '98765432',
             username: 'vever',
+            bioParagraph: { create: {} },
             studentCard: 'vever',
             credentials: {
                 create: {

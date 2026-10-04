@@ -38,7 +38,7 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) =>
         jobAdOperations.read({ params: { id: decodeVevenUriHandleError(params.nameAndId) } }),
     authCheckers: {
-        canEdit: () => jobAdAuth.updateArticle.dynamicFields({}),
+        canEdit: () => jobAdAuth.updateArticle,
     },
     metadata: () => ({ title: 'Jobbannonse' }),
     render: ({ data: jobAd, authChecks, session }) => (

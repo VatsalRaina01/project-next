@@ -35,7 +35,7 @@ const { page, generateMetadata } = serverPage({
         return { collections, details, showOnlyCollectionsSessionAdministrates }
     },
     authCheckers: {
-        canCreateCollection: () => dynamicImageAuth.createCollection.dynamicFields({}),
+        canCreateCollection: () => dynamicImageAuth.createCollection,
     },
     metadata: () => ({ title: 'Fotogalleri' }),
     render: ({ data, authChecks }) => (

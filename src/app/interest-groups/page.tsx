@@ -15,8 +15,8 @@ import { serverPage } from '@/app/serverPage'
 const { page, generateMetadata } = serverPage({
     operation: async () => interestGroupOperations.readMany({}),
     authCheckers: {
-        canCreate: () => interestGroupAuth.create.dynamicFields({}),
-        canEditGeneralInfo: () => interestGroupAuth.updateSpecialCmsParagraphContentGeneralInfo.dynamicFields({}),
+        canCreate: () => interestGroupAuth.create,
+        canEditGeneralInfo: () => interestGroupAuth.updateSpecialCmsParagraphContentGeneralInfo,
     },
     metadata: () => ({ title: 'Interessegrupper' }),
     render: ({ data: interestGroups, authChecks, session }) => (

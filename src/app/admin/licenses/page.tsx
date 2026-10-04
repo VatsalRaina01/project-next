@@ -10,10 +10,15 @@ import { licenseOperations } from '@/services/licenses/operations'
 import { serverPage } from '@/app/serverPage'
 import TextInput from '@/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => licenseOperations.readAll({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('licenses', session)
+        return licenseOperations.readAll({})
+    },
     metadata: () => ({ title: 'Lisenser' }),
     render: ({ data: licenses }) => (
         <div className={styles.wrapper}>

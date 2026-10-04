@@ -10,7 +10,7 @@ import { headers } from 'next/headers'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
 import type { AuthStatus } from '@/auth/authorizer/AuthResult'
-import type { AuthorizerDynamicFieldsBound, UserRequieredOutOpt } from '@/auth/authorizer/Authorizer'
+import type { Authorizer, UserRequieredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { Session } from '@/auth/session/Session'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
@@ -35,7 +35,7 @@ type PageProps<Params extends object> = {
     searchParams: Promise<SearchParams>,
 }
 
-type AuthCheckerBound = AuthorizerDynamicFieldsBound<UserRequieredOutOpt, object | undefined>
+type AuthCheckerBound = Authorizer<UserRequieredOutOpt, object | undefined>
 
 /**
  * The results of running the declared auth checkers - same keys as the authCheckers object
@@ -109,7 +109,7 @@ async function urlWithCallback(url: string) {
  *     operation: async ({ params }: { params: { username: string } }) =>
  *         userOperations.readProfile({ params: { username: params.username } }),
  *     authCheckers: {
- *         canUpdate: (profile) => userAuth.update.dynamicFields({ username: profile.user.username }),
+ *         canUpdate: (profile) => userAuth.update.data({ username: profile.user.username }),
  *     },
  *     metadata: (profile) => ({ title: profile.user.username }),
  *     render: ({ data, authChecks }) => (

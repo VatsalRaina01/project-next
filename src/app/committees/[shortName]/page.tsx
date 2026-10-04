@@ -32,7 +32,7 @@ const { page, generateMetadata } = serverPage({
         return { committee, paragraph, members, shortName: params.shortName }
     },
     authCheckers: {
-        canEditCommitteeParagraph: (data) => committeeAuth.updateParagraphContent.dynamicFields({
+        canEditCommitteeParagraph: (data) => committeeAuth.updateParagraphContent.data({
             groupId: data.committee.groupId,
         }),
     },

@@ -6,12 +6,17 @@ import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => studyProgrammeOperations.readMany({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('study-programmes', session)
+        return studyProgrammeOperations.readMany({})
+    },
     authCheckers: {
-        canCreate: () => studyProgrammeAuth.create.dynamicFields({}),
-        canEdit: () => studyProgrammeAuth.update.dynamicFields({}),
+        canCreate: () => studyProgrammeAuth.create,
+        canEdit: () => studyProgrammeAuth.update,
     },
     metadata: () => ({ title: 'Studieprogrammer' }),
     render: ({ data: studyprogrammes, authChecks }) => (

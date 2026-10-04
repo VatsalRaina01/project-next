@@ -7,9 +7,12 @@ import { serverPage } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
 import { CLASS_LEVEL_ORDERING } from '@/services/groups/constants'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => {
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('classes', session)
         const [classRows, expandedClasses, currentOrder] = await Promise.all([
             classOperations.readMany({}),
             classOperations.readExpanded({}),
@@ -18,7 +21,7 @@ const { page, generateMetadata } = serverPage({
         return { classRows, expandedClasses, currentOrder }
     },
     authCheckers: {
-        canBump: () => classAuth.bumpClasses.dynamicFields({}),
+        canBump: () => classAuth.bumpClasses,
     },
     metadata: () => ({ title: 'Klasser' }),
     render: ({ data, authChecks }) => {

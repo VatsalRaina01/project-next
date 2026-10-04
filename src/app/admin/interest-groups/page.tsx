@@ -3,9 +3,12 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { serverPage } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => {
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('interest-groups', session)
         const [interestGroups, expandedGroups, currentOrder] = await Promise.all([
             interestGroupOperations.readMany({}),
             interestGroupOperations.readExpanded({}),

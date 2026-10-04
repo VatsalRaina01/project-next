@@ -7,7 +7,7 @@ import { lockerOperations } from '@/services/lockers/operations'
 import { groupOperations } from '@/services/groups/operations'
 import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
-import { RequireUser } from '@/auth/authorizer/RequireUser'
+import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/serverPage'
 import type { PageOperationArgs } from '@/app/serverPage'
 
@@ -22,7 +22,7 @@ const { page, generateMetadata } = serverPage({
             return { lockerId, locker: null, groupsFormData: [], user: null } as const
         }
 
-        const { user } = RequireUser.staticFields({}).dynamicFields({})
+        const { user } = Require.user()
             .auth(session).requireAuthorized().session
 
         const groups = await groupOperations.readGroupsOfUser.internalCall({

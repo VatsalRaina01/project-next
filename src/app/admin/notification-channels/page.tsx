@@ -4,8 +4,10 @@ import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 type ChannelRow = {
     channel: ExpandedNotificationChannel,
@@ -43,7 +45,10 @@ function orderByHierarchy(channels: ExpandedNotificationChannel[]): ChannelRow[]
 }
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => notificationChannelOperations.readMany({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('notification-channels', session)
+        return notificationChannelOperations.readMany({})
+    },
     metadata: () => ({ title: 'Varslingskanaler' }),
     render: ({ data: channels }) => {
         const rows = orderByHierarchy(channels)

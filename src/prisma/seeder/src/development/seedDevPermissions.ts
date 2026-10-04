@@ -1,52 +1,102 @@
-import { COMMITTEE_PERMISSIONS } from '@/seeder/src/seedPermissions'
+import { checkForPermissionDuplicates, COMMITTEE_PERMISSIONS } from '@/seeder/src/permissions'
+import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { Permission } from '@/prisma-generated-pn-types'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
+import type { OmegaMembershipLevel } from '@/prisma-generated-pn-types'
 
-export default async function seedDevPermissions(prisma: PrismaClient) {
-    const allPermissions = Object.values(Permission).map(permission => ({ permission }))
+/**
+ * Seeds the default permissions, the permissions of each omega membership group, every permission
+ * for Harambe's committee and the standard committee permissions for every committee.
+ *
+ * Development only - in any other environment permissions are managed through the admin pages, and
+ * a seed that re-grants them on every run would undo revocations made there. Additive, so re-seeding
+ * also grants permissions added since the last run.
+ */
+export const seedDevPermissions = defineSeedOperation(async (prisma: PrismaClient) => {
+    const defaultPermissions: Permission[] = [
+        'MANUAL_GROUP_USE',
+        'CLASS_USE',
+        'OMEGA_ORDER_USE',
+        'JOBAD_USE',
+        'SCHOOLS_USE',
+        'COURSES_USE',
+        'CABIN_USE',
+        'LEDGER_USE',
+    ]
 
-    const user = await prisma.user.findUnique({
-        where: {
-            username: 'harambe'
-        }
+    checkForPermissionDuplicates(defaultPermissions, 'default permissions')
+
+    await prisma.defaultPermission.createMany({
+        data: defaultPermissions.map(permission => ({ permission })),
+        skipDuplicates: true,
     })
 
-    if (!user) {
-        throw new Error('Failed to seed permissions because Harambe is dead')
+    const membershipPermissions: Record<OmegaMembershipLevel, Permission[]> = {
+        SYSKEN: [
+            'OMBUL_USE',
+            'OMEGAQUOTES_USE',
+            'COMMITTEE_USE',
+            'INTEREST_GROUP_USE',
+            'STUDY_PROGRAMME_USE',
+            'LOCKER_USE',
+            'PURCHASE_USE',
+            'USERS_USE',
+            'CLASS_USE',
+            'OMEGA_MEMBERSHIP_GROUP_USE',
+            'JOBAD_USE',
+            'SCHOOLS_USE',
+            'COURSES_USE',
+            'COMPANY_USE',
+            'CABIN_USE',
+        ],
+        SOELLE: [
+            'OMBUL_USE',
+            'OMEGAQUOTES_USE',
+            'COMMITTEE_USE',
+            'INTEREST_GROUP_USE',
+            'STUDY_PROGRAMME_USE',
+            'USERS_USE',
+            'CLASS_USE',
+            'OMEGA_MEMBERSHIP_GROUP_USE',
+            'JOBAD_USE',
+            'SCHOOLS_USE',
+            'COURSES_USE',
+            'COMPANY_USE',
+            'CABIN_USE',
+        ],
+        DEN_GEMENE_HOB: []
     }
 
-    const committee = await prisma.committee.findFirst({
-        where: {
-            group: {
-                memberships: {
-                    some: {
-                        user,
-                    }
-                }
-            }
-        }
-    })
-
-    if (!committee) {
-        throw new Error('Failed to seed permissions becasue Harambe\'s committee is dead')
-    }
+    const omegaMembershipGroups = await prisma.omegaMembershipGroup.findMany()
 
     await prisma.groupPermission.createMany({
-        data: allPermissions.map(permission => ({
-            permission: permission.permission,
-            groupId: committee.groupId
-        }))
+        data: omegaMembershipGroups.flatMap(group => {
+            const permissions = membershipPermissions[group.omegaMembershipLevel]
+            checkForPermissionDuplicates(permissions, `${group.omegaMembershipLevel} permissions`)
+            return permissions.map(permission => ({ permission, groupId: group.groupId }))
+        }),
+        skipDuplicates: true,
+    })
+
+    const harcom = await prisma.committee.findUniqueOrThrow({
+        where: { shortName: 'harcom' },
+    })
+
+    await prisma.groupPermission.createMany({
+        data: Object.values(Permission).map(permission => ({
+            permission,
+            groupId: harcom.groupId,
+        })),
+        skipDuplicates: true,
     })
 
     const allCommittees = await prisma.committee.findMany()
 
-    await Promise.all(allCommittees.map(com =>
-        prisma.groupPermission.createMany({
-            data: COMMITTEE_PERMISSIONS.map(perm => ({
-                permission: perm,
-                groupId: com.groupId,
-            })),
-            skipDuplicates: true,
-        })
-    ))
-}
+    await prisma.groupPermission.createMany({
+        data: allCommittees.flatMap(committee => COMMITTEE_PERMISSIONS.map(permission => ({
+            permission,
+            groupId: committee.groupId,
+        }))),
+        skipDuplicates: true,
+    })
+})

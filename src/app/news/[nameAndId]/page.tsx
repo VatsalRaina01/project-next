@@ -39,8 +39,8 @@ const { page, generateMetadata } = serverPage({
         return { news, doubleLevelVisibility }
     },
     authCheckers: {
-        canEdit: (data) => newsAuth.updateArticle.dynamicFields({
-            doubleLevelMatrix: data.doubleLevelVisibility ?? EMPTY_VISIBILITY
+        canEdit: (data) => newsAuth.updateArticle.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY
         }),
     },
     metadata: (data) => ({ title: data.news.article.name }),
