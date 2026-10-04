@@ -2,23 +2,26 @@ import { bullshitAuth } from './auth'
 import { bullshitSchemas } from './schemas'
 import { bullshitFilterSelection } from './constants'
 import { defineOperation } from '@/services/serviceOperation'
+import { Smorekopp } from '@/services/error'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
-import { z } from 'zod'
 
 export const bullshitOperations = {
     create: defineOperation({
         authorizer: () => bullshitAuth.create,
         dataSchema: bullshitSchemas.create,
-        paramsSchema: z.object({
-            bullshitAuthPosterId: z.number()
-        }),
-        operation: async ({ prisma, data, params }) => {
+        operation: async ({ prisma, data, session }) => {
+            // The poster is whoever is logged in, never a value the client sends along: taking it
+            // from the request would let a writer attribute a quote to any other user.
+            if (!session.user) {
+                throw new Smorekopp('UNAUTHORIZED', 'Du må være logget inn for å legge ut bullshit.')
+            }
+
             await prisma.bullshit.create({
                 data: {
                     ...data,
                     bullshitPoster: {
                         connect: {
-                            id: params.bullshitAuthPosterId
+                            id: session.user.id
                         }
                     }
                 }
@@ -30,9 +33,13 @@ export const bullshitOperations = {
         authorizer: () => bullshitAuth.readPage,
         operation: async ({ prisma, params }) =>
             prisma.bullshit.findMany({
-                orderBy: {
-                    timestamp: 'desc',
-                },
+                // `timestamp` alone is not a total order - the dev seed gives a whole batch the
+                // same one - while the cursor is `id`. Without `id` in the ordering a page
+                // boundary falling inside a group of tied timestamps skips or repeats quotes.
+                orderBy: [
+                    { timestamp: 'desc' },
+                    { id: 'desc' },
+                ],
                 ...cursorPageingSelection(params.paging.page),
                 select: bullshitFilterSelection,
             })

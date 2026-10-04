@@ -1,6 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 
 export const bullshitAuth = {
-    create: Require.permission('BULLSHIT_WRITE'),
+    create: Require.user().permission('BULLSHIT_WRITE'),
     readPage: Require.permission('BULLSHIT_READ'),
 } as const

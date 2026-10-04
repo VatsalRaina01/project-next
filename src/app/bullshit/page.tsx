@@ -37,6 +37,10 @@ export default async function Bullshit() {
                 showCreateButton && <BullshitForm />
             }>
                 <BullshitPagingProvider
+                    // router.refresh() after a submit hands down a new first page, but the provider
+                    // seeds its paging state from serverRenderedData only on mount. Keying on the
+                    // first page remounts it, so a new quote cannot push one out of sight.
+                    key={bullshits.map(bullshit => bullshit.id).join(',')}
                     startPage={{
                         pageSize,
                         page: 1,
