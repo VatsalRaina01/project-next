@@ -5,5 +5,5 @@ import { render } from '@react-email/render'
 import type { UserFiltered } from '@/services/users/types'
 
 export async function wrapInHTML(user: UserFiltered, text: string): Promise<string> {
-    return render(<DefaultEmailTemplate user={user} html={await markdownToSafeHtml(text)} />)
+    return render(<DefaultEmailTemplate user={user} html={await markdownToSafeHtml(text, { gfm: true })} />)
 }

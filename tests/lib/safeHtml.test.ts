@@ -44,6 +44,25 @@ describe('markdownToSafeHtml', () => {
         expect(html).toContain('<strong>fet</strong>')
         expect(html).toContain('<a href="https://omega.ntnu.no">lenke</a>')
     })
+
+    test.each(Object.entries(dangerousMarkdown))('neutralizes %s with gfm', async (_, markdown) => {
+        expectNothingExecutable(await markdownToSafeHtml(markdown, { gfm: true }))
+    })
+
+    test('renders strikethrough with gfm', async () => {
+        expect(await markdownToSafeHtml('~~avlyst~~', { gfm: true })).toContain('<del>avlyst</del>')
+    })
+
+    test('renders tables with gfm', async () => {
+        const html = await markdownToSafeHtml('| Dag | Tid |\n| --- | --- |\n| Fredag | 18:00 |', { gfm: true })
+        expect(html).toContain('<table>')
+        expect(html).toContain('<th>Dag</th>')
+        expect(html).toContain('<td>Fredag</td>')
+    })
+
+    test('leaves gfm syntax as text without gfm', async () => {
+        expect(await markdownToSafeHtml('~~avlyst~~')).toContain('~~avlyst~~')
+    })
 })
 
 describe('sanitizeHtml', () => {
