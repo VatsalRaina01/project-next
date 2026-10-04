@@ -349,6 +349,7 @@ const commonGroupOperations = implementGroupType({
     auth: {
         readExpanded: committeeAuth.readExpanded,
         readMembers: ({ groupId }) => committeeAuth.readMembers.data({ groupId }),
+        readMembershipsOfUser: ({ userId }) => committeeAuth.readMembershipsOfUser.data({ userId }),
     },
 })
 
@@ -382,6 +383,7 @@ export const committeeOperations = {
     read,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
+    readMembershipsOfUser: commonGroupOperations.readMembershipsOfUser,
     addMembers: memberManagement.addMembers,
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,

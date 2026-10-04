@@ -1,5 +1,5 @@
 import { Require } from '@/auth/authorizer/Require'
-import { requireReadManagedGroupMembers } from '@/services/groups/auth'
+import { requireReadManagedGroupMembers, requireReadMembershipsOfUser } from '@/services/groups/auth'
 
 const groupAdminOrInterestGroupAdmin = Require.permission('INTEREST_GROUP_ADMIN').or().groupAdmin()
 
@@ -9,6 +9,7 @@ export const interestGroupAuth = {
     readMany: Require.permission('INTEREST_GROUP_USE'),
     readExpanded: Require.permission('INTEREST_GROUP_USE'),
     readMembers: requireReadManagedGroupMembers('INTEREST_GROUP_USE'),
+    readMembershipsOfUser: requireReadMembershipsOfUser('INTEREST_GROUP_USE'),
     addMembers: groupAdminOrInterestGroupAdmin,
     removeMembers: groupAdminOrInterestGroupAdmin,
     setMemberAdmin: groupAdminOrInterestGroupAdmin,

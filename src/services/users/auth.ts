@@ -19,6 +19,7 @@ export const userAuth = {
     update: Require.permission('USERS_ADMIN'),
     updateProfile: userFieldOrUsersAdmin,
     updateProfileImage: userFieldOrUsersAdmin,
+    updateBioParagraphContent: userIdOrUsersAdmin,
     register: Require.userId(),
     destroy: Require.permission('USERS_ADMIN'),
 } as const

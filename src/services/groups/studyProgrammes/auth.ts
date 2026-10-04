@@ -1,5 +1,5 @@
 import { Require } from '@/auth/authorizer/Require'
-import { requireReadManagedGroupMembers } from '@/services/groups/auth'
+import { requireReadManagedGroupMembers, requireReadMembershipsOfUser } from '@/services/groups/auth'
 
 const adminOrGroupAdmin = Require.permission('STUDY_PROGRAMME_ADMIN').or().groupAdmin()
 
@@ -12,6 +12,7 @@ export const studyProgrammeAuth = {
     readMany: Require.permission('STUDY_PROGRAMME_USE'),
     readExpanded: Require.permission('STUDY_PROGRAMME_USE'),
     readMembers: requireReadManagedGroupMembers('STUDY_PROGRAMME_USE'),
+    readMembershipsOfUser: requireReadMembershipsOfUser('STUDY_PROGRAMME_USE'),
     update: Require.permission('STUDY_PROGRAMME_ADMIN'),
     addMembers: adminOrGroupAdmin,
     removeMembers: adminOrGroupAdmin,

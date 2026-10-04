@@ -1,4 +1,5 @@
 import { userAuth } from '@/services/users/auth'
+import { permissionsAuth } from '@/services/permissions/auth'
 import { flairAuth } from '@/services/flairs/auth'
 import { dotAuth } from '@/services/dots/auth'
 import { admissionAuth } from '@/services/admission/auth'
@@ -6,6 +7,9 @@ import { omegaMembershipGroupAuth } from '@/services/groups/omegaMembershipGroup
 import { notificationSubscriptionAuth } from '@/services/notifications/subscription/auth'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
+import { committeeAuth } from '@/services/groups/committees/auth'
+import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
+import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { Require } from '@/auth/authorizer/Require'
 import {
     faCircleDot,
@@ -16,6 +20,7 @@ import {
     faPaperPlane,
     faSwatchbook,
     faUser,
+    faUsers,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
@@ -65,6 +70,20 @@ export const userNavDef: UserNavItem[] = [
         ],
     },
     {
+        // Every group type guards its own memberships, and any one of them is something to show.
+        name: 'Grupper',
+        icon: faUsers,
+        path: 'groups',
+        authorizers: ({ userId }) => [
+            omegaMembershipGroupAuth.readMembershipsOfUser.data({ userId }),
+            classAuth.readMembershipsOfUser.data({ userId }),
+            studyProgrammeAuth.readMembershipsOfUser.data({ userId }),
+            committeeAuth.readMembershipsOfUser.data({ userId }),
+            interestGroupAuth.readMembershipsOfUser.data({ userId }),
+            manualGroupAuth.readMembershipsOfUser.data({ userId }),
+        ],
+    },
+    {
         name: 'Prikker',
         icon: faCircleDot,
         path: 'dots',
@@ -86,7 +105,7 @@ export const userNavDef: UserNavItem[] = [
         name: 'Tilganger',
         icon: faKey,
         path: 'permissions',
-        authorizers: ({ username }) => [userAuth.updateProfile.data({ userField: { username } })],
+        authorizers: ({ userId }) => [permissionsAuth.readPermissionsOfUser.data({ userId })],
     },
     {
         name: 'Kapper',
@@ -104,9 +123,12 @@ export const userNavDef: UserNavItem[] = [
         name: 'Innstillinger',
         icon: faCog,
         path: 'settings',
-        authorizers: ({ username }) => [
+        authorizers: ({ username, userId }) => [
             userAuth.updateProfile.data({ userField: { username } }),
+            userAuth.updateBioParagraphContent.data({ userId }),
+            userAuth.registerNewEmail.data({ userId }),
             userAuth.updateProfileImage.data({ userField: { username } }),
+            userAuth.update,
             classAuth.changeClassOfUser,
             studyProgrammeAuth.update,
         ],

@@ -35,11 +35,17 @@ export function implementGroupType({ type, auth }: {
     auth: {
         readExpanded: Authorizer,
         readMembers: GroupAuthorizerOfGroup,
+        readMembershipsOfUser: (args: { userId: number }) => Authorizer,
     },
 }) {
     return {
         readExpanded: groupOperations.readExpandedOfType.implement({
             authorizer: () => auth.readExpanded,
+            ownershipCheck: () => true,
+            operationImplementationFields: { type },
+        }),
+        readMembershipsOfUser: groupOperations.readMembershipsOfUserOfType.implement({
+            authorizer: ({ params }) => auth.readMembershipsOfUser({ userId: params.userId }),
             ownershipCheck: () => true,
             operationImplementationFields: { type },
         }),

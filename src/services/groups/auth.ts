@@ -39,3 +39,13 @@ export function requireReadGroupMembers(groupTypeReadPermission: Permission) {
 export function requireReadManagedGroupMembers(groupTypeReadPermission: Permission) {
     return requireEveryPermissionOrGroupAdmin([groupTypeReadPermission, 'USERS_USE'])
 }
+
+/**
+ * The authorizer every group type's `readMembershipsOfUser` uses. A user may always see their own
+ * memberships. Anyone else needs what `requireReadGroupMembers` asks for, and for the same reason:
+ * the memberships say something about the user, and the group type's own read permission may be a
+ * default permission that a visitor who is not logged in holds as well.
+ */
+export function requireReadMembershipsOfUser(groupTypeReadPermission: Permission) {
+    return Require.userId().or().permission(groupTypeReadPermission).permission('USERS_USE')
+}

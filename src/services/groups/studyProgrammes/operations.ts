@@ -16,6 +16,7 @@ const commonGroupOperations = implementGroupType({
     auth: {
         readExpanded: studyProgrammeAuth.readExpanded,
         readMembers: ({ groupId }) => studyProgrammeAuth.readMembers.data({ groupId }),
+        readMembershipsOfUser: ({ userId }) => studyProgrammeAuth.readMembershipsOfUser.data({ userId }),
     },
 })
 
@@ -206,6 +207,7 @@ export const studyProgrammeOperations = {
     destroy,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
+    readMembershipsOfUser: commonGroupOperations.readMembershipsOfUser,
     addMembers: memberManagement.addMembers,
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,

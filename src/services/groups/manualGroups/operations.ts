@@ -18,6 +18,7 @@ const commonGroupOperations = implementGroupType({
     auth: {
         readExpanded: manualGroupAuth.readExpanded,
         readMembers: ({ groupId }) => manualGroupAuth.readMembers.data({ groupId }),
+        readMembershipsOfUser: ({ userId }) => manualGroupAuth.readMembershipsOfUser.data({ userId }),
     },
 })
 
@@ -140,6 +141,7 @@ export const manualGroupOperations = {
     destroy,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
+    readMembershipsOfUser: commonGroupOperations.readMembershipsOfUser,
     addMembers: memberManagement.addMembers,
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,

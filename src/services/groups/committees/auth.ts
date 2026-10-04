@@ -1,5 +1,5 @@
 import { Require } from '@/auth/authorizer/Require'
-import { requireReadManagedGroupMembers } from '@/services/groups/auth'
+import { requireReadManagedGroupMembers, requireReadMembershipsOfUser } from '@/services/groups/auth'
 
 export const committeeLogosImagePanelAuth = Require.permission('COMMITTEE_ADMIN')
 
@@ -11,6 +11,7 @@ export const committeeAuth = {
     readAll: Require.permission('COMMITTEE_USE'),
     read: Require.permission('COMMITTEE_USE'),
     readMembers: requireReadManagedGroupMembers('COMMITTEE_USE'),
+    readMembershipsOfUser: requireReadMembershipsOfUser('COMMITTEE_USE'),
     readExpanded: Require.permission('COMMITTEE_USE'),
     addMembers: adminOrGroupAdmin,
     removeMembers: adminOrGroupAdmin,
