@@ -5,30 +5,29 @@ import { BullshitPagingProvider } from '@/contexts/paging/BullshitPaging'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { bullshitOperations } from '@/services/bullshit/operations'
 import { bullshitAuth } from '@/services/bullshit/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/serverPage'
 import { v4 as uuid } from 'uuid'
 import type { PageSizeBullshit } from '@/contexts/paging/BullshitPaging'
-import type { PageOperationArgs } from '@/app/serverPage'
 
 const pageSize: PageSizeBullshit = 20
 
 const { page, generateMetadata } = serverPage({
     // Someone who may not read the page still gets it, empty - they may be allowed to create.
-    operation: async ({ session }: PageOperationArgs) => (
-        session.user && bullshitAuth.readPage.auth(session).authorized
-            ? bullshitOperations.readPage({
-                params: {
-                    paging: {
-                        page: {
-                            pageSize,
-                            page: 0,
-                            cursor: null,
-                        },
-                        details: undefined
-                    }
+    operation: async () => withFallback(
+        bullshitOperations.readPage({
+            params: {
+                paging: {
+                    page: {
+                        pageSize,
+                        page: 0,
+                        cursor: null,
+                    },
+                    details: undefined
                 }
-            })
-            : null
+            }
+        }),
+        null,
+        ['UNAUTHORIZED', 'UNAUTHENTICATED']
     ),
     capabilityChecks: {
         canCreate: () => bullshitAuth.create,

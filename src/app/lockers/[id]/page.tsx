@@ -15,9 +15,14 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ id: string }>) => {
         const lockerId = parseInt(params.id, 10)
 
-        // A missing locker renders its own view rather than the error page, so the
-        // read is allowed to fail softly.
-        const locker = await withFallback(lockerOperations.read({ params: { id: lockerId } }), null)
+        // A missing locker renders its own view rather than the not-found page - and so does an id
+        // that is not a number, which the read turns down as BAD PARAMETERS. Every other failure
+        // (not logged in, no access to lockers) is left for serverPage to handle.
+        const locker = await withFallback(
+            lockerOperations.read({ params: { id: lockerId } }),
+            null,
+            ['NOT FOUND', 'BAD PARAMETERS']
+        )
         if (!locker) {
             return { lockerId, locker: null, groupsFormData: [], user: null } as const
         }

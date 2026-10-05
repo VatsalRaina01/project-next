@@ -237,7 +237,7 @@ export { generateMetadata }
 ```
 
 - `operation` loads everything the page needs. It runs inside a service context seeded with the request's session, so operations called in it pick the session up without it being passed. It runs once per request, shared by the page and `generateMetadata`.
-- A service error thrown from `operation` renders `ServiceErrorView` in place of the page; `NOT FOUND` becomes `notFound()` and `UNAUTHENTICATED` redirects to login. Wrap calls whose failure should not take the page down in `withFallback(promise, fallback)`.
+- A service error thrown from `operation` renders `ServiceErrorView` in place of the page; `NOT FOUND` becomes `notFound()` and `UNAUTHENTICATED` redirects to login. Wrap calls whose failure should not take the page down in `withFallback(promise, fallback)`. It falls back on every service error; pass the error codes as a third argument to fall back only on those, e.g. `withFallback(promise, null, ['NOT FOUND'])`.
 - Access to the page is decided in `operation`, by the authorizers of the operations it calls or explicitly (admin pages call `authorizeAdminPage(path, session)`). `capabilityChecks` do not guard the page: they declare what the user may do on it under `can[Something]` keys, and `render` receives the results as `capabilities`.
 - The page title comes from `metadata` — don't render `PageTitleSetter` in a page built with `serverPage`.
 

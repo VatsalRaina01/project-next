@@ -12,7 +12,7 @@ import { admissionDisplayNames, allAdmissions } from '@/services/admission/const
 import { OMEGA_MEMBERSHIP_LEVEL_RANKING } from '@/services/groups/constants'
 import { sexConfig } from '@/services/users/constants'
 import { configureAction } from '@/services/configureAction'
-import { serverPage } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/serverPage'
 import Form from '@/components/Form/Form'
 import NumberInput from '@/components/UI/NumberInput'
 import type { PageOperationArgs } from '@/app/serverPage'
@@ -32,12 +32,14 @@ const { page, generateMetadata } = serverPage({
         const { profile } = await getProfileForUserPage(params, 'membership-status', session)
         const userId = profile.user.id
 
-        const canReadTrials = admissionAuth.readTrial.data({ userId }).auth(session)
-        const sittedTrials = canReadTrials.authorized
-            ? (await admissionOperations.readTrial({ params: { userId } })).map(trial => trial.admission)
-            : []
+        // Someone who may not read the trials still gets the page, without them.
+        const trials = await withFallback(
+            admissionOperations.readTrial({ params: { userId } }),
+            [],
+            ['UNAUTHORIZED', 'UNAUTHENTICATED']
+        )
 
-        return { profile, sittedTrials }
+        return { profile, sittedTrials: trials.map(trial => trial.admission) }
     },
     capabilityChecks: {
         canReadTrials: (data) => admissionAuth.readTrial.data({ userId: data.profile.user.id }),

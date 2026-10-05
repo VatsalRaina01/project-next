@@ -274,22 +274,32 @@ export function serverLayout<Params extends object, Data>({ operation, render }:
  * the whole page to the error view. Next.js control-flow errors and non-service errors
  * still propagate.
  *
+ * @param operationPromise - The call that is allowed to fail.
+ * @param fallbackValue - What to return in place of its result when it does.
+ * @param fallbackOn - Limits the fallback to service errors with one of these codes. Any other
+ * service error propagates as if the call was not wrapped. Leave it out to fall back on every
+ * service error.
+ *
  * @example
  * operation: async ({ params }) => ({
  *     user: await userOperations.read({ params }),
  *     flairs: await withFallback(flairOperations.readForUser({ params }), []),
+ *     // Only a missing locker gets the fallback - a visitor without access still gets the error.
+ *     locker: await withFallback(lockerOperations.read({ params }), null, ['NOT FOUND']),
  * })
  */
 export async function withFallback<Data, Fallback>(
     operationPromise: Promise<Data>,
-    fallbackValue: Fallback
+    fallbackValue: Fallback,
+    fallbackOn?: ErrorCode[]
 ): Promise<Data | Fallback> {
     try {
         return await operationPromise
     } catch (error) {
         unstableRethrow(error)
-        if (error instanceof Smorekopp) return fallbackValue
-        throw error
+        if (!(error instanceof Smorekopp)) throw error
+        if (fallbackOn && !fallbackOn.some(errorCode => errorCode === error.errorCode)) throw error
+        return fallbackValue
     }
 }
 
