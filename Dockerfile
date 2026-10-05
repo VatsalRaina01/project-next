@@ -23,7 +23,7 @@ RUN npx prisma generate
 COPY src/prisma/owSchema src/prisma/owSchema
 RUN npm run dobbelOmega:generate
 
-RUN mkdir -p usr/src/app/store/images
+RUN mkdir -p store/images
 
 # Copy remaining files except src
 # (src is binded in dev so there is no need to copy it here)
