@@ -116,7 +116,7 @@ const { page, generateMetadata } = serverPage({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
     },
-    metadata: () => ({ title: 'Arrangement' }),
+    metadata: (data) => ({ title: data.event.name }),
     render: ({ data, capabilities, session }) => {
         const { event, tags, doubleLevelVisibility, dotPunishment, ownRegistration } = data
         const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY

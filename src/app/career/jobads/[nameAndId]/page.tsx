@@ -40,7 +40,7 @@ const { page, generateMetadata } = serverPage({
     capabilityChecks: {
         canEdit: () => jobAdAuth.updateArticle,
     },
-    metadata: () => ({ title: 'Jobbannonse' }),
+    metadata: (jobAd) => ({ title: jobAd.article.name }),
     render: ({ data: jobAd, capabilities, session }) => (
         <div className={styles.wrapper}>
             <main className={styles.main}>
