@@ -190,7 +190,6 @@ export const ledgerAccountOperations = {
     readPage: defineOperation({
         authorizer: () => ledgerAccountAuth.readPage,
         paramsSchema: readPageInputSchemaObject(
-            z.number(),
             z.object({
                 id: z.number(),
             }),
