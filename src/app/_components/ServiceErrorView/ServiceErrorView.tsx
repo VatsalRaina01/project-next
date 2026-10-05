@@ -6,8 +6,8 @@ import type { ErrorCode, Smorekopp } from '@/services/error'
 import type { AuthStatus } from '@/auth/authorizer/AuthResult'
 
 /**
- * Renders a service error in place of a page. Used by `serverPage` when the page's
- * operation throws a service error - unlike the error boundary in error.tsx, this is
+ * Renders a service error in place of a page or layout. Used by `serverPage` and `serverLayout`
+ * when their operation throws a service error - unlike the error boundary in error.tsx, this is
  * rendered on the server and receives the actual error instance, so no information
  * has to be smuggled through an encoded native Error.
  */

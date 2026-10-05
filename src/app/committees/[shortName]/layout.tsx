@@ -5,37 +5,30 @@ import PageTitleSetter from '@/contexts/PageTitleSetter'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import CommitteeImage from '@/components/Committee/CommitteeImage/CommitteeImage'
 import { committeeAuth } from '@/services/groups/committees/auth'
-import { withPageSession } from '@/app/serverPage'
+import { serverLayout } from '@/app/serverPage'
 import { AuthResult } from '@/auth/authorizer/AuthResult'
 import { committeeParticipationAuth } from '@/services/applications/committeeParticipation/auth'
-import type { ReactNode } from 'react'
+import type { LayoutOperationArgs } from '@/app/serverPage'
 
-export type PropTypes = {
-    params: Promise<{
-        shortName: string
-    }>,
-    children: ReactNode
-}
-
-export default async function Committee({ params, children }: PropTypes) {
-    const { committee, canEditCoverImage, canReadCommitteeApplication } = await withPageSession(async (session) => {
-        const committeeOfPage = await getCommitee((await params).shortName)
+export default serverLayout({
+    operation: async ({ params, session }: LayoutOperationArgs<{ shortName: string }>) => {
+        const committee = await getCommitee(params.shortName)
 
         return {
-            committee: committeeOfPage,
+            committee,
+            shortNameParam: params.shortName,
             // A pensioned committee is history: the service refuses every change to it, so the
             // editing controls are not offered on any of its pages either.
-            canEditCoverImage: (committeeOfPage.pensioned
+            canEditCoverImage: (committee.pensioned
                 ? new AuthResult(session, false, undefined, 'Komiteen er pensjonert')
-                : committeeAuth.updateArticle.data({ groupId: committeeOfPage.groupId }).auth(session)
+                : committeeAuth.updateArticle.data({ groupId: committee.groupId }).auth(session)
             ).toJsObject(),
             canReadCommitteeApplication: committeeParticipationAuth.readAll.data({
-                groupId: committeeOfPage.groupId,
+                groupId: committee.groupId,
             }).auth(session).toJsObject(),
         }
-    })
-
-    return (
+    },
+    render: ({ data: { committee, shortNameParam, canEditCoverImage, canReadCommitteeApplication }, children }) => (
         <div className={styles.pageLayout}>
             <div className={styles.main}>
                 <CommitteeImage
@@ -56,9 +49,9 @@ export default async function Committee({ params, children }: PropTypes) {
                 </PageWrapper>
             </div>
             <Nav
-                shortName={(await params).shortName}
+                shortName={shortNameParam}
                 canReadCommitteeApplication={canReadCommitteeApplication}
             />
         </div>
-    )
-}
+    ),
+})

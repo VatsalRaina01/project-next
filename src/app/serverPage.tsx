@@ -208,6 +208,67 @@ export function serverPage<
 }
 
 /**
+ * The arguments a serverLayout operation receives - {@link PageOperationArgs} without the
+ * searchParams, which Next.js does not give to layouts.
+ */
+export type LayoutOperationArgs<Params extends object = object> = {
+    params: Params,
+    session: ServerPageSession,
+}
+
+type LayoutProps<Params extends object> = {
+    params: Promise<Params>,
+    children: ReactNode,
+}
+
+/**
+ * serverPage for layouts: builds a layout from a data-loading operation and a renderer. The
+ * operation runs inside a service context seeded with the session of the request, and a service
+ * error thrown from it is handled as in a page - NOT FOUND renders the not-found page,
+ * UNAUTHENTICATED sends the user to login, and every other service error renders
+ * `ServiceErrorView` in place of the layout and the pages under it.
+ *
+ * A layout needs this even when every page under it is built with serverPage: an error thrown
+ * by a layout is not caught by the pages it wraps, so an expected service error would otherwise
+ * land in the error boundary as if it were a bug.
+ *
+ * Not for the root layout - it renders the document itself, so it has nothing to show an error
+ * view in. It wraps its reads in {@link withFallback} instead.
+ *
+ * @param operation - Loads everything the layout needs. Throwing a service error inside it
+ * shows the error view instead of the layout and its pages.
+ * @param render - Renders the layout around `children` from the loaded data and the session.
+ *
+ * @example
+ * export default serverLayout({
+ *     operation: async ({ params }: LayoutOperationArgs<{ category: string }>) =>
+ *         articleCategoryOperations.read({ params: { name: decodeURIComponent(params.category) } }),
+ *     render: ({ data: category, children }) => <SideBar category={category}>{children}</SideBar>,
+ * })
+ */
+export function serverLayout<Params extends object, Data>({ operation, render }: {
+    operation: (args: LayoutOperationArgs<Params>) => Promise<Data>,
+    render: (args: {
+        data: Data,
+        children: ReactNode,
+        session: ServerPageSession,
+    }) => ReactNode | Promise<ReactNode>,
+}): (props: LayoutProps<Params>) => Promise<ReactNode> {
+    return async ({ params, children }) => {
+        let loaded: { data: Data, session: ServerPageSession }
+        try {
+            loaded = await withPageSession(async session => ({
+                data: await operation({ params: await params, session }),
+                session,
+            }))
+        } catch (error) {
+            return <ServiceErrorView error={await handleServiceError(error)} />
+        }
+        return render({ ...loaded, children })
+    }
+}
+
+/**
  * Marks a service operation call inside a serverPage operation as non-critical: if it fails
  * with a service error the given fallback value is returned instead of the failure taking
  * the whole page to the error view. Next.js control-flow errors and non-service errors
@@ -233,11 +294,12 @@ export async function withFallback<Data, Fallback>(
 }
 
 /**
- * For server components that are not pages (layouts, cards rendered inside a page's tree):
- * loads the session of the request and runs the callback inside a service context seeded
- * with it, so service operations called within pick the session up automatically - the same
- * environment a serverPage operation runs in. Errors are not handled here; catch them with
- * {@link handleServiceError} and render `ServiceErrorView`, or let them hit the error boundary.
+ * For server components that are neither pages nor layouts (cards rendered inside a page's
+ * tree), and for the root layout: loads the session of the request and runs the callback inside
+ * a service context seeded with it, so service operations called within pick the session up
+ * automatically - the same environment a serverPage operation runs in. Errors are not handled
+ * here; wrap calls in {@link withFallback}, catch them with {@link handleServiceError}, or let
+ * them hit the error boundary. Layouts use {@link serverLayout}, which handles them.
  */
 export async function withPageSession<Result>(
     callback: (session: ServerPageSession) => Promise<Result>

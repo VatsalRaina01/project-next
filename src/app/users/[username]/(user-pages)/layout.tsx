@@ -1,11 +1,11 @@
 import styles from './layout.module.scss'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { userOperations } from '@/services/users/operations'
-import { withFallback, withPageSession } from '@/app/serverPage'
+import { serverLayout, withFallback, withPageSession } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import UserNavBar from '@/app/users/[username]/UserNavBar'
 import { notFound } from 'next/navigation'
-import type { ReactNode } from 'react'
+import type { LayoutOperationArgs } from '@/app/serverPage'
 import type { PropTypes } from '@/app/users/[username]/page'
 import type { Metadata } from 'next'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -35,20 +35,19 @@ export async function generateMetadata({ params }: PropTypes): Promise<Metadata>
     })
 }
 
-export default async function UserAdmin({ children, params }: PropTypes & { children: ReactNode }) {
-    const { username, user, session } = await withPageSession(async (pageSession) => {
-        let usernameOfPage = (await params).username
-        if (usernameOfPage === 'me') {
-            if (!pageSession.user) return notFound()
-            usernameOfPage = pageSession.user.username
+export default serverLayout({
+    operation: async ({ params, session }: LayoutOperationArgs<{ username: string }>) => {
+        let username = params.username
+        if (username === 'me') {
+            if (!session.user) return notFound()
+            username = session.user.username
         }
 
         // Guards the whole section: a username nobody may read gets no layout and no nav.
-        const profile = await userOperations.readProfile({ params: { username: usernameOfPage } })
-        return { username: usernameOfPage, user: profile.user, session: pageSession }
-    })
-
-    return (
+        const profile = await userOperations.readProfile({ params: { username } })
+        return { username, user: profile.user }
+    },
+    render: ({ data: { username, user }, children, session }) => (
         <PageWrapper fillHeight transparent hideTitle>
             <PageTitleSetter title={userPagesTitle(user, session)} />
             <div className={styles.userAdminLayout}>
@@ -60,5 +59,5 @@ export default async function UserAdmin({ children, params }: PropTypes & { chil
                 <UserNavBar username={username} userId={user.id} />
             </div>
         </PageWrapper>
-    )
-}
+    ),
+})

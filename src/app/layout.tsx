@@ -15,6 +15,7 @@ import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
 import GlobalSearch from '@/UI/GlobalSearch'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
 import { visibleNavItems } from '@/components/NavBar/navDef'
+import NavBar from '@/components/NavBar/NavBar'
 import { Inter } from 'next/font/google'
 import '@/styles/globals.scss'
 import { config } from '@fortawesome/fontawesome-svg-core'
@@ -22,7 +23,6 @@ import '@fortawesome/fontawesome-svg-core/styles.css'
 import { getServerSession } from 'next-auth'
 import type { ReactNode } from 'react'
 import type { Metadata, Viewport } from 'next'
-import NavBar from '@/components/NavBar/NavBar'
 
 config.autoAddCss = false
 
@@ -72,7 +72,7 @@ export default async function RootLayout({ children }: PropTypes) {
             withFallback(standardImageCollectionOperations.readAllStandardImages({}), undefined),
         ])
         const profileRead = session.user
-            ? await userOperations.readProfile({ params: { username: session.user.username } })
+            ? await withFallback(userOperations.readProfile({ params: { username: session.user.username } }), null)
             : null
         return {
             serverSession: session,

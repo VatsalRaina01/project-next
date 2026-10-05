@@ -6,8 +6,8 @@ import StandardImageClient from '@/components/Image/StandardImageClient'
 
 /**
  * The boundary for errors thrown during rendering. Expected service errors never reach it -
- * serverPage renders ServiceErrorView for those - so what lands here are genuine bugs, which
- * only carry a plain Error message.
+ * serverPage and serverLayout render ServiceErrorView for those - so what lands here are genuine
+ * bugs, which only carry a plain Error message.
 */
 export default function ErrorBoundary({ error, reset }: {error: unknown, reset: () => void}) {
     return (

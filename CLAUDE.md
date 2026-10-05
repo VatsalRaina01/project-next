@@ -241,9 +241,25 @@ export { generateMetadata }
 - Access to the page is decided in `operation`, by the authorizers of the operations it calls or explicitly (admin pages call `authorizeAdminPage(path, session)`). `capabilityChecks` do not guard the page: they declare what the user may do on it under `can[Something]` keys, and `render` receives the results as `capabilities`.
 - The page title comes from `metadata` — don't render `PageTitleSetter` in a page built with `serverPage`.
 
+#### Layouts: `serverLayout`
+
+Layouts that load data are built with `serverLayout`, also from `@/app/serverPage`. It is `serverPage` for layouts — the operation gets `params` and `session` (layouts have no `searchParams`), and `render` also receives `children`:
+
+```tsx
+export default serverLayout({
+    operation: async ({ params }: LayoutOperationArgs<{ category: string }>) =>
+        articleCategoryOperations.read({ params: { name: decodeURIComponent(params.category) } }),
+    render: ({ data: category, children }) => <SideBar category={category}>{children}</SideBar>,
+})
+```
+
+A layout needs it even when every page under it uses `serverPage`: an error thrown by a layout is not caught by the pages it wraps, so without `serverLayout` an expected service error (an unknown committee, say) ends up in the error boundary instead of becoming a 404.
+
+The root layout is the exception. It renders the document itself, so it has nothing to show an error view in — it uses `withPageSession` and wraps every read in `withFallback`.
+
 #### Other server components: `withPageSession`
 
-Layouts and server components rendered inside a page (cards, sections) wrap their operation calls in `withPageSession(async session => ...)` from `@/app/serverPage`, which sets up the same service context. Errors are not handled there: catch them with `handleServiceError` and render `ServiceErrorView`, or let them reach the error boundary.
+Server components rendered inside a page (cards, sections) wrap their operation calls in `withPageSession(async session => ...)` from `@/app/serverPage`, which sets up the same service context. Errors are not handled there: wrap calls in `withFallback`, catch them with `handleServiceError`, or let them reach the error boundary.
 
 #### Actions in client components
 
