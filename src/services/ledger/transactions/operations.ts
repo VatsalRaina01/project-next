@@ -149,7 +149,6 @@ export const ledgerTransactionOperations = {
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.paging.details.accountId })],
         }),
         paramsSchema: readPageInputSchemaObject(
-            z.number(),
             z.object({
                 id: z.number(),
             }),
