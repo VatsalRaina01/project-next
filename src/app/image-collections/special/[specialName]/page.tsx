@@ -20,7 +20,8 @@ const collectionOperations = {
     STANDARDIMAGES: specialImagePanelOperations.standardImages,
 } as const satisfies Record<SpecialCollection, unknown>
 
-const isSpecialCollection = (value: string): value is SpecialCollection => value in collectionOperations
+const isSpecialCollection = (value: string): value is SpecialCollection =>
+    Object.keys(collectionOperations).includes(value)
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ specialName: string }>) => {
