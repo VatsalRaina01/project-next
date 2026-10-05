@@ -102,12 +102,11 @@ export const userSchemas = {
     updateProfileImage: imageSchemas.uploadImage,
 
     readPage: readPageInputSchemaObject(
-        z.number(),
         z.object({
             id: z.number()
         }),
         z.object({
-            partOfName: z.string(),
+            partOfName: z.string().max(100),
             groups: z.array(z.object({
                 groupOrder: z.union([z.number(), z.literal('ACTIVE')]),
                 groupId: z.number()

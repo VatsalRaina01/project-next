@@ -22,12 +22,11 @@ export const companySchemas = {
         description: true,
     }),
     readPage: readPageInputSchemaObject(
-        z.number(),
         z.object({
             id: z.number(),
         }),
         z.object({
-            name: z.string().optional(),
+            name: z.string().max(100).optional(),
         }),
     ),
 }
