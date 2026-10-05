@@ -20,7 +20,7 @@ const { page, generateMetadata } = serverPage({
         const committee = await getCommittee(params.shortName)
 
         const [paragraph, members] = await Promise.all([
-            committeeOperations.readParagraph({ params: { shortName: params.shortName } }),
+            committeeOperations.readParagraph({ params: { shortName: committee.shortName } }),
             committeeOperations.readMembers({
                 params: {
                     groupId: committee.groupId,
@@ -29,7 +29,7 @@ const { page, generateMetadata } = serverPage({
             }),
         ])
 
-        return { committee, paragraph, members, shortName: params.shortName }
+        return { committee, paragraph, members }
     },
     capabilityChecks: {
         canEditCommitteeParagraph: (data) => committeeAuth.updateParagraphContent.data({
@@ -44,7 +44,7 @@ const { page, generateMetadata } = serverPage({
                 cmsParagraph={data.paragraph}
                 updateCmsParagraphAction={configureAction(
                     updateCommitteeParagraphAction,
-                    { implementationParams: { shortName: data.shortName } }
+                    { implementationParams: { shortName: data.committee.shortName } }
                 )}
             />
 

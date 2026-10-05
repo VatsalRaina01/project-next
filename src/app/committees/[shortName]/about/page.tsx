@@ -21,17 +21,15 @@ import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ shortName: string }>) => {
-        const [article, committee] = await Promise.all([
-            committeeOperations.readArticle({ params: { shortName: params.shortName } }),
-            getCommittee(params.shortName),
-        ])
-        return { article, committee, shortName: params.shortName }
+        const committee = await getCommittee(params.shortName)
+        const article = await committeeOperations.readArticle({ params: { shortName: committee.shortName } })
+        return { article, committee }
     },
     capabilityChecks: {
         canEdit: (data) => committeeAuth.updateArticle.data({ groupId: data.committee.groupId }),
     },
     render: ({ data, capabilities }) => {
-        const { shortName } = data
+        const { shortName } = data.committee
 
         return (
             <div className={styles.wrapper}>
