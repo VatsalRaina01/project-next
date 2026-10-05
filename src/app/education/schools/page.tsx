@@ -20,13 +20,13 @@ const { page, generateMetadata } = serverPage({
             },
         },
     }),
-    authCheckers: {
+    capabilityChecks: {
         canAdministrateSchools: () => schoolAuth.create,
     },
     metadata: () => ({ title: 'Skoler' }),
-    render: ({ data: serverRenderedData, authChecks, session }) => (
+    render: ({ data: serverRenderedData, capabilities, session }) => (
         <PageWrapper headerItem={
-            authChecks.canAdministrateSchools.authorized ? (
+            capabilities.canAdministrateSchools.authorized ? (
                 <Link href="/admin/schools" className={styles.adminLink}>
                     Gå til administrasjon
                 </Link>

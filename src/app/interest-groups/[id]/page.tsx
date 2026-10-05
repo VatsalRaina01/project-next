@@ -36,7 +36,7 @@ const { page, generateMetadata } = serverPage({
 
         return { interestGroup, members, expanded, currentOrder }
     },
-    authCheckers: {
+    capabilityChecks: {
         canMigrate: (data) => interestGroupAuth.migrateGroup.data({
             groupId: data.interestGroup.groupId,
         }),
@@ -55,7 +55,7 @@ const { page, generateMetadata } = serverPage({
         }),
     },
     metadata: (data) => ({ title: data.interestGroup.name }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, capabilities }) => {
         const { interestGroup, members, expanded, currentOrder } = data
 
         const activeMembersOfGroupOrder = members.filter(
@@ -75,7 +75,7 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper>
-                {authChecks.canPension.authorized && expanded && (
+                {capabilities.canPension.authorized && expanded && (
                     <div className={styles.management}>
                         <h2>Pensjonering</h2>
                         <PensionGroup
@@ -88,7 +88,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 )}
                 {!interestGroup.pensioned && expanded
-                    && (authChecks.canAddMembers.authorized || authChecks.canRemoveMembers.authorized) && (
+                    && (capabilities.canAddMembers.authorized || capabilities.canRemoveMembers.authorized) && (
                     <div className={styles.management}>
                         <h2>Administrer medlemmer</h2>
                         <ManageGroupMembers
@@ -96,27 +96,27 @@ const { page, generateMetadata } = serverPage({
                             groupOrder={expanded.order}
                             orders={groupMembersByOrder(members, expanded.order)}
                             addMembersAction={
-                                authChecks.canAddMembers.authorized ? addInterestGroupMembersAction : undefined
+                                capabilities.canAddMembers.authorized ? addInterestGroupMembersAction : undefined
                             }
                             setMemberAdminAction={
-                                authChecks.canSetMemberAdmin.authorized
+                                capabilities.canSetMemberAdmin.authorized
                                     ? setInterestGroupMemberAdminAction
                                     : undefined
                             }
                             setMemberTitleAction={
-                                authChecks.canSetMemberTitle.authorized
+                                capabilities.canSetMemberTitle.authorized
                                     ? setInterestGroupMemberTitleAction
                                     : undefined
                             }
                             removeMembersAction={
-                                authChecks.canRemoveMembers.authorized
+                                capabilities.canRemoveMembers.authorized
                                     ? removeInterestGroupMembersAction
                                     : undefined
                             }
                         />
                     </div>
                 )}
-                {!interestGroup.pensioned && authChecks.canMigrate.authorized && expanded && (
+                {!interestGroup.pensioned && capabilities.canMigrate.authorized && expanded && (
                     <div className={styles.migration}>
                         <h2>Migrering</h2>
                         <MigrateGroup

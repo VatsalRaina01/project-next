@@ -19,13 +19,13 @@ const { page, generateMetadata } = serverPage({
         const eventTags = await eventTagOperations.readAll({})
         return { tagNames, eventTags }
     },
-    authCheckers: {
+    capabilityChecks: {
         canUpdateTags: () => eventTagAuth.update,
         canCreateTags: () => eventTagAuth.create,
         canDestroyTags: () => eventTagAuth.destroy,
     },
     metadata: () => ({ title: 'Hvad der har hendt' }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, capabilities }) => {
         const { tagNames, eventTags } = data
         const currentTags = tagNames ? eventTags.filter(tag => tagNames.includes(tag.name)) : []
 
@@ -52,9 +52,9 @@ const { page, generateMetadata } = serverPage({
                         <TagHeaderItem
                             eventTags={eventTags}
                             currentTags={currentTags}
-                            canUpdate={authChecks.canUpdateTags.authorized}
-                            canCreate={authChecks.canCreateTags.authorized}
-                            canDestroy={authChecks.canDestroyTags.authorized}
+                            canUpdate={capabilities.canUpdateTags.authorized}
+                            canCreate={capabilities.canCreateTags.authorized}
+                            canDestroy={capabilities.canDestroyTags.authorized}
                             page="EVENT_ARCHIVE"
                         />
                         <Link

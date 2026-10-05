@@ -38,14 +38,14 @@ const { page, generateMetadata } = serverPage({
 
         return { articleCategory, article }
     },
-    authCheckers: {
+    capabilityChecks: {
         canEdit: () => articleCategoryAuth.updateArticle,
     },
     metadata: (data) => ({ title: data.article.name }),
-    render: ({ data, authChecks }) => (
+    render: ({ data, capabilities }) => (
         <div className={styles.wrapper}>
             <Article
-                canEdit={authChecks.canEdit.toJsObject()}
+                canEdit={capabilities.canEdit.toJsObject()}
                 coverImageClass={styles.coverImage}
                 article={data.article}
                 actions={{

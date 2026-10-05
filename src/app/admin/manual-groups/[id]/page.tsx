@@ -42,7 +42,7 @@ const { page, generateMetadata } = serverPage({
 
         return { manualGroup, expanded, members, currentOrder }
     },
-    authCheckers: {
+    capabilityChecks: {
         canMigrate: (data) => manualGroupAuth.migrateGroup.data({ groupId: data.manualGroup.groupId }),
         canAddMembers: (data) => manualGroupAuth.addMembers.data({ groupId: data.manualGroup.groupId }),
         canSetMemberAdmin: (data) => manualGroupAuth.setMemberAdmin.data({ groupId: data.manualGroup.groupId }),
@@ -53,7 +53,7 @@ const { page, generateMetadata } = serverPage({
         canRemoveMembers: (data) => manualGroupAuth.removeMembers.data({ groupId: data.manualGroup.groupId }),
     },
     metadata: (data) => ({ title: data.manualGroup.name }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, capabilities }) => {
         const { manualGroup, expanded, members, currentOrder } = data
 
         // Only the active members of the group's own order can be carried into the next one.
@@ -70,7 +70,7 @@ const { page, generateMetadata } = serverPage({
                         <span>Aktive medlemmer: {expanded.members}</span>
                     </div>
 
-                    {authChecks.canPension.authorized && (
+                    {capabilities.canPension.authorized && (
                         <div className={styles.section}>
                             <h2>Pensjonering</h2>
                             <PensionGroup
@@ -84,7 +84,7 @@ const { page, generateMetadata } = serverPage({
                     )}
 
                     {!manualGroup.pensioned
-                        && (authChecks.canAddMembers.authorized || authChecks.canRemoveMembers.authorized) && (
+                        && (capabilities.canAddMembers.authorized || capabilities.canRemoveMembers.authorized) && (
                         <div className={styles.section}>
                             <h2>Medlemmer</h2>
                             <ManageGroupMembers
@@ -92,22 +92,22 @@ const { page, generateMetadata } = serverPage({
                                 groupOrder={expanded.order}
                                 orders={groupMembersByOrder(members, expanded.order)}
                                 addMembersAction={
-                                    authChecks.canAddMembers.authorized ? addManualGroupMembersAction : undefined
+                                    capabilities.canAddMembers.authorized ? addManualGroupMembersAction : undefined
                                 }
                                 setMemberAdminAction={
-                                    authChecks.canSetMemberAdmin.authorized ? setManualGroupMemberAdminAction : undefined
+                                    capabilities.canSetMemberAdmin.authorized ? setManualGroupMemberAdminAction : undefined
                                 }
                                 setMemberTitleAction={
-                                    authChecks.canSetMemberTitle.authorized ? setManualGroupMemberTitleAction : undefined
+                                    capabilities.canSetMemberTitle.authorized ? setManualGroupMemberTitleAction : undefined
                                 }
                                 removeMembersAction={
-                                    authChecks.canRemoveMembers.authorized ? removeManualGroupMembersAction : undefined
+                                    capabilities.canRemoveMembers.authorized ? removeManualGroupMembersAction : undefined
                                 }
                             />
                         </div>
                     )}
 
-                    {!manualGroup.pensioned && authChecks.canMigrate.authorized && (
+                    {!manualGroup.pensioned && capabilities.canMigrate.authorized && (
                         <div className={styles.section}>
                             <h2>Migrering</h2>
                             <MigrateGroup

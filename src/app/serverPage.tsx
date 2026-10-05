@@ -35,15 +35,15 @@ type PageProps<Params extends object> = {
     searchParams: Promise<SearchParams>,
 }
 
-type AuthCheckerBound = Authorizer<UserRequieredOutOpt, object | undefined>
+type CapabilityAuthorizer = Authorizer<UserRequieredOutOpt, object | undefined>
 
 /**
- * The results of running the declared auth checkers - same keys as the authCheckers object
- * (all of the form `can[Something]`), but each value is the AuthResult of running that
- * authorizer against the session of the current request.
+ * What the current user may do on a page - same keys as the capabilityChecks object (all of the
+ * form `can[Something]`), but each value is the AuthResult of running that authorizer against the
+ * session of the current request.
  */
-export type AuthChecks<CheckerKeys extends `can${string}`> = Record<
-    CheckerKeys, ReturnType<AuthCheckerBound['auth']>
+export type Capabilities<CapabilityKeys extends `can${string}`> = Record<
+    CapabilityKeys, ReturnType<CapabilityAuthorizer['auth']>
 >
 
 /**
@@ -97,25 +97,27 @@ async function urlWithCallback(url: string) {
  * the page render and generateMetadata via React `cache`). Throwing a service error inside
  * it sends the user to the error view - wrap non-critical calls in {@link withFallback} when
  * a failure should not take the whole page down.
- * @param authCheckers - Optional record of `can[Something]` keys to authorizer getters.
+ * @param capabilityChecks - Optional record of `can[Something]` keys to authorizer getters.
  * Each getter receives the loaded data and returns a bound authorizer; the results of
- * running them against the session arrive in `render` as `authChecks` under the same keys.
+ * running them against the session arrive in `render` as `capabilities` under the same keys.
+ * They do not guard the page - a failing check only tells `render` to leave out what the user
+ * may not do (an edit button, a form). Access to the page itself is decided in `operation`.
  * @param metadata - Optional Next.js metadata from the loaded data. Titles are plain -
  * the root layout's title template appends the site name.
- * @param render - Renders the page from the loaded data, the auth check results and the session.
+ * @param render - Renders the page from the loaded data, the capabilities and the session.
  *
  * @example
  * const { page, generateMetadata } = serverPage({
  *     operation: async ({ params }: { params: { username: string } }) =>
  *         userOperations.readProfile({ params: { username: params.username } }),
- *     authCheckers: {
+ *     capabilityChecks: {
  *         canUpdate: (profile) => userAuth.update.data({ username: profile.user.username }),
  *     },
  *     metadata: (profile) => ({ title: profile.user.username }),
- *     render: ({ data, authChecks }) => (
+ *     render: ({ data, capabilities }) => (
  *         <div>
  *             {data.user.username}
- *             {authChecks.canUpdate.authorized && <EditButton />}
+ *             {capabilities.canUpdate.authorized && <EditButton />}
  *         </div>
  *     ),
  * })
@@ -126,14 +128,14 @@ async function urlWithCallback(url: string) {
 export function serverPage<
     Params extends object,
     Data,
-    CheckerKeys extends `can${string}` = never,
->({ operation, authCheckers, metadata, render }: {
+    CapabilityKeys extends `can${string}` = never,
+>({ operation, capabilityChecks, metadata, render }: {
     operation: (args: PageOperationArgs<Params>) => Promise<Data>,
-    authCheckers?: Record<CheckerKeys, (data: Data) => AuthCheckerBound>,
+    capabilityChecks?: Record<CapabilityKeys, (data: Data) => CapabilityAuthorizer>,
     metadata?: (data: Data) => Metadata,
     render: (args: {
         data: Data,
-        authChecks: AuthChecks<CheckerKeys>,
+        capabilities: Capabilities<CapabilityKeys>,
         session: ServerPageSession,
     }) => ReactNode | Promise<ReactNode>,
 }): {
@@ -159,18 +161,18 @@ export function serverPage<
             false,
             () => operation({ params, searchParams, session })
         )
-        // Object.entries erases the value types (authCheckers may be undefined), so the
+        // Object.entries erases the value types (capabilityChecks may be undefined), so the
         // entries are asserted back to what the signature guarantees they are.
-        const checkerEntries = Object.entries(
-            authCheckers ?? {}
-        ) as [CheckerKeys, (loadedData: Data) => AuthCheckerBound][]
-        const authChecks = Object.fromEntries(
-            checkerEntries.map(([checkName, authorizerGetter]) => [
-                checkName,
+        const capabilityCheckEntries = Object.entries(
+            capabilityChecks ?? {}
+        ) as [CapabilityKeys, (loadedData: Data) => CapabilityAuthorizer][]
+        const capabilities = Object.fromEntries(
+            capabilityCheckEntries.map(([capabilityName, authorizerGetter]) => [
+                capabilityName,
                 authorizerGetter(data).auth(session),
             ])
-        ) as AuthChecks<CheckerKeys>
-        return { data, session, authChecks }
+        ) as Capabilities<CapabilityKeys>
+        return { data, session, capabilities }
     })
 
     const page = async (props: PageProps<Params>): Promise<ReactNode> => {

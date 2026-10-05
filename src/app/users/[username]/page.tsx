@@ -46,11 +46,11 @@ const { page, generateMetadata } = serverPage({
             flairs: [...flairs].sort((flairOne, flairTwo) => flairOne.rank - flairTwo.rank),
         }
     },
-    authCheckers: {
+    capabilityChecks: {
         canUpdateBio: ({ profile }) => userAuth.updateBioParagraphContent.data({ userId: profile.user.id }),
     },
     metadata: () => ({ title: 'Profil' }),
-    render: ({ data, authChecks, session }) => {
+    render: ({ data, capabilities, session }) => {
         const { profile, flairs } = data
 
         const { committeeMemberships, activeStudyProgrammes, activeInterestGroups } = profile.groups
@@ -199,7 +199,7 @@ const { page, generateMetadata } = serverPage({
 
 
                                 {/* An empty bio is only worth showing to someone who can write it, in edit mode. */}
-                                {(profile.user.bioParagraph.contentHtml !== '' || authChecks.canUpdateBio.authorized) &&
+                                {(profile.user.bioParagraph.contentHtml !== '' || capabilities.canUpdateBio.authorized) &&
                                     <div className={styles.bio}>
                                         <h2>Bio:</h2>
                                         <CmsParagraph
@@ -208,7 +208,7 @@ const { page, generateMetadata } = serverPage({
                                                 updateUserBioParagraphContentAction,
                                                 { implementationParams: { userId: profile.user.id } }
                                             )}
-                                            canEdit={authChecks.canUpdateBio.toJsObject()}
+                                            canEdit={capabilities.canUpdateBio.toJsObject()}
                                         />
                                     </div>
                                 }

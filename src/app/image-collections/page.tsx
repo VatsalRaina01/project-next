@@ -34,12 +34,12 @@ const { page, generateMetadata } = serverPage({
 
         return { collections, details, showOnlyCollectionsSessionAdministrates }
     },
-    authCheckers: {
+    capabilityChecks: {
         canCreateCollection: () => dynamicImageAuth.createCollection,
     },
     metadata: () => ({ title: 'Fotogalleri' }),
-    render: ({ data, authChecks }) => (
-        <PageWrapper headerItem={authChecks.canCreateCollection.authorized && <MakeNewCollection />}>
+    render: ({ data, capabilities }) => (
+        <PageWrapper headerItem={capabilities.canCreateCollection.authorized && <MakeNewCollection />}>
             <DynamicImageCollectionPagingProvider
                 startPage={{
                     pageSize,

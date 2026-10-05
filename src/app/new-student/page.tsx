@@ -18,15 +18,15 @@ import { serverPage } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => newStudentOperations.read({}),
-    authCheckers: {
+    capabilityChecks: {
         canEdit: () => newStudentAuth.update,
     },
     metadata: () => ({ title: 'Ny student' }),
-    render: ({ data: article, authChecks }) => (
+    render: ({ data: article, capabilities }) => (
         <PageWrapper>
             <SpecialArticle
                 article={article}
-                canEdit={authChecks.canEdit.toJsObject()}
+                canEdit={capabilities.canEdit.toJsObject()}
                 actions={{
                     update: updateNewStudentArticleAction,
                     addSection: updateNewStudentArticleAddSectionAction,

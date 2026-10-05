@@ -38,7 +38,7 @@ const { page, generateMetadata } = serverPage({
 
         return { committee, expanded, members, currentOrder }
     },
-    authCheckers: {
+    capabilityChecks: {
         canEditLogo: (data) => committeeAuth.updateLogo.data({ groupId: data.committee.groupId }),
         canMigrate: (data) => committeeAuth.migrateGroup.data({ groupId: data.committee.groupId }),
         canAddMembers: (data) => committeeAuth.addMembers.data({ groupId: data.committee.groupId }),
@@ -48,7 +48,7 @@ const { page, generateMetadata } = serverPage({
         canPension: () => committeeAuth.pension,
     },
     metadata: (data) => ({ title: `Administrer ${data.committee.name}` }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, capabilities }) => {
         const { committee, expanded, members, currentOrder } = data
 
         // Only the active members of the committee's own order can be carried into the next one.
@@ -72,7 +72,7 @@ const { page, generateMetadata } = serverPage({
                     <div className={styles.logo}>
                         <Image image={committee.logoImage} width={300} />
                         {
-                            authChecks.canEditLogo.authorized && (
+                            capabilities.canEditLogo.authorized && (
                                 <ImageUploader
                                     title="Endre komitelogo"
                                     refreshOnSuccess
@@ -86,7 +86,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </section>}
 
-                {authChecks.canPension.authorized && (
+                {capabilities.canPension.authorized && (
                     <section className={styles.section}>
                         <h3>Pensjonering</h3>
                         <PensionGroup
@@ -100,7 +100,7 @@ const { page, generateMetadata } = serverPage({
                 )}
 
                 {!committee.pensioned && expanded
-                    && (authChecks.canAddMembers.authorized || authChecks.canRemoveMembers.authorized) && (
+                    && (capabilities.canAddMembers.authorized || capabilities.canRemoveMembers.authorized) && (
                     <section className={styles.section}>
                         <h3>Medlemmer</h3>
                         <ManageGroupMembers
@@ -108,22 +108,22 @@ const { page, generateMetadata } = serverPage({
                             groupOrder={expanded.order}
                             orders={groupMembersByOrder(members, expanded.order)}
                             addMembersAction={
-                                authChecks.canAddMembers.authorized ? addCommitteeMembersAction : undefined
+                                capabilities.canAddMembers.authorized ? addCommitteeMembersAction : undefined
                             }
                             setMemberAdminAction={
-                                authChecks.canSetMemberAdmin.authorized ? setCommitteeMemberAdminAction : undefined
+                                capabilities.canSetMemberAdmin.authorized ? setCommitteeMemberAdminAction : undefined
                             }
                             setMemberTitleAction={
-                                authChecks.canSetMemberTitle.authorized ? setCommitteeMemberTitleAction : undefined
+                                capabilities.canSetMemberTitle.authorized ? setCommitteeMemberTitleAction : undefined
                             }
                             removeMembersAction={
-                                authChecks.canRemoveMembers.authorized ? removeCommitteeMembersAction : undefined
+                                capabilities.canRemoveMembers.authorized ? removeCommitteeMembersAction : undefined
                             }
                         />
                     </section>
                 )}
 
-                {!committee.pensioned && authChecks.canMigrate.authorized && expanded && (
+                {!committee.pensioned && capabilities.canMigrate.authorized && expanded && (
                     <section className={styles.section}>
                         <h3>Migrering</h3>
                         <MigrateGroup

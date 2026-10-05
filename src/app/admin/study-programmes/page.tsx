@@ -14,15 +14,15 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('study-programmes', session)
         return studyProgrammeOperations.readMany({})
     },
-    authCheckers: {
+    capabilityChecks: {
         canCreate: () => studyProgrammeAuth.create,
         canEdit: () => studyProgrammeAuth.update,
     },
     metadata: () => ({ title: 'Studieprogrammer' }),
-    render: ({ data: studyprogrammes, authChecks }) => (
+    render: ({ data: studyprogrammes, capabilities }) => (
         <PageWrapper
             headerItem={
-                authChecks.canCreate.authorized && (
+                capabilities.canCreate.authorized && (
                     <AddHeaderItemPopUp popUpKey="create ombul">
                         <UpdateStudyProgrammeForm />
                     </AddHeaderItemPopUp>
@@ -32,7 +32,7 @@ const { page, generateMetadata } = serverPage({
             <table className={styles.table}>
                 <thead>
                     <tr>
-                        {authChecks.canEdit.authorized && <th>Rediger</th>}
+                        {capabilities.canEdit.authorized && <th>Rediger</th>}
                         <th>Navn</th>
                         <th>Kode</th>
                         <th>Institutt kode</th>
@@ -43,7 +43,7 @@ const { page, generateMetadata } = serverPage({
                 </thead>
                 <StudyProgrammeTableBody
                     studyprogrammes={studyprogrammes}
-                    canEdit={authChecks.canEdit.authorized}
+                    canEdit={capabilities.canEdit.authorized}
                 />
             </table>
         </PageWrapper>

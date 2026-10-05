@@ -30,15 +30,15 @@ const { page, generateMetadata } = serverPage({
         ])
         return { contactorCmsLink, companyPresentationEventTag, isLoggedIn: Boolean(session.user) }
     },
-    authCheckers: {
+    capabilityChecks: {
         canEditSpecialCmsLink: () => careerAuth.updateSpecialCmsLink,
         canEditSpecialCmsParagraph: () => careerAuth.updateSpecialCmsParagraphContentCareerInfo,
     },
     metadata: (data) => ({ title: data.isLoggedIn ? 'Karriere' : 'For bedrifter' }),
-    render: ({ data, authChecks }) => (
+    render: ({ data, capabilities }) => (
         <PageWrapper headerItem={
             data.contactorCmsLink ? <CmsLink
-                canEdit={authChecks.canEditSpecialCmsLink.toJsObject()}
+                canEdit={capabilities.canEditSpecialCmsLink.toJsObject()}
                 className={styles.conactorLink}
                 cmsLink={data.contactorCmsLink}
                 updateCmsLinkAction={updateCareerSpecialCmsLinkAction}
@@ -46,7 +46,7 @@ const { page, generateMetadata } = serverPage({
         }>
             <div className={styles.wrapper}>
                 <SpecialCmsParagraph
-                    canEdit={authChecks.canEditSpecialCmsParagraph.toJsObject()}
+                    canEdit={capabilities.canEditSpecialCmsParagraph.toJsObject()}
                     className={styles.info}
                     special="CAREER_INFO"
                     readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfo}

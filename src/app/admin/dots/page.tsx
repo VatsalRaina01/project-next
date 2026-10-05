@@ -30,7 +30,7 @@ const { page, generateMetadata } = serverPage({
 
         return { userId, onlyActive, user, dots } as const
     },
-    authCheckers: {
+    capabilityChecks: {
         // This page is only about administrating dots, so the crud of them is offered outright to
         // whoever is authorized for it - no edit mode to enter first. The create authorizer needs
         // the session's own user id, so it is run inline in render rather than declared here.
@@ -40,7 +40,7 @@ const { page, generateMetadata } = serverPage({
     metadata: (data) => ({
         title: data.userId === null ? 'Prikker' : `Prikker for ${data.user.firstname} ${data.user.lastname}`,
     }),
-    render: ({ data, authChecks, session }) => {
+    render: ({ data, capabilities, session }) => {
         if (data.userId === null) {
             return (
                 <PageWrapper>
@@ -78,8 +78,8 @@ const { page, generateMetadata } = serverPage({
                         showCreateForm={
                             dotAuth.create.data({ userId: session.user?.id ?? 0 }).auth(session).authorized
                         }
-                        showUpdateForm={authChecks.canUpdate.authorized}
-                        showDestroyForm={authChecks.canDestroy.authorized}
+                        showUpdateForm={capabilities.canUpdate.authorized}
+                        showDestroyForm={capabilities.canDestroy.authorized}
                     />
                 </div>
             </PageWrapper>

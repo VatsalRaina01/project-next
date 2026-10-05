@@ -39,13 +39,13 @@ const { page, generateMetadata } = serverPage({
 
         return { profile, sittedTrials }
     },
-    authCheckers: {
+    capabilityChecks: {
         canReadTrials: (data) => admissionAuth.readTrial.data({ userId: data.profile.user.id }),
         canRegisterTrial: () => admissionAuth.createTrial,
         canChangeLevel: () => omegaMembershipGroupAuth.updateUserLevel,
         canChangeOrder: () => omegaMembershipGroupAuth.updateUserOrder,
     },
-    render: ({ data, authChecks }) => {
+    render: ({ data, capabilities }) => {
         const { profile } = data
         const { id: userId } = profile.user
 
@@ -53,7 +53,7 @@ const { page, generateMetadata } = serverPage({
         const sittedTrials = new Set(data.sittedTrials)
 
         // Only a soelle sits trials, so that is the only time registering one would be accepted.
-        const showTrialRegistration = authChecks.canRegisterTrial.authorized && currentLevel === 'SOELLE'
+        const showTrialRegistration = capabilities.canRegisterTrial.authorized && currentLevel === 'SOELLE'
 
         return (
             <div className={styles.wrapper}>
@@ -74,7 +74,7 @@ const { page, generateMetadata } = serverPage({
                                 </span>
                                 {level === currentLevel
                                     ? <span className={styles.marker}>Du er her</span>
-                                    : authChecks.canChangeLevel.authorized && (
+                                    : capabilities.canChangeLevel.authorized && (
                                         <Form
                                             className={styles.action}
                                             submitText="Flytt hit"
@@ -95,7 +95,7 @@ const { page, generateMetadata } = serverPage({
                             {/* The trials are what carries a soelle up to sysken, so they sit in the
                                 gap between the two. Hidden from anyone who may not read them, since
                                 empty boxes would read as "none sat" rather than "not shown". */}
-                            {level === 'SYSKEN' && authChecks.canReadTrials.authorized && (
+                            {level === 'SYSKEN' && capabilities.canReadTrials.authorized && (
                                 <ul className={styles.trials}>
                                     {allAdmissions.map(admission => (
                                         <li
@@ -131,7 +131,7 @@ const { page, generateMetadata } = serverPage({
                     <p>
                         Medlemskapet er udaf den {profile.omegaMembership.order}´dis orden.
                     </p>
-                    {authChecks.canChangeOrder.authorized && (
+                    {capabilities.canChangeOrder.authorized && (
                         <Form
                             submitText="Endre orden"
                             refreshOnSuccess

@@ -35,7 +35,7 @@ const { page, generateMetadata } = serverPage({
 
         return { profile, studyProgrammes }
     },
-    authCheckers: {
+    capabilityChecks: {
         canUpdateProfile: ({ profile }) => userAuth.updateProfile.data({
             userField: { username: profile.user.username }
         }),
@@ -48,17 +48,17 @@ const { page, generateMetadata } = serverPage({
         canChangeClass: () => classAuth.changeClassOfUser,
         canManageStudyProgrammes: () => studyProgrammeAuth.update,
     },
-    render: ({ data, authChecks }) => {
+    render: ({ data, capabilities }) => {
         const { profile, studyProgrammes } = data
 
         return (
             <div className={styles.wrapper}>
-                {authChecks.canUpdateProfile.authorized && (
+                {capabilities.canUpdateProfile.authorized && (
                     <UserProfileSettingsCard>
                         <UserSettingsForm user={profile.user} emailDomain={process.env.EMAIL_DOMAIN} />
                     </UserProfileSettingsCard>
                 )}
-                {authChecks.canUpdateBio.authorized && (
+                {capabilities.canUpdateBio.authorized && (
                     <UserProfileSettingsCard>
                         <h2>Bio</h2>
                         <CmsParagraphEditorForm
@@ -70,12 +70,12 @@ const { page, generateMetadata } = serverPage({
                         />
                     </UserProfileSettingsCard>
                 )}
-                {authChecks.canRegisterNewEmail.authorized && (
+                {capabilities.canRegisterNewEmail.authorized && (
                     <UserProfileSettingsCard>
                         <ChangeEmailForm user={profile.user} />
                     </UserProfileSettingsCard>
                 )}
-                {authChecks.canUpdateImage.authorized && (
+                {capabilities.canUpdateImage.authorized && (
                     <UserProfileSettingsCard>
                         <h2>Profilbilde</h2>
                         <div className={styles.profileImage}>
@@ -91,12 +91,12 @@ const { page, generateMetadata } = serverPage({
                         </div>
                     </UserProfileSettingsCard>
                 )}
-                {authChecks.canUpdateUser.authorized && (
+                {capabilities.canUpdateUser.authorized && (
                     <UserProfileSettingsCard>
                         <AdminUserSettingsForm user={profile.user} />
                     </UserProfileSettingsCard>
                 )}
-                {authChecks.canChangeClass.authorized && (
+                {capabilities.canChangeClass.authorized && (
                     <UserProfileSettingsCard>
                         <ChangeClassForm
                             userId={profile.user.id}
@@ -104,7 +104,7 @@ const { page, generateMetadata } = serverPage({
                         />
                     </UserProfileSettingsCard>
                 )}
-                {authChecks.canManageStudyProgrammes.authorized && (
+                {capabilities.canManageStudyProgrammes.authorized && (
                     <UserProfileSettingsCard>
                         <ManageUserStudyProgrammes
                             userId={profile.user.id}

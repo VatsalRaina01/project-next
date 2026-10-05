@@ -19,15 +19,15 @@ import Link from 'next/link'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => cabinArticleOperations.read({}),
-    authCheckers: {
+    capabilityChecks: {
         canEdit: () => cabinArticleAuth.update,
     },
     metadata: () => ({ title: 'Heutten' }),
-    render: ({ data: article, authChecks }) => (
+    render: ({ data: article, capabilities }) => (
         <PageWrapper headerItem={<Link href="/cabin/book">Trykk her for å Booke</Link>}>
             <SpecialArticle
                 article={article}
-                canEdit={authChecks.canEdit.toJsObject()}
+                canEdit={capabilities.canEdit.toJsObject()}
                 actions={{
                     update: updateCabinArticleAction,
                     addSection: updateCabinArticleAddSectionAction,

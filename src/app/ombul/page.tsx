@@ -16,11 +16,11 @@ const { page, generateMetadata } = serverPage({
         ])
         return { latestOmbul, ombuls }
     },
-    authCheckers: {
+    capabilityChecks: {
         canCreate: () => ombulAuth.create,
     },
     metadata: () => ({ title: 'Ombul' }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, capabilities }) => {
         const yearsWithOmbul = Object.entries(data.ombuls.reduce((groups, ombul) => {
             const year = ombul.year
             if (!groups[year]) {
@@ -35,7 +35,7 @@ const { page, generateMetadata } = serverPage({
         return (
             <PageWrapper
                 headerItem={
-                    authChecks.canCreate.authorized && (
+                    capabilities.canCreate.authorized && (
                         <AddHeaderItemPopUp popUpKey="create ombul">
                             <CreateOmbul latestOmbul={data.latestOmbul} />
                         </AddHeaderItemPopUp>

@@ -30,13 +30,13 @@ const { page, generateMetadata } = serverPage({
             })
             : null
     ),
-    authCheckers: {
+    capabilityChecks: {
         canCreate: () => bullshitAuth.create,
     },
     metadata: () => ({ title: 'Bullshit' }),
-    render: ({ data: bullshits, authChecks, session }) => (
+    render: ({ data: bullshits, capabilities, session }) => (
         <PageWrapper headerItem={
-            session.user && authChecks.canCreate.authorized && <BullshitForm />
+            session.user && capabilities.canCreate.authorized && <BullshitForm />
         }>
             {bullshits && (
                 <BullshitPagingProvider

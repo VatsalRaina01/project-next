@@ -96,7 +96,7 @@ const { page, generateMetadata } = serverPage({
             eventPaymentCustomerSessionSecret,
         }
     },
-    authCheckers: {
+    capabilityChecks: {
         canEditCmsCoverImage: (data) => eventAuth.updateCmsCoverImage.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
@@ -117,12 +117,12 @@ const { page, generateMetadata } = serverPage({
         }),
     },
     metadata: () => ({ title: 'Arrangement' }),
-    render: ({ data, authChecks, session }) => {
+    render: ({ data, capabilities, session }) => {
         const { event, tags, doubleLevelVisibility, dotPunishment, ownRegistration } = data
         const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
 
         // Registering takes the regular level of the event; the authorizer needs the session's own
-        // user id, so it is run inline here rather than declared as an authChecker.
+        // user id, so it is run inline here rather than declared as a capability check.
         const canRegister = session.user ? eventRegistrationAuth.create({
             userId: session.user.id,
             doubleLevelMatrix,
@@ -132,7 +132,7 @@ const { page, generateMetadata } = serverPage({
             <div className={styles.wrapper}>
                 <span className={styles.coverImage}>
                     <CmsImage
-                        canEdit={authChecks.canEditCmsCoverImage.toJsObject()}
+                        canEdit={capabilities.canEditCmsCoverImage.toJsObject()}
                         cmsImage={event.coverImage}
                         width={900}
                         updateCmsImageAction={
@@ -154,7 +154,7 @@ const { page, generateMetadata } = serverPage({
                         </ul>
                     </div>
                     <div className={styles.settings}>
-                        {event.takesRegistration && authChecks.canRegisterOthers.authorized &&
+                        {event.takesRegistration && capabilities.canRegisterOthers.authorized &&
                             <UsersHeaderItemPopUp scale={30} popUpKey="Users">
                                 <ManualRegistrationForm eventId={event.id} />
                             </UsersHeaderItemPopUp>
@@ -162,7 +162,7 @@ const { page, generateMetadata } = serverPage({
                         <SettingsHeaderItemPopUp scale={30} popUpKey="EditEvent">
                             <CreateOrUpdateEventForm event={event} eventTags={tags} />
                             <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
-                            { authChecks.canDestroy.authorized &&
+                            { capabilities.canDestroy.authorized &&
                                 <Form
                                     action={configureAction(destroyEventAction, { params: { id: event.id } })}
                                     navigateOnSuccess="/events"
@@ -218,7 +218,7 @@ const { page, generateMetadata } = serverPage({
                 </aside>
                 <main>
                     <CmsParagraph
-                        canEdit={authChecks.canEditCmsParagraph.toJsObject()}
+                        canEdit={capabilities.canEditCmsParagraph.toJsObject()}
                         cmsParagraph={event.paragraph}
                         updateCmsParagraphAction={
                             configureAction(
@@ -233,7 +233,7 @@ const { page, generateMetadata } = serverPage({
                     </section>}
                 </main>
 
-                {event.takesRegistration && authChecks.canReadRegistrations.authorized && (
+                {event.takesRegistration && capabilities.canReadRegistrations.authorized && (
                     <div className={styles.registrationList}>
                         <RegistrationsList event={event} />
                     </div>

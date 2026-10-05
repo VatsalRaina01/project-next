@@ -14,22 +14,22 @@ import { serverPage } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => interestGroupOperations.readMany({}),
-    authCheckers: {
+    capabilityChecks: {
         canCreate: () => interestGroupAuth.create,
         canEditGeneralInfo: () => interestGroupAuth.updateSpecialCmsParagraphContentGeneralInfo,
     },
     metadata: () => ({ title: 'Interessegrupper' }),
-    render: ({ data: interestGroups, authChecks, session }) => (
+    render: ({ data: interestGroups, capabilities, session }) => (
         <PageWrapper transparent>
             <div className={styles.content}>
                 <div className={styles.generalInfo}>
-                    {authChecks.canCreate.authorized && (
+                    {capabilities.canCreate.authorized && (
                         <AddHeaderItemPopUp popUpKey="Create interest group">
                             <CreateInterestGroupForm/>
                         </AddHeaderItemPopUp>
                     )}
                     <SpecialCmsParagraph
-                        canEdit={authChecks.canEditGeneralInfo.toJsObject()}
+                        canEdit={capabilities.canEditGeneralInfo.toJsObject()}
                         special="INTEREST_GROUP_GENERAL_INFO"
                         readSpecialCmsParagraphAction={readSpecialCmsParagraphGeneralInfoAction}
                         updateCmsParagraphAction={updateSpecialCmsParagraphContentGeneralInfoAction}

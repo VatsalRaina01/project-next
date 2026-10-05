@@ -20,11 +20,11 @@ const { page, generateMetadata } = serverPage({
         ])
         return { classRows, expandedClasses, currentOrder }
     },
-    authCheckers: {
+    capabilityChecks: {
         canBump: () => classAuth.bumpClasses,
     },
     metadata: () => ({ title: 'Klasser' }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, capabilities }) => {
         // The expanded groups carry the name, member count and order; the class rows carry the level.
         // Joining them on the group id lets the table be listed in the order students move through.
         // A class is not administered per group, so no row links anywhere.
@@ -49,7 +49,7 @@ const { page, generateMetadata } = serverPage({
                         klassene rykkes opp: alle studenter flyttes én klasse opp, og uteksaminerte beholder
                         medlemskapet sitt. Dette må gjøres før Omega kan inkrementeres på nytt.
                     </p>
-                    {authChecks.canBump.authorized && <BumpClasses />}
+                    {capabilities.canBump.authorized && <BumpClasses />}
                 </div>
             </PageWrapper>
         )

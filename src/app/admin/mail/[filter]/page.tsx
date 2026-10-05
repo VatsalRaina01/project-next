@@ -61,11 +61,11 @@ const { page, generateMetadata } = serverPage({
 
         return { filter, items }
     },
-    authCheckers: {
+    capabilityChecks: {
         canCreate: ({ filter }) => mailParts[filter].createAuth(),
     },
     metadata: ({ filter }) => ({ title: mailParts[filter].title }),
-    render: ({ data: { filter, items }, authChecks }) => <PageWrapper>
+    render: ({ data: { filter, items }, capabilities }) => <PageWrapper>
         <div className={styles.wrapper}>
             <p className={styles.intro}>{mailParts[filter].intro}</p>
             <div className={styles.content}>
@@ -78,7 +78,7 @@ const { page, generateMetadata } = serverPage({
                     </li>)}
                     {items.length === 0 && <li className={styles.empty}>Ingen enda.</li>}
                 </ul>
-                {authChecks.canCreate.authorized && <aside className={styles.createPanel}>
+                {capabilities.canCreate.authorized && <aside className={styles.createPanel}>
                     {filter === 'alias' && <CreateMailAlias />}
                     {filter === 'mailingList' && <CreateMailingList />}
                     {filter === 'mailaddressExternal' && <CreateMailaddressExternal />}

@@ -37,7 +37,7 @@ const { page, generateMetadata } = serverPage({
 
         return { studyProgramme, expanded, members }
     },
-    authCheckers: {
+    capabilityChecks: {
         canAddMembers: (data) => studyProgrammeAuth.addMembers.data({
             groupId: data.studyProgramme.groupId,
         }),
@@ -46,7 +46,7 @@ const { page, generateMetadata } = serverPage({
         }),
     },
     metadata: (data) => ({ title: data.studyProgramme.name }),
-    render: ({ data, authChecks }) => {
+    render: ({ data, capabilities }) => {
         const { studyProgramme, expanded, members } = data
 
         return (
@@ -69,16 +69,16 @@ const { page, generateMetadata } = serverPage({
                         blir meldt for brukeren.
                     </p>
 
-                    {(authChecks.canAddMembers.authorized || authChecks.canRemoveMembers.authorized) && (
+                    {(capabilities.canAddMembers.authorized || capabilities.canRemoveMembers.authorized) && (
                         <ManageGroupMembers
                             groupId={studyProgramme.groupId}
                             groupOrder={expanded.order}
                             orders={groupMembersByOrder(members, expanded.order)}
                             addMembersAction={
-                                authChecks.canAddMembers.authorized ? addStudyProgrammeMembersAction : undefined
+                                capabilities.canAddMembers.authorized ? addStudyProgrammeMembersAction : undefined
                             }
                             removeMembersAction={
-                                authChecks.canRemoveMembers.authorized ? removeStudyProgrammeMembersAction : undefined
+                                capabilities.canRemoveMembers.authorized ? removeStudyProgrammeMembersAction : undefined
                             }
                         />
                     )}

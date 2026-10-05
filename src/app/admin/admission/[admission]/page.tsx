@@ -18,11 +18,11 @@ const { page, generateMetadata } = serverPage({
         const publicKey = await omegaIdOperations.readPublicKey({})
         return { admission: params.admission, publicKey }
     },
-    authCheckers: {
+    capabilityChecks: {
         canSearchUsers: () => userAuth.readPage,
     },
     metadata: (data) => ({ title: `Registrer opptak for ${admissionDisplayNames[data.admission]}` }),
-    render: ({ data, authChecks }) => (
+    render: ({ data, capabilities }) => (
         <PageWrapper>
             <UserPagingProvider
                 startPage={{ page: 0, pageSize: 50 }}
@@ -32,7 +32,7 @@ const { page, generateMetadata } = serverPage({
                 <RegisterAdmissiontrial
                     admission={data.admission}
                     omegaIdPublicKey={data.publicKey}
-                    canSearchUsers={authChecks.canSearchUsers.authorized}
+                    canSearchUsers={capabilities.canSearchUsers.authorized}
                 />
             </UserPagingProvider>
         </PageWrapper>

@@ -13,11 +13,11 @@ import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('admission', session),
-    authCheckers: {
+    capabilityChecks: {
         canSearchUsers: () => userAuth.readPage,
     },
     metadata: () => ({ title: 'Opptak' }),
-    render: ({ authChecks }) => (
+    render: ({ capabilities }) => (
         <PageWrapper>
             <div className={styles.wrapper}>
                 <section className={styles.section}>
@@ -45,7 +45,7 @@ const { page, generateMetadata } = serverPage({
                     <p className={styles.lead}>
                         Søk opp en bruker for å se hvilke prøver de har tatt, og for å endre medlemskapet deres.
                     </p>
-                    {authChecks.canSearchUsers.authorized ? (
+                    {capabilities.canSearchUsers.authorized ? (
                         <UserPagingProvider
                             startPage={{ page: 0, pageSize: 50 }}
                             serverRenderedData={[]}

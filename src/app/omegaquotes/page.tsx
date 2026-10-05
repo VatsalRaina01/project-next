@@ -27,7 +27,7 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'Omegaquotes' }),
     render: ({ data: quotes, session }) => {
         // The create authorizer needs the session's own user id, so it is run inline here rather
-        // than declared as an authChecker.
+        // than declared as a capability check.
         const showCreateButton = session.user && omegaQuotesAuth.create.data({
             userId: session.user.id
         }).auth(session).authorized || false

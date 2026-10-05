@@ -19,15 +19,15 @@ import { serverPage } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => reportOperations.read({}),
-    authCheckers: {
+    capabilityChecks: {
         canEdit: () => reportAuth.update,
     },
     metadata: () => ({ title: 'Varsling' }),
-    render: ({ data: article, authChecks }) => (
+    render: ({ data: article, capabilities }) => (
         <PageWrapper className={styles.reportPage}>
             <SpecialArticle
                 article={article}
-                canEdit={authChecks.canEdit.toJsObject()}
+                canEdit={capabilities.canEdit.toJsObject()}
                 actions={{
                     update: updateReportArticleAction,
                     addSection: updateReportArticleAddSectionAction,
