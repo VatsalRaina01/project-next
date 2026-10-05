@@ -6,7 +6,6 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { omegaquoteOperations } from '@/services/omegaquotes/operations'
 import { omegaQuotesAuth } from '@/services/omegaquotes/auth'
 import { serverPage } from '@/app/serverPage'
-import { v4 as uuid } from 'uuid'
 import type { PageSizeOmegaquote } from '@/contexts/paging/OmegaquotesPaging'
 
 const pageSize: PageSizeOmegaquote = 20
@@ -46,7 +45,7 @@ const { page, generateMetadata } = serverPage({
                 >
                     <main>
                         <OmegaquoteList
-                            serverRendered={quotes.map(quote => <OmegaquoteQuote key={uuid()} quote={quote}/>)}
+                            serverRendered={quotes.map(quote => <OmegaquoteQuote key={quote.id} quote={quote}/>)}
                         />
                     </main>
                 </OmegaquotePagingProvider>
