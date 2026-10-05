@@ -90,6 +90,9 @@ async function urlWithCallback(url: string) {
  * a thrown service error renders `ServiceErrorView` in place of the page (except
  * NOT FOUND -> `notFound()` and UNAUTHENTICATED -> redirect to login). Non-service errors
  * still propagate to the error boundary, since they are bugs rather than expected failures.
+ * An error thrown by `metadata` or `render` itself is handled the same way - but not one thrown
+ * by a server component inside what `render` returns, which only runs after the page has
+ * returned.
  *
  * The title returned by `metadata` is also fed to the PageTitle context, so pages built
  * with this never render `PageTitleSetter` themselves.
@@ -177,31 +180,29 @@ export function serverPage<
     })
 
     const page = async (props: PageProps<Params>): Promise<ReactNode> => {
-        let loaded: Awaited<ReturnType<typeof load>>
         try {
-            loaded = await load(await serializeProps(props))
+            const loaded = await load(await serializeProps(props))
+            const pageTitle = metadata ? metadata(loaded.data).title : undefined
+            return (
+                <>
+                    {typeof pageTitle === 'string' && <PageTitleSetter title={pageTitle} />}
+                    {await render(loaded)}
+                </>
+            )
         } catch (error) {
             return <ServiceErrorView error={await handleServiceError(error)} />
         }
-        const pageTitle = metadata ? metadata(loaded.data).title : undefined
-        return (
-            <>
-                {typeof pageTitle === 'string' && <PageTitleSetter title={pageTitle} />}
-                {await render(loaded)}
-            </>
-        )
     }
 
     const generateMetadata = async (props: PageProps<Params>): Promise<Metadata> => {
         if (!metadata) return {}
-        let loaded: Awaited<ReturnType<typeof load>>
         try {
-            loaded = await load(await serializeProps(props))
+            const loaded = await load(await serializeProps(props))
+            return metadata(loaded.data)
         } catch (error) {
             await handleServiceError(error)
             return { title: 'Feil' }
         }
-        return metadata(loaded.data)
     }
 
     return { page, generateMetadata }
@@ -255,16 +256,15 @@ export function serverLayout<Params extends object, Data>({ operation, render }:
     }) => ReactNode | Promise<ReactNode>,
 }): (props: LayoutProps<Params>) => Promise<ReactNode> {
     return async ({ params, children }) => {
-        let loaded: { data: Data, session: ServerPageSession }
         try {
-            loaded = await withPageSession(async session => ({
+            const loaded = await withPageSession(async session => ({
                 data: await operation({ params: await params, session }),
                 session,
             }))
+            return await render({ ...loaded, children })
         } catch (error) {
             return <ServiceErrorView error={await handleServiceError(error)} />
         }
-        return render({ ...loaded, children })
     }
 }
 
