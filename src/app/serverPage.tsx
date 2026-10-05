@@ -5,6 +5,7 @@ import { Smorekopp } from '@/services/error'
 import { withServiceContext } from '@/services/serviceOperation'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { CURRENT_PATH_HEADER } from '@/proxy'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { notFound, redirect, unstable_rethrow as unstableRethrow } from 'next/navigation'
 import { headers } from 'next/headers'
 import { cache } from 'react'
@@ -75,7 +76,7 @@ export async function handleServiceError(error: unknown): Promise<Smorekopp<Erro
  */
 async function urlWithCallback(url: string) {
     const currentPath = (await headers()).get(CURRENT_PATH_HEADER)
-    return currentPath ? `${url}?callbackUrl=${encodeURIComponent(currentPath)}` : url
+    return currentPath ? `${url}?${QueryParams.callbackUrl.encodeUrl(currentPath)}` : url
 }
 
 /**

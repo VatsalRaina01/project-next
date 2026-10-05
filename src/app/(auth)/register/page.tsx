@@ -7,7 +7,7 @@ import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ searchParams, session }: PageOperationArgs) => {
-        const callbackUrl = QueryParams.callbackUrl.decode(searchParams)
+        const callbackUrl = QueryParams.callbackUrl.decode(searchParams) ?? '/users/me'
         if (!session.user) {
             return notFound()
         }
@@ -17,15 +17,16 @@ const { page, generateMetadata } = serverPage({
             }
         })
         if (updatedUser.acceptedTerms) {
-            redirect(callbackUrl ?? '/users/me')
+            redirect(callbackUrl)
         }
         if (!updatedUser.emailVerified) {
-            const linkEnding = callbackUrl ? `?callbackUrl=${callbackUrl}` : ''
-            redirect(`/register-email${linkEnding}`)
+            redirect(`/register-email?${QueryParams.callbackUrl.encodeUrl(callbackUrl)}`)
         }
-        return updatedUser
+        return { updatedUser, callbackUrl }
     },
-    render: ({ data: updatedUser }) => <RegistrationForm userData={updatedUser} />,
+    render: ({ data: { updatedUser, callbackUrl } }) => (
+        <RegistrationForm userData={updatedUser} callbackUrl={callbackUrl} />
+    ),
 })
 
 export default page

@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { sendMailOperations } from '@/services/notifications/send-mail/operations'
 import { LinkFeideAccountTemplate } from '@/lib/email/templates/linkFeideAccount'
 import { generateJWT } from '@/jwt/jwt'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import type { FeideIdentity } from '@/services/auth/types'
 import type { UserFiltered } from '@/services/users/types'
 
@@ -23,7 +24,7 @@ export async function sendLinkFeideAccountMail(targetUser: UserFiltered, feideId
         feideEmail: feideIdentity.email,
     }, 60 * 60)
 
-    const link = `${process.env.WEBSITE_URL}/link-ow-user?token=${jwt}`
+    const link = `${process.env.WEBSITE_URL}/link-ow-user?${QueryParams.token.encodeUrl(jwt)}`
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {
