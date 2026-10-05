@@ -13,7 +13,6 @@ export default async function Users() {
                 <CreateUserForm className={styles.makeUser} />
             </AddHeaderItemPopUp>
         }>
-            <PageTitleSetter title="Broedre item Systre" />
             <PageTitleSetter title={'Brukere'}/>
             <div className={styles.wrapper}>
                 <UserPagingProvider
