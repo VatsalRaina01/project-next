@@ -35,6 +35,9 @@ import type { Record } from '@prisma/client/runtime/client'
  * @param limits - Limits - used to limit the number of users to migrate
  */
 
+// Placeholder emails must not be able to receive mail: the site itself hands out aliases on omega.ntnu.no.
+const placeholderEmailDomain = 'dobbelomega.invalid'
+
 const sexMap = {
     // eslint-disable-next-line id-length
     m: 'MALE',
@@ -247,7 +250,7 @@ export class UserMigrator {
 
         const userData = {
             username: user.username.toLowerCase(),
-            email: user.email ? user.email.toLowerCase() : `dobbel-${user.id}@omega.ntnu.no`,
+            email: user.email ? user.email.toLowerCase() : `dobbel-${user.id}@${placeholderEmailDomain}`,
             firstname: user.firstname,
             lastname: user.lastname,
             bioParagraphId: bioParagraph.id,
@@ -279,7 +282,7 @@ export class UserMigrator {
 
                 if (emailCollision) {
                     manifest.error(`User ${user.id} has a colliding email: ${user.email}. Generating new email.`)
-                    userData.email = `dobbelomega-${user.id}-${uuid()}@omega.ntnu.no`
+                    userData.email = `dobbelomega-${user.id}-${uuid()}@${placeholderEmailDomain}`
                 }
 
                 if (retries > 0) {
