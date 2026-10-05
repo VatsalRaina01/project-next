@@ -4,10 +4,10 @@ import { VerifyEmailTemplate } from '@/lib/email/templates/verifyEmail'
 import { sendSystemMail } from '@/lib/email/send'
 import { generateJWT } from '@/jwt/jwt'
 import { userSchemas } from '@/services/users/schemas'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
 // TODO: Fix this with new validation
-export async function sendVerifyEmail(user: UserFiltered, email: string) {
+export async function sendVerifyEmail(user: UserBasic, email: string) {
     const parse = userSchemas.verifyEmail.parse({ email })
 
     const jwt = generateJWT('verifyemail', {

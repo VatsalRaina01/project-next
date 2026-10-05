@@ -2,7 +2,7 @@
 
 import { createContext, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
 type PropTypes = {
     children: ReactNode
@@ -13,23 +13,23 @@ type PropTypes = {
  * If UserList is rendered inside IserSelectionProvider, it will display a checkbox next to each user.
  */
 export const UsersSelectionContext = createContext<{
-    users: UserFiltered[]
-    addUser: (user: UserFiltered) => void
-    removeUser: (user: UserFiltered) => void
-    toggle: (user: UserFiltered) => void
-    includes: (user: UserFiltered) => boolean
+    users: UserBasic[]
+    addUser: (user: UserBasic) => void
+    removeUser: (user: UserBasic) => void
+    toggle: (user: UserBasic) => void
+    includes: (user: UserBasic) => boolean
         } | null>(null)
 
 export default function UsesrSelectionProvider({ children }: PropTypes) {
-    const [users, setUsers] = useState<UserFiltered[]>([])
+    const [users, setUsers] = useState<UserBasic[]>([])
 
-    const addUser = (user: UserFiltered) => {
+    const addUser = (user: UserBasic) => {
         setUsers([...users, user])
     }
-    const removeUser = (user: UserFiltered) => {
+    const removeUser = (user: UserBasic) => {
         setUsers(users.filter(userItem => userItem !== user))
     }
-    const toggle = (user: UserFiltered) => {
+    const toggle = (user: UserBasic) => {
         if (users.includes(user)) {
             removeUser(user)
         } else {
@@ -37,7 +37,7 @@ export default function UsesrSelectionProvider({ children }: PropTypes) {
         }
     }
 
-    const includes = (user: UserFiltered) => users.includes(user)
+    const includes = (user: UserBasic) => users.includes(user)
 
     return <UsersSelectionContext.Provider value={{ users, addUser, removeUser, toggle, includes }}>
         {children}

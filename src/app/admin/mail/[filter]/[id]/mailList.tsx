@@ -8,7 +8,7 @@ import { useState } from 'react'
 import type { ActionReturn } from '@/services/actionTypes'
 import type { MailListTypes, ViaArrayType } from '@/services/mail/types'
 import type { Group, MailAddressExternal, MailAlias, MailingList } from '@/prisma-generated-pn-types'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
 const typeDisplayName: Record<MailListTypes, string> = {
     alias: 'Alias',
@@ -22,7 +22,7 @@ type TypeConversion = {
     alias: (MailAlias & ViaArrayType),
     mailingList: (MailingList & ViaArrayType),
     group: (Group & ViaArrayType),
-    user: (UserFiltered & ViaArrayType),
+    user: (UserBasic & ViaArrayType),
     mailaddressExternal: (MailAddressExternal & ViaArrayType),
 }
 

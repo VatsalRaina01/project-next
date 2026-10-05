@@ -33,6 +33,7 @@ export const readUserPageAction = makeAction(userOperations.readPage)
 export const readUserProfileAction = makeAction(userOperations.readProfile)
 
 export const readUserAction = makeAction(userOperations.read)
+export const readUserBasicAction = makeAction(userOperations.readBasic)
 
 /**
  * updateUserAction is meant for admin updates while

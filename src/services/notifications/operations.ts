@@ -6,23 +6,23 @@ import { allNotificationMethodsOn, notificationMethodsArray } from './constants'
 import { availableNotificationMethodIncluder } from './channel/constants'
 import { emailSchemas } from './email/schemas'
 import { sendMail } from '@/lib/email/send'
-import { userFilterSelection } from '@/services/users/constants'
+import { userBasicSelection } from '@/services/users/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 import type { Notification } from '@/prisma-generated-pn-types'
 import type { ExpandedNotificationChannel, NotificationResult } from './types'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic, UserBasicWithEmail } from '@/services/users/types'
 
 const dispathMethod = {
     email: dispatchEmailNotifications,
     emailWeekly: async () => { },
 } satisfies Record<
     typeof notificationMethodsArray[number],
-    ((channel: ExpandedNotificationChannel, notification: Notification, users: UserFiltered[]) => Promise<void>)
+    ((channel: ExpandedNotificationChannel, notification: Notification, users: UserBasicWithEmail[]) => Promise<void>)
 >
 
-export function repalceSpecialSymbols(text: string, user: UserFiltered) {
+export function repalceSpecialSymbols(text: string, user: UserBasic) {
     return text
         .replaceAll('%u', user.username)
         .replaceAll('%n', user.firstname)
@@ -72,7 +72,7 @@ export const notificationOperations = {
                                 select: allNotificationMethodsOn,
                             },
                             user: {
-                                select: userFilterSelection,
+                                select: { ...userBasicSelection, email: true },
                             },
                         },
                     },

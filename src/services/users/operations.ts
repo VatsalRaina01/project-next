@@ -5,7 +5,10 @@ import {
     defaultSearchResultLimit,
     maxNumberOfGroupsInFilter,
     standardMembershipSelection,
-    userFilterSelection
+    userBasicSelection,
+    userCardSelection,
+    userPrivateSelection,
+    userProfileSelection
 } from './constants'
 import { userProfileImageOperations } from './profileImageCollection'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
@@ -55,7 +58,7 @@ export const userOperations = {
                         }]
                     }
                 },
-                select: userFilterSelection
+                select: userPrivateSelection
             })
 
             // Don't send mail during testing.
@@ -83,7 +86,22 @@ export const userOperations = {
                 id: params.id,
                 ...params
             },
-            select: userFilterSelection
+            select: userPrivateSelection
+        })
+    }),
+
+    readBasic: defineOperation({
+        paramsSchema: z.object({
+            username: z.string().optional(),
+            id: z.coerce.number().optional(),
+        }),
+        authorizer: ({ params }) => userAuth.readBasic.data({ userField: params }),
+        operation: async ({ prisma, params }) => await prisma.user.findUniqueOrThrow({
+            where: {
+                id: params.id,
+                ...params
+            },
+            select: userBasicSelection
         })
     }),
 
@@ -94,13 +112,13 @@ export const userOperations = {
             email: z.string().optional(),
             studentCard: z.string().optional(),
         }),
-        authorizer: ({ params }) => userAuth.read.data({ userField: params }),
+        authorizer: ({ params }) => userAuth.readOrNull.data({ userField: params }),
         operation: async ({ prisma, params }) => await prisma.user.findUnique({
             where: {
                 id: params.id, // This is a bit wierd, but now ts is satisfied.
                 ...params
             },
-            select: userFilterSelection
+            select: userPrivateSelection
         })
     }),
 
@@ -128,7 +146,7 @@ export const userOperations = {
             const user = await prisma.user.findUniqueOrThrow({
                 where: { id: userId },
                 select: {
-                    ...userFilterSelection,
+                    ...userProfileSelection,
                     bioParagraph: true,
                     image: { include: expandedImageIncluder },
                 },
@@ -226,7 +244,7 @@ export const userOperations = {
             const users = await prisma.user.findMany({
                 ...cursorPageingSelection(page),
                 select: {
-                    ...userFilterSelection,
+                    ...userCardSelection,
                     memberships: {
                         select: {
                             admin: true,
@@ -444,7 +462,9 @@ export const userOperations = {
                     id: params.id,
                 },
                 select: {
-                    ...userFilterSelection,
+                    ...userBasicSelection,
+                    email: true,
+                    emailVerified: true,
                     feideAccount: {
                         select: {
                             email: true,
@@ -548,7 +568,7 @@ export const userOperations = {
                         mobile,
                         allergies,
                     },
-                    select: userFilterSelection
+                    select: userPrivateSelection
                 }),
                 prisma.credentials.upsert({
                     where: {
@@ -607,7 +627,7 @@ export const userOperations = {
     }),
 
     readUserWithBalance: defineOperation({
-        authorizer: ({ params }) => userAuth.read.data({
+        authorizer: ({ params }) => userAuth.readUserWithBalance.data({
             userField: { username: params.username || '' },
         }),
         paramsSchema: z.object({
@@ -619,7 +639,8 @@ export const userOperations = {
         operation: async ({ prisma: prisma_, params }) => {
             const user = await prisma_.user.findFirstOrThrow({
                 where: params,
-                include: {
+                select: {
+                    ...userBasicSelection,
                     image: { include: expandedImageIncluder },
                 }
             })

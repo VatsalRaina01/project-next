@@ -17,10 +17,10 @@ import { standardImageCollectionOperations } from '@/services/images/standard/op
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { ServerError } from '@/services/error'
 import { GroupType } from '@/prisma-generated-pn-types'
-import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
-import type { Prisma } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { z } from 'zod'
+import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { Prisma } from '@/prisma-generated-pn-types'
 
 async function readDefaultCommitteeLogo() {
     return standardImageCollectionOperations.readStandardImage({
@@ -51,9 +51,6 @@ const read = defineOperation({
         z.object({ shortName: z.string() })
     ]),
     operation: async ({ prisma, params }) => {
-        const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
-            params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
-        })
         const defaultCommitteeLogo = await readDefaultCommitteeLogo()
 
         const result = await prisma.committee.findUniqueOrThrow({
@@ -65,16 +62,6 @@ const read = defineOperation({
             ...result,
             logoImage: result.logoImage ?? defaultCommitteeLogo,
             coverImage: result.committeeArticle.coverImage,
-            group: {
-                ...result.group,
-                memberships: result.group.memberships.map(membership => ({
-                    ...membership,
-                    user: {
-                        ...membership.user,
-                        image: membership.user.image ?? defaultProfileImage
-                    }
-                }))
-            }
         }
     }
 })

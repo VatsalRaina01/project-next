@@ -9,7 +9,11 @@ import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getPr
 import Image from '@/components/Image/Image'
 import CmsParagraphEditorForm from '@/components/Cms/CmsParagraph/CmsParagraphEditorForm'
 import ImageUploader from '@/components/Image/ImageUploader'
-import { updateUserBioParagraphContentAction, updateUserProfileImageAction } from '@/services/users/actions'
+import {
+    readUserAction,
+    updateUserBioParagraphContentAction,
+    updateUserProfileImageAction
+} from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
@@ -30,12 +34,16 @@ export default async function UserSettings({ params }: PropTypes) {
     const studyProgrammes = studyProgrammeAuth.update.auth(session).authorized
         ? unwrapActionReturn(await readStudyProgrammesAction())
         : []
+    const privateUser = userAuth.read.data({ userField: { id: profile.user.id } }).auth(session).authorized
+        ? unwrapActionReturn(await readUserAction({ params: { id: profile.user.id } }))
+        : null
 
     return (
         <div className={styles.wrapper}>
-            {userAuth.updateProfile.data({ userField: { username: profile.user.username } }).auth(session).authorized && (
+            {privateUser && userAuth.updateProfile.data({ userField: { username: profile.user.username } })
+                .auth(session).authorized && (
                 <UserProfileSettingsCard>
-                    <UserSettingsForm user={profile.user} emailDomain={process.env.EMAIL_DOMAIN} />
+                    <UserSettingsForm user={privateUser} emailDomain={process.env.EMAIL_DOMAIN} />
                 </UserProfileSettingsCard>
             )}
             {userAuth.updateBioParagraphContent.data({ userId: profile.user.id }).auth(session).authorized && (
@@ -50,9 +58,9 @@ export default async function UserSettings({ params }: PropTypes) {
                     />
                 </UserProfileSettingsCard>
             )}
-            {userAuth.registerNewEmail.data({ userId: profile.user.id }).auth(session).authorized && (
+            {privateUser && userAuth.registerNewEmail.data({ userId: profile.user.id }).auth(session).authorized && (
                 <UserProfileSettingsCard>
-                    <ChangeEmailForm user={profile.user} />
+                    <ChangeEmailForm user={privateUser} />
                 </UserProfileSettingsCard>
             )}
             {userAuth.updateProfileImage.data({ userField: { username: profile.user.username } })

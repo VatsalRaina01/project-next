@@ -4,7 +4,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { manualGroupOperations } from '@/services/groups/manualGroups/operations'
 import { classOperations } from '@/services/groups/classes/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { userFilterSelection } from '@/services/users/constants'
+import { userPrivateSelection } from '@/services/users/constants'
 import type { UserFiltered } from '@/services/users/types'
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals'
 
@@ -40,7 +40,7 @@ beforeEach(async () => {
     const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
     const created = await prisma.user.create({
         data: { username: 'group-admin-test', email: 'group-admin-test@omega.ntnu.no', bioParagraph: { create: {} } },
-        select: userFilterSelection,
+        select: userPrivateSelection,
     })
     user = created
     userId = created.id

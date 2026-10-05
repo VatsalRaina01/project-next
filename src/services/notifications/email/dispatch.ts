@@ -7,13 +7,13 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 import type { Notification } from '@/prisma-generated-pn-types'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasicWithEmail } from '@/services/users/types'
 
 
 export async function dispatchEmailNotifications(
     channel: ExpandedNotificationChannel,
     notificaion: Notification,
-    users: UserFiltered[]
+    users: UserBasicWithEmail[]
 ) {
     const results = await prismaCall(() => prisma.notificationChannel.findUniqueOrThrow({
         where: {

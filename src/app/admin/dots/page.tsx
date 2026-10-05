@@ -8,7 +8,7 @@ import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { dotAuth } from '@/services/dots/auth'
 import { readDotsForUserAction } from '@/services/dots/actions'
-import { readUserAction } from '@/services/users/actions'
+import { readUserBasicAction } from '@/services/users/actions'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import Link from 'next/link'
 import type { SearchParamsServerSide } from '@/lib/queryParams/types'
@@ -40,14 +40,11 @@ export default async function Dots({ searchParams }: PropTypes) {
     }
 
     const [userReturn, dotsReturn] = await Promise.all([
-        readUserAction({ params: { id: userId } }),
+        readUserBasicAction({ params: { id: userId } }),
         readDotsForUserAction({ params: { userId, onlyActive } }),
     ])
     const user = unwrapActionReturn(userReturn)
     const dots = unwrapActionReturn(dotsReturn)
-
-    // This page is only about administrating dots, so the crud of them is offered outright to
-    // whoever is authorized for it - no edit mode to enter first.
 
     return (
         <PageWrapper title={`Prikker for ${user.firstname} ${user.lastname}`}>

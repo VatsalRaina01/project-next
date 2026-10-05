@@ -1,12 +1,12 @@
 import { generateJWT } from '@/jwt/jwt'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasicWithEmail } from '@/services/users/types'
 import '@pn-server-only'
 import { userInvitationExpiration } from './constants'
 import { sendSystemMail } from '@/lib/email/send'
 import { UserInvitationTemplate } from '@/lib/email/templates/userInvitation'
 
 
-export async function sendUserInvitationEmail(user: UserFiltered) {
+export async function sendUserInvitationEmail(user: UserBasicWithEmail) {
     const jwt = generateJWT('verifyemail', {
         sub: user.id,
         email: user.email,

@@ -4,12 +4,12 @@ import { mailSchemas } from './schemas'
 import { aliasOperations } from './alias/operations'
 import { mailingListOperations } from './list/operations'
 import { mailAddressExternalOperations } from './mailAddressExternal/operations'
-import { userFilterSelection } from '@/services/users/constants'
+import { userBasicSelection } from '@/services/users/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServerError } from '@/services/error'
 import type { Prisma } from '@/prisma-generated-pn-client'
 import type { MailFlowObject, ViaArrayType, ViaType } from './types'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 import type {
     MailAlias,
     MailAliasMailingList,
@@ -99,7 +99,7 @@ async function readAliasTraversal(prisma: Prisma.TransactionClient, id: number):
                                                 // TODO: only find valid memberships
                                                 include: {
                                                     user: {
-                                                        select: userFilterSelection,
+                                                        select: userBasicSelection,
                                                     }
                                                 }
                                             }
@@ -110,7 +110,7 @@ async function readAliasTraversal(prisma: Prisma.TransactionClient, id: number):
                             users: {
                                 include: {
                                     user: {
-                                        select: userFilterSelection,
+                                        select: userBasicSelection,
                                     },
                                 },
                             },
@@ -225,7 +225,7 @@ async function readMailingListTraversal(prisma: Prisma.TransactionClient, id: nu
                                 },*/
                                 include: {
                                     user: {
-                                        select: userFilterSelection,
+                                        select: userBasicSelection,
                                     }
                                 }
                             }
@@ -236,7 +236,7 @@ async function readMailingListTraversal(prisma: Prisma.TransactionClient, id: nu
             users: {
                 include: {
                     user: {
-                        select: userFilterSelection,
+                        select: userBasicSelection,
                     },
                 },
             },
@@ -350,7 +350,7 @@ async function readGroupTraversal(prisma: Prisma.TransactionClient, id: number):
             memberships: {
                 include: {
                     user: {
-                        select: userFilterSelection,
+                        select: userBasicSelection,
                     }
                 }
             },
@@ -410,7 +410,7 @@ async function readUserTraversal(prisma: Prisma.TransactionClient, id: number): 
             id,
         },
         select: {
-            ...userFilterSelection,
+            ...userBasicSelection,
             mailingLists: {
                 include: {
                     mailingList: {
@@ -630,7 +630,7 @@ export const mailOperations = {
             alias: MailAlias[],
             mailingList: MailingList[],
             mailaddressExternal: MailAddressExternal[],
-            users: UserFiltered[],
+            users: UserBasic[],
         }> => {
             const results = await Promise.all([
                 aliasOperations.readMany({ bypassAuth: true }),
