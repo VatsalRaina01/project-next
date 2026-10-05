@@ -17,9 +17,11 @@ import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ yearAndName: string[] }>) => {
+        // Checked before decoding: a missing name segment would decode to the string 'undefined'.
+        if (params.yearAndName.length !== 2) notFound()
         const year = parseInt(decodeURIComponent(params.yearAndName[0]), 10)
         const name = decodeURIComponent(params.yearAndName[1])
-        if (!year || !name || params.yearAndName.length > 2) notFound()
+        if (!year || !name) notFound()
 
         return ombulOperations.read({
             params: {
