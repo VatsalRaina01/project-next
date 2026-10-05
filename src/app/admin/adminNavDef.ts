@@ -203,17 +203,17 @@ export const adminNavDef: AdminNavGroup[] = [
             {
                 title: 'E-postlister',
                 path: 'mail/mailingList',
-                authorizers: () => [mailingListAuth.create],
+                authorizers: () => [mailingListAuth.readMany],
             },
             {
                 title: 'E-postalias',
                 path: 'mail/alias',
-                authorizers: () => [mailAliasAuth.create],
+                authorizers: () => [mailAliasAuth.readMany],
             },
             {
                 title: 'Eksterne adresser',
                 path: 'mail/mailaddressExternal',
-                authorizers: () => [mailAddressExternalAuth.create],
+                authorizers: () => [mailAddressExternalAuth.readMany],
             },
         ],
     },
