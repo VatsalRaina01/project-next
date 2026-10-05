@@ -5,6 +5,7 @@ import { userFilterSelection } from '@/services/users/constants'
 import { userSchemas } from '@/services/users/schemas'
 import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
 import { sendLinkFeideAccountMail } from '@/lib/email/systemMail/linkFeideAccount'
+import { sendEmailChangedMail } from '@/lib/email/systemMail/emailChanged'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServerError } from '@/services/error'
 import { userOperations } from '@/services/users/operations'
@@ -60,7 +61,7 @@ export const authOperations = {
                 throw new ServerError('JWT INVALID', 'The user has changed since the token was generated.')
             }
 
-            return await prisma.user.update({
+            const updatedUser = await prisma.user.update({
                 where: {
                     id: userId,
                 },
@@ -70,6 +71,9 @@ export const authOperations = {
                 },
                 select: userFilterSelection,
             })
+            await sendEmailChangedMail(updatedUser, user.email)
+
+            return updatedUser
         }
     }),
 
