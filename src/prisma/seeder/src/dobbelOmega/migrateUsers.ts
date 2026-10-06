@@ -220,17 +220,29 @@ export class UserMigrator {
             }
 
             const meta = err.meta as {
-                driverAdapterError: {
-                    cause: {
-                        constraint: {
-                            fields: string[]
-                        }
+                driverAdapterError?: {
+                    table?: string
+                    cause?: {
+                        constraint?: { fields?: string[] } | { index?: string }
                     }
                 }
             }
 
+            const constraint = meta.driverAdapterError?.cause?.constraint
+            if (!constraint) {
+                throw err
+            }
 
-            const target = meta.driverAdapterError.cause.constraint.fields
+            // Postgres names the constraint it violated, and the adapter passes that name on as
+            // `index` - the field list only comes through when the error carried no name. The
+            // columns sit between the table prefix and the `_key` suffix: `User_email_key`.
+            const table = meta.driverAdapterError?.table
+            const indexName = 'index' in constraint ? constraint.index : undefined
+            const target = 'fields' in constraint ? constraint.fields : indexName
+                ?.replace(table ? `${table}_` : '', '')
+                .replace(/_key$/, '')
+                .split('_')
+
             if (!target) {
                 throw err
             }
