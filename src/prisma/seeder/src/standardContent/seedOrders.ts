@@ -1,7 +1,13 @@
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
-const CURRENT_OMEGA_ORDER = 108
+/**
+ * The order omega is in. The orders are seeded up to it, and the migration from omegaweb-basic
+ * treats anything past it as bad data - omegaweb-basic had no notion of orders, so there is nothing
+ * there to learn a newer one from. Omega increments through the app, which creates the next order
+ * itself, so this only has to be right when a database is first set up.
+ */
+export const CURRENT_OMEGA_ORDER = 108
 
 /**
  * Upserts every omega order up until CURRENT_OMEGA_ORDER.
