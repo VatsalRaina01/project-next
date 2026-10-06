@@ -276,8 +276,8 @@ const readUserLevel = defineOperation({
             bypassAuth: true,
         })
 
-        const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-        return { level, order }
+        const [rewritten] = await readActiveOmegaMemberships(prisma, params.userId)
+        return rewritten
     }
 })
 
