@@ -1,5 +1,5 @@
 import { inferClassLadder } from '@/prisma/seeder/src/dobbelOmega/classLadder'
-import { CURRENT_OMEGA_ORDER } from '@/prisma/seeder/src/standardContent/seedOrders'
+import { CURRENT_OMEGA_ORDER, FIRST_OMEGA_ORDER } from '@/prisma/seeder/src/standardContent/seedOrders'
 import { describe, expect, jest, test } from '@jest/globals'
 
 // The manifest logs to a file in the working directory, which a test has no business writing.
@@ -9,6 +9,7 @@ jest.mock('../../src/prisma/seeder/src/dobbelOmega/manifest', () => ({
 }))
 
 const current = CURRENT_OMEGA_ORDER
+const first = FIRST_OMEGA_ORDER
 
 describe('inferClassLadder', () => {
     test('a five year student climbs one class per order from the order they were taken up in', () => {
@@ -61,6 +62,14 @@ describe('inferClassLadder', () => {
     test('an order past the current one is brought down to it', () => {
         expect(inferClassLadder({ id: 1, order: current + 1, yearOfStudy: 1, yearsInProgramme: 5 })).toEqual([
             { year: 1, order: current, active: true },
+        ])
+    })
+
+    test('an order before the first one is brought up to it', () => {
+        // Omegaweb-basic leaves the order at 0 for a user it has none for, and a bachelor ladder
+        // counts further back from there - no such order exists, so every rung lands on the first.
+        expect(inferClassLadder({ id: 1, order: 0, yearOfStudy: 3, yearsInProgramme: 3 })).toEqual([
+            { year: 3, order: first, active: false },
         ])
     })
 })
