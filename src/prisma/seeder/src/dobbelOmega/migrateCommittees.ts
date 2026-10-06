@@ -1,6 +1,7 @@
 import { owIdToPnId } from './IdMapper'
 import { createProgressBar } from './progressBar'
 import { createCmsParagraph } from './createCmsParagraph'
+import { migratedOrder } from './migratedOrder'
 import logger from '@/lib/logger'
 import { readFile } from 'fs/promises'
 import { dirname, join } from 'path'
@@ -57,17 +58,6 @@ export default async function migrateCommittees(
             CommitteeMembers: true,
             CommitteeMembersHist: true,
         }
-    })
-
-    // A membership points at an omega order, and omegaweb-basic knew nothing of the OmegaOrder table,
-    // so every order a membership refers to has to exist before any of them can be written.
-    const membershipOrders = new Set(committees.flatMap(committee => [
-        ...committee.CommitteeMembers.map(member => member.order),
-        ...committee.CommitteeMembersHist.map(member => member.order),
-    ]))
-    await pnPrisma.omegaOrder.createMany({
-        data: Array.from(membershipOrders, order => ({ order })),
-        skipDuplicates: true,
     })
 
     // Committees land in the order omega is in now. Hardcoding one meant every migrated committee
@@ -138,7 +128,7 @@ export default async function migrateCommittees(
                     // A pensioned committee holds no active memberships, whatever basic said.
                     active: !pensioned,
                     admin: member.admin,
-                    order: member.order,
+                    order: migratedOrder(member.order, `${committee.shortname} member ${member.UserId}`),
                     title: member.position || undefined,
                 }
             })
@@ -152,7 +142,7 @@ export default async function migrateCommittees(
                     userId: pnUserId,
                     active: false,
                     admin: member.admin,
-                    order: member.order,
+                    order: migratedOrder(member.order, `${committee.shortname} former member ${member.UserId}`),
                     title: member.position || undefined,
                 }
             })
