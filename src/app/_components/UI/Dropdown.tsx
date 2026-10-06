@@ -25,6 +25,127 @@ export type PropTypes<ValueType> = {
     disabled?: boolean,
 }
 
+/**
+ * The state and keyboard handling of a dropdown, shared with SearchableDropdown.
+ * @param listedOptions - The options in the panel, which are the ones the arrow keys move between.
+ * @param onClose - Called every time the panel closes, on top of closing it.
+ */
+export function useDropdown<ValueType extends string | number>({
+    listedOptions,
+    defaultValue,
+    onChange,
+    onClose,
+}: {
+    listedOptions: DropdownOption<ValueType>[],
+    defaultValue?: ValueType,
+    onChange?: (value: ValueType) => void,
+    onClose?: () => void,
+}) {
+    const [value, setValue] = useState<ValueType | undefined>(defaultValue)
+    const [open, setOpen] = useState(false)
+    const [activeIndex, setActiveIndex] = useState(-1)
+    const domId = useId()
+
+    const close = () => {
+        setOpen(false)
+        onClose?.()
+    }
+    const ref = useClickOutsideRef(close)
+    useKeyPress('Escape', close)
+
+    const select = (option: DropdownOption<ValueType>) => {
+        setValue(option.value)
+        close()
+        onChange?.(option.value)
+    }
+
+    const openWithActive = () => {
+        const startIndex = value !== undefined ? listedOptions.findIndex(option => option.value === value) : -1
+        setActiveIndex(startIndex >= 0 ? startIndex : 0)
+        setOpen(true)
+    }
+
+    const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+        if (listedOptions.length === 0) return
+        if (event.key === 'ArrowDown') {
+            event.preventDefault()
+            if (!open) {
+                openWithActive()
+                return
+            }
+            setActiveIndex(previousIndex => (previousIndex + 1) % listedOptions.length)
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault()
+            if (!open) {
+                openWithActive()
+                return
+            }
+            setActiveIndex(previousIndex => (previousIndex - 1 + listedOptions.length) % listedOptions.length)
+        } else if (event.key === 'Enter') {
+            if (open && listedOptions[activeIndex]) {
+                event.preventDefault()
+                select(listedOptions[activeIndex])
+            }
+        }
+    }
+
+    return { value, open, setOpen, activeIndex, setActiveIndex, domId, ref, close, select, openWithActive, handleKeyDown }
+}
+
+/**
+ * The list of options a dropdown opens, shared with SearchableDropdown. Render it only while the
+ * dropdown is open.
+ * @param emptyText - Shown in place of the options when there are none. Without it the panel is just empty.
+ */
+export function DropdownPanel<ValueType extends string | number>({
+    options,
+    value,
+    activeIndex,
+    onSelect,
+    onActivate,
+    emptyText,
+}: {
+    options: DropdownOption<ValueType>[],
+    value: ValueType | undefined,
+    activeIndex: number,
+    onSelect: (option: DropdownOption<ValueType>) => void,
+    onActivate: (index: number) => void,
+    emptyText?: string,
+}) {
+    const panelRef = useRef<HTMLUListElement>(null)
+
+    useEffect(() => {
+        panelRef.current?.querySelector(`.${styles.active}`)?.scrollIntoView({ block: 'nearest' })
+    }, [activeIndex])
+
+    return (
+        <ul className={styles.panel} role="listbox" ref={panelRef}>
+            {
+                options.length === 0 && emptyText ? (
+                    <li className={styles.empty}>{emptyText}</li>
+                ) : options.map((option, index) => (
+                    <li key={option.key ?? String(option.value)}>
+                        <button
+                            type="button"
+                            role="option"
+                            aria-selected={option.value === value}
+                            className={
+                                `${option.value === value ? styles.selected : ''} ` +
+                                `${index === activeIndex ? styles.active : ''}`
+                            }
+                            onClick={() => onSelect(option)}
+                            onMouseEnter={() => onActivate(index)}
+                        >
+                            <span>{option.label ?? option.value}</span>
+                            {option.value === value && <FontAwesomeIcon icon={faCheck} />}
+                        </button>
+                    </li>
+                ))
+            }
+        </ul>
+    )
+}
+
 export default function Dropdown<ValueType extends string | number>({
     name,
     label,
@@ -36,64 +157,26 @@ export default function Dropdown<ValueType extends string | number>({
     className,
     disabled,
 }: PropTypes<ValueType>) {
-    const [value, setValue] = useState<ValueType | undefined>(defaultValue)
-    const [open, setOpen] = useState(false)
-    const [activeIndex, setActiveIndex] = useState(-1)
-    const domId = useId()
-    const panelRef = useRef<HTMLUListElement>(null)
-
-    const close = () => setOpen(false)
-    const ref = useClickOutsideRef(close)
-    useKeyPress('Escape', close)
+    const {
+        value,
+        open,
+        activeIndex,
+        setActiveIndex,
+        domId,
+        ref,
+        close,
+        select,
+        openWithActive,
+        handleKeyDown,
+    } = useDropdown({ listedOptions: options, defaultValue, onChange })
 
     const selectedOption = options.find(option => option.value === value)
 
-    useEffect(() => {
-        if (!open) return
-        panelRef.current?.querySelector(`.${styles.active}`)?.scrollIntoView({ block: 'nearest' })
-    }, [activeIndex, open])
-
-    const handleSelect = (option: DropdownOption<ValueType>) => {
-        setValue(option.value)
-        setOpen(false)
-        onChange?.(option.value)
-    }
-
-    const openWithActive = () => {
-        const startIndex = value !== undefined ? options.findIndex(option => option.value === value) : -1
-        setActiveIndex(startIndex >= 0 ? startIndex : 0)
-        setOpen(true)
-    }
-
     const handleTriggerClick = () => {
         if (open) {
-            setOpen(false)
+            close()
         } else {
             openWithActive()
-        }
-    }
-
-    const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-        if (options.length === 0) return
-        if (event.key === 'ArrowDown') {
-            event.preventDefault()
-            if (!open) {
-                openWithActive()
-                return
-            }
-            setActiveIndex(previousIndex => (previousIndex + 1) % options.length)
-        } else if (event.key === 'ArrowUp') {
-            event.preventDefault()
-            if (!open) {
-                openWithActive()
-                return
-            }
-            setActiveIndex(previousIndex => (previousIndex - 1 + options.length) % options.length)
-        } else if (event.key === 'Enter') {
-            if (open && options[activeIndex]) {
-                event.preventDefault()
-                handleSelect(options[activeIndex])
-            }
         }
     }
 
@@ -127,28 +210,13 @@ export default function Dropdown<ValueType extends string | number>({
             </label>
             {
                 open && (
-                    <ul className={styles.panel} role="listbox" ref={panelRef}>
-                        {
-                            options.map((option, index) => (
-                                <li key={option.key ?? String(option.value)}>
-                                    <button
-                                        type="button"
-                                        role="option"
-                                        aria-selected={option.value === value}
-                                        className={
-                                            `${option.value === value ? styles.selected : ''} ` +
-                                            `${index === activeIndex ? styles.active : ''}`
-                                        }
-                                        onClick={() => handleSelect(option)}
-                                        onMouseEnter={() => setActiveIndex(index)}
-                                    >
-                                        <span>{option.label ?? option.value}</span>
-                                        {option.value === value && <FontAwesomeIcon icon={faCheck} />}
-                                    </button>
-                                </li>
-                            ))
-                        }
-                    </ul>
+                    <DropdownPanel
+                        options={options}
+                        value={value}
+                        activeIndex={activeIndex}
+                        onSelect={select}
+                        onActivate={setActiveIndex}
+                    />
                 )
             }
             <input type="hidden" name={name} value={value ?? ''} readOnly />
