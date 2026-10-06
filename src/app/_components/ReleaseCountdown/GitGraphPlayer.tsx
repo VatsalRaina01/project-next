@@ -245,8 +245,11 @@ type PropTypes = {
 export default function GitGraphPlayer({ onReachedEnd }: PropTypes) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [graph, setGraph] = useState<GitGraph | null>(null)
+    // The animation loop reads the latest callback through a ref, so a new one does not restart it.
     const onReachedEndRef = useRef(onReachedEnd)
-    onReachedEndRef.current = onReachedEnd
+    useEffect(() => {
+        onReachedEndRef.current = onReachedEnd
+    }, [onReachedEnd])
 
     useEffect(() => {
         let cancelled = false

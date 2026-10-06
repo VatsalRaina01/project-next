@@ -8,6 +8,7 @@ import {
 import logger from '@/lib/logger'
 import { z } from 'zod'
 import { access, mkdir, readFile, rename, writeFile } from 'fs/promises'
+import { randomUUID } from 'crypto'
 import type { ReleaseCountdownSettings } from './types'
 import type { GitGraph } from './gitGraph/types'
 
@@ -27,9 +28,21 @@ const defaultSettings = (): ReleaseCountdownSettings => ({
  */
 async function writeJsonFile(path: string, content: unknown) {
     await mkdir(RELEASE_COUNTDOWN_STORE_DIRECTORY, { recursive: true })
-    const temporary = `${path}.${process.pid}.tmp`
+    const temporary = `${path}.${randomUUID()}.tmp`
     await writeFile(temporary, JSON.stringify(content))
     await rename(temporary, path)
+}
+
+/**
+ * Whatever the file holds, for the schema to judge - a file that is not even JSON fails the schema
+ * like any other wrong content, rather than throwing.
+ */
+function parseJson(raw: string): unknown {
+    try {
+        return JSON.parse(raw)
+    } catch {
+        return undefined
+    }
 }
 
 function isMissingFile(error: unknown) {
@@ -59,7 +72,7 @@ export async function readSettings(): Promise<ReleaseCountdownSettings> {
         return settings
     }
 
-    const parsed = settingsFileSchema.safeParse(JSON.parse(raw))
+    const parsed = settingsFileSchema.safeParse(parseJson(raw))
     if (!parsed.success) {
         logger.warn('The release countdown settings file is not what was expected - using the defaults', {
             file: RELEASE_COUNTDOWN_SETTINGS_FILE,
