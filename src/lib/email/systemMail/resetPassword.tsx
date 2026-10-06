@@ -2,8 +2,9 @@ import '@pn-server-only'
 import { sendMailOperations } from '@/services/notifications/send-mail/operations'
 import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'
 import { generateJWT } from '@/jwt/jwt'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userOperations } from '@/services/users/operations'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { z } from 'zod'
 
 export async function sendResetPasswordMail(email: string) {
@@ -19,7 +20,7 @@ export async function sendResetPasswordMail(email: string) {
             sub: user.id,
         }, 60 * 60)
 
-        const link = `${process.env.WEBSITE_URL}/reset-password-form?token=${jwt}`
+        const link = `${process.env.WEBSITE_URL}/reset-password-form?${QueryParams.token.encodeUrl(jwt)}`
 
         await sendMailOperations.internal.sendSystemMail.internalCall({
             data: {
@@ -31,7 +32,7 @@ export async function sendResetPasswordMail(email: string) {
 
         return email
     } catch (e) {
-        if (e instanceof ServerError && e.errorCode === 'NOT FOUND') {
+        if (e instanceof ServiceError && e.errorCode === 'NOT FOUND') {
             return email
         }
         throw e

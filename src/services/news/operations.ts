@@ -13,7 +13,7 @@ import {
 } from '@/services/visibility/implement'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { z } from 'zod'
 
@@ -67,7 +67,7 @@ const read = defineOperation({
             },
             include: newsArticleRealtionsIncluder
         })
-        if (!news) throw new ServerError('NOT FOUND', `article ${params.id} not found`)
+        if (!news) throw new ServiceError('NOT FOUND', `article ${params.id} not found`)
         return news
     }
 })
@@ -135,7 +135,7 @@ export const newsOperations = {
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
             const news = await prisma.newsArticle.findUnique({ where: { id: params.id } })
-            if (!news) throw new ServerError('NOT FOUND', `article ${params.id} not found`)
+            if (!news) throw new ServiceError('NOT FOUND', `article ${params.id} not found`)
 
             await prisma.$transaction(async tx => {
                 await tx.newsArticle.delete({ where: { id: params.id } })

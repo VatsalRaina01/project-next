@@ -17,7 +17,7 @@ import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { sendUserInvitationEmail } from '@/lib/email/systemMail/userInvitivation'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { getMembershipFilter } from '@/auth/getMembershipFilter'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { hashAndEncryptPassword } from '@/auth/passwordHash'
@@ -218,7 +218,7 @@ export const userOperations = {
             ]
 
             if (details.groups.length > maxNumberOfGroupsInFilter) {
-                throw new ServerError('BAD PARAMETERS', 'Too many groups in filter')
+                throw new ServiceError('BAD PARAMETERS', 'Too many groups in filter')
             }
             const groupSelection = details.selectedGroup ? [
                 getMembershipFilter(details.selectedGroup.groupOrder, details.selectedGroup.groupId)
@@ -364,7 +364,7 @@ export const userOperations = {
         }),
         operation: async ({ prisma, params, session }) => {
             if (!session.user) {
-                throw new ServerError('DISSALLOWED', 'This endpoint requires a user conencted to the session.')
+                throw new ServiceError('DISSALLOWED', 'This endpoint requires a user conencted to the session.')
             }
 
             await prisma.user.update({
@@ -482,7 +482,7 @@ export const userOperations = {
             }
 
             if (data.email.endsWith(`@${NTNUEmailDomain}`)) {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD PARAMETERS',
                     `Den nye e-posten må være din ${NTNUEmailDomain}-e-post, eller en personlig e-post.`
                 )
@@ -515,7 +515,7 @@ export const userOperations = {
         operation: async ({ prisma, data, params }) => {
             const { sex, password, mobile, allergies, imageConsent } = data
 
-            if (!password) throw new ServerError('BAD PARAMETERS', 'Passord er obligatorisk.')
+            if (!password) throw new ServiceError('BAD PARAMETERS', 'Passord er obligatorisk.')
 
             const storedUser = await prisma.user.findUnique({
                 where: {
@@ -533,9 +533,9 @@ export const userOperations = {
                 },
             })
 
-            if (!storedUser) throw new ServerError('NOT FOUND', 'Could not find the user with the specified id.')
+            if (!storedUser) throw new ServiceError('NOT FOUND', 'Could not find the user with the specified id.')
 
-            if (storedUser.acceptedTerms) throw new ServerError('DUPLICATE', 'Brukeren er allerede registrert.')
+            if (storedUser.acceptedTerms) throw new ServiceError('DUPLICATE', 'Brukeren er allerede registrert.')
 
             const passwordHash = await hashAndEncryptPassword(password)
 
@@ -578,7 +578,7 @@ export const userOperations = {
                     },
                 })
             } catch (error) {
-                if (!(error instanceof ServerError) || error.errorCode !== 'DUPLICATE') {
+                if (!(error instanceof ServiceError) || error.errorCode !== 'DUPLICATE') {
                     // Duplicate subscriptions doen't do anything, and it will make development easier.
                     // In addition will this tolerate if we invalidate a users accepted terms,
                     // without deleting the user's subscriptions

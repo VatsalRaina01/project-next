@@ -1,5 +1,4 @@
 import styles from './layout.module.scss'
-import { unwrapActionReturn } from './redirectToErrorPage'
 import { SessionProvider } from '@/auth/session/useSession'
 import MobileNavBar from '@/components/NavBar/MobileNavBar'
 import { authOptions } from '@/auth/nextAuth/authOptions'
@@ -8,15 +7,16 @@ import PopUpProvider from '@/contexts/PopUp'
 import ClientDataProvider from '@/contexts/ClientData'
 import { PageTitleProvider } from '@/contexts/PageTitle'
 import GlobalSearchProvider from '@/contexts/GlobalSearch'
-import { readDefaultPermissionsAction } from '@/services/permissions/actions'
-import { readAllStandardImagesAction } from '@/services/images/standard/actions'
-import { readUserProfileAction } from '@/services/users/actions'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { permissionOperations } from '@/services/permissions/operations'
+import { standardImageCollectionOperations } from '@/services/images/standard/operations'
+import { userOperations } from '@/services/users/operations'
+import { withFallback, withPageSession } from '@/app/serverPage'
 import ThemeEnabler from '@/UI/ThemeEnabler'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
 import GlobalSearch from '@/UI/GlobalSearch'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
 import { visibleNavItems } from '@/components/NavBar/navDef'
+import NavBar from '@/components/NavBar/NavBar'
 import { Inter } from 'next/font/google'
 import '@/styles/globals.scss'
 import { config } from '@fortawesome/fontawesome-svg-core'
@@ -24,7 +24,6 @@ import '@fortawesome/fontawesome-svg-core/styles.css'
 import { getServerSession } from 'next-auth'
 import type { ReactNode } from 'react'
 import type { Metadata, Viewport } from 'next'
-import NavBar from '@/components/NavBar/NavBar'
 
 config.autoAddCss = false
 
@@ -65,17 +64,26 @@ type PropTypes = {
 
 export default async function RootLayout({ children }: PropTypes) {
     const nextAuthSession = await getServerSession(authOptions)
-    const serverSession = await ServerSession.fromNextAuth()
 
-    const defaultPermissionsRes = await readDefaultPermissionsAction()
-    const defaultPermissions = defaultPermissionsRes.success ? defaultPermissionsRes.data : undefined
-    const standardImagesRes = await readAllStandardImagesAction()
-    const standardImages = standardImagesRes.success ? standardImagesRes.data : undefined
-    const profile = serverSession?.user ?
-        unwrapActionReturn(await readUserProfileAction({ params: { username: serverSession.user.username } })) : null
-    // The nav components get the fields they actually render rather than the whole profile,
-    // so nothing beyond these reaches the client components among them.
-    const navUser = profile?.user ?? null
+    const {
+        serverSession, defaultPermissions, standardImages, navUser,
+    } = await withPageSession(async (session) => {
+        const [defaultPermissions_, standardImages_] = await Promise.all([
+            withFallback(permissionOperations.readDefaultPermissions({}), undefined),
+            withFallback(standardImageCollectionOperations.readAllStandardImages({}), undefined),
+        ])
+        const profileRead = session.user
+            ? await withFallback(userOperations.readProfile({ params: { username: session.user.username } }), null)
+            : null
+        return {
+            serverSession: session,
+            defaultPermissions: defaultPermissions_,
+            standardImages: standardImages_,
+            // The nav components get the fields they actually render rather than the whole
+            // profile, so nothing beyond these reaches the client components among them.
+            navUser: profileRead?.user ?? null,
+        }
+    })
     const navItems = visibleNavItems(serverSession)
 
     return (

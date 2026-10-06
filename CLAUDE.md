@@ -194,18 +194,74 @@ Files that must run only on the server import `'@pn-server-only'` at the top. Th
 - `ParseError` - Validation/parsing errors
 - Error handling is managed internally by the ServiceOperation system via `makeAction()`
 
-### Calling Actions from the Frontend
+### Calling Services from the Frontend
 
-**IMPORTANT**: Frontend code (`src/app/`) must NEVER import from `operations.ts` directly. Always go through `actions.ts`. This applies to both server components (pages) and client components.
+**IMPORTANT**: Client components (`'use client'`) must NEVER import from `operations.ts`. They call server actions from `actions.ts`. Operations are server-only — they build on `serviceOperation.ts`, which imports `'@pn-server-only'`.
 
-In server components (pages), use `unwrapActionReturn` from `@/app/redirectToErrorPage` to unwrap the result — it returns the data directly on success and redirects to the error page on failure:
+Server components do the opposite: pages, layouts and other server components import from `operations.ts` and call operations directly, not through actions. A read action exists only when a client component needs it, so don't add one for a page.
 
-```typescript
-import { readMailAliasesAction } from '@/services/mail/alias/actions'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+#### Pages: `serverPage`
 
-const aliases = unwrapActionReturn(await readMailAliasesAction())
+Pages are built with `serverPage` from `@/app/serverPage` (trimmed from `src/app/news/[nameAndId]/page.tsx`):
+
+```tsx
+import { newsOperations } from '@/services/news/operations'
+import { newsAuth } from '@/services/news/auth'
+import { serverPage, withFallback } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
+
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) => {
+        const news = await newsOperations.read({
+            params: { id: decodeVevenUriHandleError(params.nameAndId) },
+        })
+        const doubleLevelVisibility = await withFallback(
+            newsOperations.visibility.readDoubleLevelMatrix({ params: { id: news.id } }),
+            null
+        )
+        return { news, doubleLevelVisibility }
+    },
+    capabilityChecks: {
+        canEdit: (data) => newsAuth.updateArticle.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY
+        }),
+    },
+    metadata: (data) => ({ title: data.news.article.name }),
+    render: ({ data, capabilities }) => (
+        <Article article={data.news.article} canEdit={capabilities.canEdit.toJsObject()} />
+    ),
+})
+
+export default page
+export { generateMetadata }
 ```
+
+- `operation` loads everything the page needs. It runs inside a service context seeded with the request's session, so operations called in it pick the session up without it being passed. It runs once per request, shared by the page and `generateMetadata`.
+- A service error thrown from `operation` renders `ServiceErrorView` in place of the page; `NOT FOUND` becomes `notFound()` and `UNAUTHENTICATED` redirects to login. Wrap calls whose failure should not take the page down in `withFallback(promise, fallback)`. It falls back on every service error; pass the error codes as a third argument to fall back only on those, e.g. `withFallback(promise, null, ['NOT FOUND'])`.
+- Access to the page is decided in `operation`, by the authorizers of the operations it calls or explicitly (admin pages call `authorizeAdminPage(path, session)`). `capabilityChecks` do not guard the page: they declare what the user may do on it under `can[Something]` keys, and `render` receives the results as `capabilities`.
+- The page title comes from `metadata` — don't render `PageTitleSetter` in a page built with `serverPage`.
+
+#### Layouts: `serverLayout`
+
+Layouts that load data are built with `serverLayout`, also from `@/app/serverPage`. It is `serverPage` for layouts — the operation gets `params` and `session` (layouts have no `searchParams`), and `render` also receives `children`:
+
+```tsx
+export default serverLayout({
+    operation: async ({ params }: LayoutOperationArgs<{ category: string }>) =>
+        articleCategoryOperations.read({ params: { name: decodeURIComponent(params.category) } }),
+    render: ({ data: category, children }) => <SideBar category={category}>{children}</SideBar>,
+})
+```
+
+A layout needs it even when every page under it uses `serverPage`: an error thrown by a layout is not caught by the pages it wraps, so without `serverLayout` an expected service error (an unknown committee, say) ends up in the error boundary instead of becoming a 404.
+
+The root layout is the exception. It renders the document itself, so it has nothing to show an error view in — it uses `withPageSession` and wraps every read in `withFallback`.
+
+#### Other server components: `withPageSession`
+
+Server components rendered inside a page (cards, sections) wrap their operation calls in `withPageSession(async session => ...)` from `@/app/serverPage`, which sets up the same service context. Errors are not handled there: wrap calls in `withFallback`, catch them with `handleServiceError`, or let them reach the error boundary.
+
+#### Actions in client components
 
 Action call signatures depend on whether the operation has `paramsSchema` and/or `dataSchema`:
 - No schemas → `action()`

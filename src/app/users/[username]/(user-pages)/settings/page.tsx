@@ -13,90 +13,113 @@ import { updateUserBioParagraphContentAction, updateUserProfileImageAction } fro
 import { userAuth } from '@/services/users/auth'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
-import { readStudyProgrammesAction } from '@/services/groups/studyProgrammes/actions'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+import { studyProgrammeOperations } from '@/services/groups/studyProgrammes/operations'
+import { serverPage } from '@/app/serverPage'
 import { configureAction } from '@/services/configureAction'
-import type { PropTypes } from '@/app/users/[username]/page'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 /**
  * The first cards are what the user may change about themselves, which an administrator may change
  * for them as well. The rest is for administrators only.
  */
-export default async function UserSettings({ params }: PropTypes) {
-    const { profile, session } = await getProfileForUserPage(await params, 'settings')
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
+        const { profile } = await getProfileForUserPage(params, 'settings', session)
 
-    // Study programme membership normally comes from Feide. Putting someone on one by hand is an
-    // administrator's job, so the form only shows for one - the actions check per programme anyway.
-    const studyProgrammes = studyProgrammeAuth.update.auth(session).authorized
-        ? unwrapActionReturn(await readStudyProgrammesAction())
-        : []
+        // Study programme membership normally comes from Feide. Putting someone on one by hand is
+        // an administrator's job, so the form only shows for one - the actions check per programme
+        // anyway.
+        const studyProgrammes = studyProgrammeAuth.update.auth(session).authorized
+            ? await studyProgrammeOperations.readMany({})
+            : []
 
-    return (
-        <div className={styles.wrapper}>
-            {userAuth.updateProfile.data({ userField: { username: profile.user.username } }).auth(session).authorized && (
-                <UserProfileSettingsCard>
-                    <UserSettingsForm user={profile.user} emailDomain={process.env.EMAIL_DOMAIN} />
-                </UserProfileSettingsCard>
-            )}
-            {userAuth.updateBioParagraphContent.data({ userId: profile.user.id }).auth(session).authorized && (
-                <UserProfileSettingsCard>
-                    <h2>Bio</h2>
-                    <CmsParagraphEditorForm
-                        cmsParagraph={profile.user.bioParagraph}
-                        updateCmsParagraphAction={configureAction(
-                            updateUserBioParagraphContentAction,
-                            { implementationParams: { userId: profile.user.id } }
-                        )}
-                    />
-                </UserProfileSettingsCard>
-            )}
-            {userAuth.registerNewEmail.data({ userId: profile.user.id }).auth(session).authorized && (
-                <UserProfileSettingsCard>
-                    <ChangeEmailForm user={profile.user} />
-                </UserProfileSettingsCard>
-            )}
-            {userAuth.updateProfileImage.data({ userField: { username: profile.user.username } })
-                .auth(session).authorized && (
-                <UserProfileSettingsCard>
-                    <h2>Profilbilde</h2>
-                    <div className={styles.profileImage}>
-                        <Image width={300} image={profile.user.image} alt={profile.user.image.alt} />
-                        <ImageUploader
-                            title="Endre profilbilde"
-                            uploadImageAction={configureAction(
-                                updateUserProfileImageAction,
-                                { params: { username: profile.user.username } }
+        return { profile, studyProgrammes }
+    },
+    capabilityChecks: {
+        canUpdateProfile: ({ profile }) => userAuth.updateProfile.data({
+            userField: { username: profile.user.username }
+        }),
+        canUpdateBio: ({ profile }) => userAuth.updateBioParagraphContent.data({ userId: profile.user.id }),
+        canRegisterNewEmail: ({ profile }) => userAuth.registerNewEmail.data({ userId: profile.user.id }),
+        canUpdateImage: ({ profile }) => userAuth.updateProfileImage.data({
+            userField: { username: profile.user.username }
+        }),
+        canUpdateUser: () => userAuth.update,
+        canChangeClass: () => classAuth.changeClassOfUser,
+        canManageStudyProgrammes: () => studyProgrammeAuth.update,
+    },
+    render: ({ data, capabilities }) => {
+        const { profile, studyProgrammes } = data
+
+        return (
+            <div className={styles.wrapper}>
+                {capabilities.canUpdateProfile.authorized && (
+                    <UserProfileSettingsCard>
+                        <UserSettingsForm user={profile.user} emailDomain={process.env.EMAIL_DOMAIN} />
+                    </UserProfileSettingsCard>
+                )}
+                {capabilities.canUpdateBio.authorized && (
+                    <UserProfileSettingsCard>
+                        <h2>Bio</h2>
+                        <CmsParagraphEditorForm
+                            cmsParagraph={profile.user.bioParagraph}
+                            updateCmsParagraphAction={configureAction(
+                                updateUserBioParagraphContentAction,
+                                { implementationParams: { userId: profile.user.id } }
                             )}
-                            refreshOnSuccess
                         />
-                    </div>
-                </UserProfileSettingsCard>
-            )}
-            {userAuth.update.auth(session).authorized && (
-                <UserProfileSettingsCard>
-                    <AdminUserSettingsForm user={profile.user} />
-                </UserProfileSettingsCard>
-            )}
-            {classAuth.changeClassOfUser.auth(session).authorized && (
-                <UserProfileSettingsCard>
-                    <ChangeClassForm
-                        userId={profile.user.id}
-                        currentLevel={profile.class?.level ?? null}
-                    />
-                </UserProfileSettingsCard>
-            )}
-            {studyProgrammeAuth.update.auth(session).authorized && (
-                <UserProfileSettingsCard>
-                    <ManageUserStudyProgrammes
-                        userId={profile.user.id}
-                        studyProgrammes={studyProgrammes}
-                        memberships={profile.groups.activeStudyProgrammes.map(({ groupId, order }) => ({
-                            groupId,
-                            order,
-                        }))}
-                    />
-                </UserProfileSettingsCard>
-            )}
-        </div>
-    )
-}
+                    </UserProfileSettingsCard>
+                )}
+                {capabilities.canRegisterNewEmail.authorized && (
+                    <UserProfileSettingsCard>
+                        <ChangeEmailForm user={profile.user} />
+                    </UserProfileSettingsCard>
+                )}
+                {capabilities.canUpdateImage.authorized && (
+                    <UserProfileSettingsCard>
+                        <h2>Profilbilde</h2>
+                        <div className={styles.profileImage}>
+                            <Image width={300} image={profile.user.image} alt={profile.user.image.alt} />
+                            <ImageUploader
+                                title="Endre profilbilde"
+                                uploadImageAction={configureAction(
+                                    updateUserProfileImageAction,
+                                    { params: { username: profile.user.username } }
+                                )}
+                                refreshOnSuccess
+                            />
+                        </div>
+                    </UserProfileSettingsCard>
+                )}
+                {capabilities.canUpdateUser.authorized && (
+                    <UserProfileSettingsCard>
+                        <AdminUserSettingsForm user={profile.user} />
+                    </UserProfileSettingsCard>
+                )}
+                {capabilities.canChangeClass.authorized && (
+                    <UserProfileSettingsCard>
+                        <ChangeClassForm
+                            userId={profile.user.id}
+                            currentLevel={profile.class?.level ?? null}
+                        />
+                    </UserProfileSettingsCard>
+                )}
+                {capabilities.canManageStudyProgrammes.authorized && (
+                    <UserProfileSettingsCard>
+                        <ManageUserStudyProgrammes
+                            userId={profile.user.id}
+                            studyProgrammes={studyProgrammes}
+                            memberships={profile.groups.activeStudyProgrammes.map(({ groupId, order }) => ({
+                                groupId,
+                                order,
+                            }))}
+                        />
+                    </UserProfileSettingsCard>
+                )}
+            </div>
+        )
+    },
+})
+
+export default page
+export { generateMetadata }
