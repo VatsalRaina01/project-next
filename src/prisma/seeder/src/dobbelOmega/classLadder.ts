@@ -99,11 +99,12 @@ function rawLadder(user: OwStudent): ClassRung[] {
  * length of their programme and the year of study omegaweb-basic has them in. Every rung is of an
  * order that exists, and no two rungs share one.
  *
- * A ladder can reach past the current order - a user who was taken up in it but is in their third
- * year came in from somewhere else, and omegaweb-basic does not say where they were before. The
- * rungs past the current order are brought down onto it (and reported, by `migratedOrder`). A user
- * holds one class per order, so of the rungs that then share an order only the highest year is
- * kept: the one omegaweb-basic says they are in now, which is what the bump reads.
+ * A ladder can reach outside the orders that exist - past the current one for a user who was taken
+ * up in it but is in their third year and came in from somewhere else, and below the first one for
+ * a user omegaweb-basic has no order for at all. Those rungs are brought onto the nearest order
+ * there is (and reported, by `migratedOrder`). A user holds one class per order, so of the rungs
+ * that then share an order only the highest year is kept: the one omegaweb-basic says they are in
+ * now, which is what the bump reads.
  */
 export function inferClassLadder(user: OwStudent): ClassRung[] {
     // The raw ladder is ascending by year, so a later rung on the same order is the higher year.
