@@ -1,10 +1,10 @@
 'use client'
 import styles from './ReleaseCountdown.module.scss'
 import GitGraphPlayer from './GitGraphPlayer'
-import Form from '@/components/Form/Form'
-import TextInput from '@/components/UI/TextInput'
+import ReleaseAdmin from './ReleaseAdmin'
+import Button from '@/components/UI/Button'
 import useKeyPress from '@/hooks/useKeyPress'
-import { unlockReleaseCountdownAction } from '@/services/releaseCountdown/actions'
+import { enterReleaseCountdownAction } from '@/services/releaseCountdown/actions'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -30,15 +30,22 @@ const readServerClock = () => null
 
 type PropTypes = {
     releaseDate: number,
+    openToAll: boolean,
 }
 
 /**
  * Shown instead of the website until it is released.
- * Pressing space opens a password prompt that lets you in early.
+ * Pressing space opens the admin panel, where the password lets you in early, change the release
+ * date, open the website to all and update the git graph. When it is open to all, a button to go in
+ * appears once the git graph has played to its end.
  */
-export default function ReleaseCountdown({ releaseDate }: PropTypes) {
+export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) {
     const now = useSyncExternalStore(subscribeToClock, readClock, readServerClock)
-    const [showUnlock, setShowUnlock] = useState(false)
+    const [showAdmin, setShowAdmin] = useState(false)
+    const [graphPlayed, setGraphPlayed] = useState(false)
+    // Bumped when the graph is updated from the admin panel, so the player loads it anew.
+    const [graphVersion, setGraphVersion] = useState(0)
+    const [enterError, setEnterError] = useState<string | null>(null)
     const hasRefreshed = useRef(false)
     const { refresh } = useRouter()
 
@@ -53,9 +60,20 @@ export default function ReleaseCountdown({ releaseDate }: PropTypes) {
 
     useKeyPress(' ', useCallback((event: KeyboardEvent) => {
         if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
-        setShowUnlock(true)
+        setShowAdmin(true)
     }, []))
-    useKeyPress('Escape', useCallback(() => setShowUnlock(false), []))
+    useKeyPress('Escape', useCallback(() => setShowAdmin(false), []))
+
+    const onGraphPlayed = useCallback(() => setGraphPlayed(true), [])
+
+    const enter = async () => {
+        const result = await enterReleaseCountdownAction()
+        if (!result.success) {
+            setEnterError(result.error?.[0]?.message ?? 'Noe gikk galt. Prøv igjen.')
+            return
+        }
+        refresh()
+    }
 
     const units = [
         { label: 'dager', unitLength: DAY, cycle: Infinity },
@@ -80,13 +98,23 @@ export default function ReleaseCountdown({ releaseDate }: PropTypes) {
                     ))}
                 </div>
                 <p className={styles.releaseDate}>{releaseDateFormat.format(new Date(releaseDate))}</p>
+                {openToAll && graphPlayed && (
+                    <div className={styles.enter}>
+                        <Button onClick={enter}>Se nye veven</Button>
+                        {enterError && <p className={styles.enterError}>{enterError}</p>}
+                    </div>
+                )}
             </div>
-            <GitGraphPlayer />
-            {showUnlock && (
-                <div className={styles.unlock}>
-                    <Form action={unlockReleaseCountdownAction} submitText="Lås opp" refreshOnSuccess>
-                        <TextInput type="password" name="password" label="Passord" autoFocus />
-                    </Form>
+            <GitGraphPlayer key={graphVersion} onReachedEnd={onGraphPlayed} />
+            {showAdmin && (
+                <div className={styles.overlay} onClick={() => setShowAdmin(false)}>
+                    <div onClick={event => event.stopPropagation()}>
+                        <ReleaseAdmin
+                            releaseDate={releaseDate}
+                            openToAll={openToAll}
+                            onGitGraphUpdated={() => setGraphVersion(version => version + 1)}
+                        />
+                    </div>
                 </div>
             )}
         </div>

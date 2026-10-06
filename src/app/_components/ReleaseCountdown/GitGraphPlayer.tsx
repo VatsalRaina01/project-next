@@ -1,7 +1,8 @@
 'use client'
 import styles from './GitGraphPlayer.module.scss'
+import { RELEASE_COUNTDOWN_GIT_GRAPH_URL } from '@/services/releaseCountdown/constants'
 import { useEffect, useRef, useState } from 'react'
-import type { GitGraph } from '@/lib/gitGraph/types'
+import type { GitGraph } from '@/services/releaseCountdown/gitGraph/types'
 
 const COMMITS_PER_SECOND = 8
 const PAUSE_AT_END_MS = 6000
@@ -230,21 +231,33 @@ function drawGraph({ context, graph, edges, progress, width, height, spotlight, 
     })
 }
 
+type PropTypes = {
+    // Called the first time the graph has played all the way to the newest commit.
+    onReachedEnd?: () => void,
+}
+
 /**
  * Plays the project's git history as a growing git graph, like `git log --graph` scrolling by,
  * with the newest commit on top. The graph is tilted back so it lies a little flat.
- * The graph is a snapshot generated with `npm run gitGraph:generate`.
+ * The graph is the one fetched from GitHub into the store (updated from the admin panel); until
+ * there is one, nothing plays.
  */
-export default function GitGraphPlayer() {
+export default function GitGraphPlayer({ onReachedEnd }: PropTypes) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [graph, setGraph] = useState<GitGraph | null>(null)
+    const onReachedEndRef = useRef(onReachedEnd)
+    onReachedEndRef.current = onReachedEnd
 
     useEffect(() => {
         let cancelled = false
-        // Loaded lazily so the snapshot is a separate chunk and does not delay the countdown.
-        import('@/lib/gitGraph/gitGraph.json').then(module => {
-            if (!cancelled) setGraph(module.default as GitGraph)
-        })
+        fetch(RELEASE_COUNTDOWN_GIT_GRAPH_URL, { cache: 'no-store' })
+            .then(response => (response.ok ? response.json() : null))
+            .then((loaded: GitGraph | null) => {
+                if (!cancelled) setGraph(loaded)
+            })
+            .catch(() => {
+                if (!cancelled) setGraph(null)
+            })
         return () => {
             cancelled = true
         }
@@ -270,6 +283,7 @@ export default function GitGraphPlayer() {
         let pendingScroll = 0
         let lastTime: number | null = null
         let reachedEndAt: number | null = null
+        let announcedEnd = false
         let animationFrame = 0
 
         // Scrolling moves the graph along with it: content moving down plays forward, up rewinds.
@@ -320,6 +334,10 @@ export default function GitGraphPlayer() {
                 reachedEndAt = null
             } else {
                 reachedEndAt ??= time
+                if (!announcedEnd) {
+                    announcedEnd = true
+                    onReachedEndRef.current?.()
+                }
                 if (!reducedMotion && time - reachedEndAt > PAUSE_AT_END_MS) {
                     // Start over from the first commit.
                     nextProgress = 1
