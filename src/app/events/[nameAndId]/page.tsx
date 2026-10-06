@@ -36,7 +36,7 @@ import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import Link from 'next/link'
-import { faCalendar, faExclamation, faLocationDot, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { faCalendar, faCalendarPlus, faExclamation, faLocationDot, faUsers } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 type PropTypes = {
@@ -114,6 +114,33 @@ export default async function Event({ params }: PropTypes) {
             : undefined
     }
 
+    const formatICSDate = (date: Date) => {
+        try {
+            const d = new Date(date);
+            return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        } catch {
+            return '';
+        }
+    };
+
+    const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${formatICSDate(event.eventStart)}/${formatICSDate(event.eventEnd)}&details=${encodeURIComponent(`Arrangement: ${event.name}`)}&location=${encodeURIComponent(event.location || '')}`;
+
+    const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Veven//NONSGML Event Calendar//EN',
+        'BEGIN:VEVENT',
+        `SUMMARY:${event.name}`,
+        `DTSTART:${formatICSDate(event.eventStart)}`,
+        `DTEND:${formatICSDate(event.eventEnd)}`,
+        `DESCRIPTION:Arrangement: ${event.name}`,
+        `LOCATION:${event.location || ''}`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].join('\r\n');
+
+    const icsHref = `data:text/calendar;charset=utf-8,${encodeURIComponent(icsContent)}`;
+
     return (
         <div className={styles.wrapper}>
             <PageTitleSetter title={'Arrangement'} />
@@ -171,6 +198,37 @@ export default async function Event({ params }: PropTypes) {
                     <FontAwesomeIcon icon={faCalendar} />
                     <Date date={event.eventStart} includeTime /> - <Date date={event.eventEnd} includeTime />
                 </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '8px 0 16px 0', fontSize: '0.9em' }}>
+                    <span style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <FontAwesomeIcon icon={faCalendarPlus} /> Legg til i kalender:
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px', paddingLeft: '20px' }}>
+                        <a
+                            href={googleCalendarUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                color: 'var(--primary-color, #0070f3)',
+                                textDecoration: 'underline',
+                                fontWeight: '500'
+                            }}
+                        >
+                            Google
+                        </a>
+                        <span>|</span>
+                        <a
+                            href={icsHref}
+                            download={`${event.name}.ics`}
+                            style={{
+                                color: 'var(--primary-color, #0070f3)',
+                                textDecoration: 'underline',
+                                fontWeight: '500'
+                            }}
+                        >
+                            iCal / Outlook
+                        </a>
+                    </div>
+                </div>
                 <p>
                     <FontAwesomeIcon icon={faLocationDot} />
                     {event.location}
