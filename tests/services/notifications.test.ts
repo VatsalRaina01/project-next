@@ -34,6 +34,7 @@ async function createTestUser(username: string): Promise<UserFiltered> {
             firstname: 'Test',
             lastname: 'Testesen',
             bioParagraph: { create: {} },
+            ledgerAccount: { create: { type: 'USER' } },
         },
     })
     return await prisma.user.findUniqueOrThrow({

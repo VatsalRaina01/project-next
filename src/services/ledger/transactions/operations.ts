@@ -27,7 +27,7 @@ async function resolveTransactionAccounts(prisma: Prisma.TransactionClient, tran
             ledgerEntries: {
                 select: {
                     ledgerAccount: {
-                        select: { userId: true, groups: { select: { groupId: true } } },
+                        select: { user: { select: { id: true } }, groups: { select: { groupId: true } } },
                     },
                 },
             },
@@ -35,7 +35,7 @@ async function resolveTransactionAccounts(prisma: Prisma.TransactionClient, tran
     })
 
     return (transaction?.ledgerEntries ?? []).map(entry => ({
-        userId: entry.ledgerAccount?.userId ?? null,
+        userId: entry.ledgerAccount?.user?.id ?? null,
         groupIds: entry.ledgerAccount?.groups.map(group => group.groupId) ?? [],
     }))
 }
