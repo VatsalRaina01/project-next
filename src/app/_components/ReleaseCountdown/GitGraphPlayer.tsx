@@ -231,25 +231,15 @@ function drawGraph({ context, graph, edges, progress, width, height, spotlight, 
     })
 }
 
-type PropTypes = {
-    // Called the first time the graph has played all the way to the newest commit.
-    onReachedEnd?: () => void,
-}
-
 /**
  * Plays the project's git history as a growing git graph, like `git log --graph` scrolling by,
  * with the newest commit on top. The graph is tilted back so it lies a little flat.
  * The graph is the one fetched from GitHub into the store (updated from the admin panel); until
  * there is one, nothing plays.
  */
-export default function GitGraphPlayer({ onReachedEnd }: PropTypes) {
+export default function GitGraphPlayer() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [graph, setGraph] = useState<GitGraph | null>(null)
-    // The animation loop reads the latest callback through a ref, so a new one does not restart it.
-    const onReachedEndRef = useRef(onReachedEnd)
-    useEffect(() => {
-        onReachedEndRef.current = onReachedEnd
-    }, [onReachedEnd])
 
     useEffect(() => {
         let cancelled = false
@@ -286,7 +276,6 @@ export default function GitGraphPlayer({ onReachedEnd }: PropTypes) {
         let pendingScroll = 0
         let lastTime: number | null = null
         let reachedEndAt: number | null = null
-        let announcedEnd = false
         let animationFrame = 0
 
         // Scrolling moves the graph along with it: content moving down plays forward, up rewinds.
@@ -337,10 +326,6 @@ export default function GitGraphPlayer({ onReachedEnd }: PropTypes) {
                 reachedEndAt = null
             } else {
                 reachedEndAt ??= time
-                if (!announcedEnd) {
-                    announcedEnd = true
-                    onReachedEndRef.current?.()
-                }
                 if (!reducedMotion && time - reachedEndAt > PAUSE_AT_END_MS) {
                     // Start over from the first commit.
                     nextProgress = 1

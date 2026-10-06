@@ -36,13 +36,12 @@ type PropTypes = {
 /**
  * Shown instead of the website until it is released.
  * Pressing space opens the admin panel, where the password lets you in early, change the release
- * date, open the website to all and update the git graph. When it is open to all, a button to go in
- * appears once the git graph has played to its end.
+ * date, open the website to all and update the git graph. The button to go in is always shown, and
+ * lets the visitor in once the website is open to all.
  */
 export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) {
     const now = useSyncExternalStore(subscribeToClock, readClock, readServerClock)
     const [showAdmin, setShowAdmin] = useState(false)
-    const [graphPlayed, setGraphPlayed] = useState(false)
     // Bumped when the graph is updated from the admin panel, so the player loads it anew.
     const [graphVersion, setGraphVersion] = useState(0)
     const [enterError, setEnterError] = useState<string | null>(null)
@@ -63,8 +62,6 @@ export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) 
         setShowAdmin(true)
     }, []))
     useKeyPress('Escape', useCallback(() => setShowAdmin(false), []))
-
-    const onGraphPlayed = useCallback(() => setGraphPlayed(true), [])
 
     const enter = async () => {
         const result = await enterReleaseCountdownAction()
@@ -98,14 +95,12 @@ export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) 
                     ))}
                 </div>
                 <p className={styles.releaseDate}>{releaseDateFormat.format(new Date(releaseDate))}</p>
-                {openToAll && graphPlayed && (
-                    <div className={styles.enter}>
-                        <Button onClick={enter}>Se nye veven</Button>
-                        {enterError && <p className={styles.enterError}>{enterError}</p>}
-                    </div>
-                )}
+                <div className={styles.enter}>
+                    <Button onClick={enter}>Se nye veven</Button>
+                    {enterError && <p className={styles.enterError}>{enterError}</p>}
+                </div>
             </div>
-            <GitGraphPlayer key={graphVersion} onReachedEnd={onGraphPlayed} />
+            <GitGraphPlayer key={graphVersion} />
             {showAdmin && (
                 <div className={styles.overlay} onClick={() => setShowAdmin(false)}>
                     <div onClick={event => event.stopPropagation()}>
