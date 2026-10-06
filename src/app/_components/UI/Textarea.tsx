@@ -1,5 +1,5 @@
 import styles from './Textarea.module.scss'
-import { v4 as uuid } from 'uuid'
+import { useId } from 'react'
 import type { TextareaHTMLAttributes } from 'react'
 
 type PropTypes = TextareaHTMLAttributes<HTMLTextAreaElement> & {
@@ -8,7 +8,7 @@ type PropTypes = TextareaHTMLAttributes<HTMLTextAreaElement> & {
 }
 
 export default function Textarea({ label, background = 'base', className, ...props }: PropTypes) {
-    const domId = uuid()
+    const domId = useId()
 
     return (
         <div className={`${styles.TextArea} ${background === 'raised' ? styles.onRaised : ''} ${className ?? ''}`}>
