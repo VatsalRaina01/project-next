@@ -4,4 +4,3 @@ import { notificationChannelOperations } from '@/services/notifications/channel/
 
 export const createNotificationChannelAction = makeAction(notificationChannelOperations.create)
 export const updateNotificationChannelAction = makeAction(notificationChannelOperations.update)
-export const readNotificationChannelsAction = makeAction(notificationChannelOperations.readMany)

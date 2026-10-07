@@ -3,10 +3,10 @@ import { emailValidationExpiration } from './constants'
 import { VerifyEmailTemplate } from '@/lib/email/templates/verifyEmail'
 import { sendMailOperations } from '@/services/notifications/send-mail/operations'
 import { generateJWT } from '@/jwt/jwt'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userSchemas } from '@/services/users/schemas'
 import type { UserFiltered } from '@/services/users/types'
 
-// TODO: Fix this with new validation
 export async function sendVerifyEmail(user: UserFiltered, email: string) {
     const parse = userSchemas.verifyEmail.parse({ email })
 
@@ -15,7 +15,7 @@ export async function sendVerifyEmail(user: UserFiltered, email: string) {
         sub: user.id,
     }, emailValidationExpiration)
 
-    const link = `${process.env.WEBSITE_URL}/verify-email?token=${jwt}`
+    const link = `${process.env.WEBSITE_URL}/verify-email?${QueryParams.token.encodeUrl(jwt)}`
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {

@@ -3,76 +3,71 @@ import CreateMailAlias from '@/app/admin/mail/createMailAliasForm'
 import CreateMailingList from '@/app/admin/mail/createMailingListForm'
 import CreateMailaddressExternal from '@/app/admin/mail/createMailaddressExternalForm'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+import { serverPage } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { readMailAliasesAction } from '@/services/mail/alias/actions'
-import { readMailingListsAction } from '@/services/mail/list/actions'
-import { readMailAddressExternalAction } from '@/services/mail/mailAddressExternal/actions'
+import { aliasOperations } from '@/services/mail/alias/operations'
+import { mailingListOperations } from '@/services/mail/list/operations'
+import { mailAddressExternalOperations } from '@/services/mail/mailAddressExternal/operations'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-
-type PropTypes = {
-    params: Promise<{
-        filter: string,
-    }>
-}
+import type { PageOperationArgs } from '@/app/serverPage'
 
 /** The parts of the mail server that have their own admin page. */
 const mailParts = {
     alias: {
         title: 'E-postalias',
         intro: 'Adressene det kan sendes e-post til. Et alias videresender alt det mottar til e-postlistene sine.',
+        createAuth: () => mailAliasAuth.create,
     },
     mailingList: {
         title: 'E-postlister',
         intro: 'Bindeleddet i mailtjeneren. En e-postliste mottar e-post fra aliasene sine og'
             + ' videresender den til grupper, brukere og eksterne adresser.',
+        createAuth: () => mailingListAuth.create,
     },
     mailaddressExternal: {
         title: 'Eksterne e-postadresser',
         intro: 'Mottakere utenfor nettsiden som kan settes på e-postlister.',
+        createAuth: () => mailAddressExternalAuth.create,
     },
 } as const
 
-export default async function MailPartPage({ params }: PropTypes) {
-    const { filter } = await params
-    if (!Object.keys(mailParts).includes(filter)) notFound()
-    const part = mailParts[filter as keyof typeof mailParts]
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params, session }: PageOperationArgs<{ filter: string }>) => {
+        if (!Object.keys(mailParts).includes(params.filter)) notFound()
+        const filter = params.filter as keyof typeof mailParts
 
-    // Each part has its own nav link, so each part page is guarded by exactly that link's
-    // authorizers - the filter is validated above, so the nav entry always exists.
-    const session = await authorizeAdminPage(`mail/${filter}`)
+        // Each part has its own nav link, so each part page is guarded by exactly that link's
+        // authorizers - the filter is validated above, so the nav entry always exists.
+        authorizeAdminPage(`mail/${filter}`, session)
 
-    const [items, canCreate] = await (async () => {
-        if (filter === 'alias') {
-            const aliases = unwrapActionReturn(await readMailAliasesAction())
-            return [
-                aliases.map(alias => ({ id: alias.id, label: alias.address, description: alias.description })),
-                mailAliasAuth.create.auth(session).authorized,
-            ] as const
-        }
-        if (filter === 'mailingList') {
-            const lists = unwrapActionReturn(await readMailingListsAction())
-            return [
-                lists.map(list => ({ id: list.id, label: list.name, description: list.description })),
-                mailingListAuth.create.auth(session).authorized,
-            ] as const
-        }
-        const externals = unwrapActionReturn(await readMailAddressExternalAction())
-        return [
-            externals.map(external => (
+        const items = await (async () => {
+            if (filter === 'alias') {
+                const aliases = await aliasOperations.readMany({})
+                return aliases.map(alias => ({ id: alias.id, label: alias.address, description: alias.description }))
+            }
+            if (filter === 'mailingList') {
+                const lists = await mailingListOperations.readMany({})
+                return lists.map(list => ({ id: list.id, label: list.name, description: list.description }))
+            }
+            const externals = await mailAddressExternalOperations.readMany({})
+            return externals.map(external => (
                 { id: external.id, label: external.address, description: external.description ?? '' }
-            )),
-            mailAddressExternalAuth.create.auth(session).authorized,
-        ] as const
-    })()
+            ))
+        })()
 
-    return <PageWrapper title={part.title}>
+        return { filter, items }
+    },
+    capabilityChecks: {
+        canCreate: ({ filter }) => mailParts[filter].createAuth(),
+    },
+    metadata: ({ filter }) => ({ title: mailParts[filter].title }),
+    render: ({ data: { filter, items }, capabilities }) => <PageWrapper>
         <div className={styles.wrapper}>
-            <p className={styles.intro}>{part.intro}</p>
+            <p className={styles.intro}>{mailParts[filter].intro}</p>
             <div className={styles.content}>
                 <ul className={styles.itemList}>
                     {items.map(item => <li key={item.id}>
@@ -83,12 +78,15 @@ export default async function MailPartPage({ params }: PropTypes) {
                     </li>)}
                     {items.length === 0 && <li className={styles.empty}>Ingen enda.</li>}
                 </ul>
-                {canCreate && <aside className={styles.createPanel}>
+                {capabilities.canCreate.authorized && <aside className={styles.createPanel}>
                     {filter === 'alias' && <CreateMailAlias />}
                     {filter === 'mailingList' && <CreateMailingList />}
                     {filter === 'mailaddressExternal' && <CreateMailaddressExternal />}
                 </aside>}
             </div>
         </div>
-    </PageWrapper>
-}
+    </PageWrapper>,
+})
+
+export default page
+export { generateMetadata }

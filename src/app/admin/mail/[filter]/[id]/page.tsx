@@ -5,23 +5,17 @@ import EditMailingList from './(editComponents)/mailingList'
 import EditMailAddressExternal from './(editComponents)/mailAddressExternal'
 import EditUser from './(editComponents)/user'
 import EditGroup from './(editComponents)/group'
-import { readMailOptions, readMailFlowAction } from '@/services/mail/actions'
+import { mailOperations } from '@/services/mail/operations'
 import { MailListTypeArray } from '@/services/mail/types'
-import { readExpandedGroupsOfAllTypesAction } from '@/services/groups/actions'
+import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import UserSelectionProvider from '@/contexts/UserSelection'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
+import { serverPage } from '@/app/serverPage'
 import { notFound } from 'next/navigation'
+import type { PageOperationArgs } from '@/app/serverPage'
 import type { MailFlowObject, MailListTypes } from '@/services/mail/types'
-
-type PropTypes = {
-    params: Promise<{
-        filter: string,
-        id: string,
-    }>
-}
 
 const typeDisplayNames: Record<MailListTypes, string> = {
     alias: 'E-postalias',
@@ -40,78 +34,82 @@ function focusedLabel(filter: MailListTypes, id: number, data: MailFlowObject, g
     return user && `${user.firstname} ${user.lastname}`
 }
 
-export default async function MailFlowPage({ params }: PropTypes) {
-    const { filter: rawFilter, id: rawId } = await params
-    if (!MailListTypeArray.includes(rawFilter as MailListTypes)) {
-        notFound()
-    }
-    const filter = rawFilter as MailListTypes
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ filter: string, id: string }>) => {
+        if (!MailListTypeArray.includes(params.filter as MailListTypes)) {
+            notFound()
+        }
+        const filter = params.filter as MailListTypes
 
-    const id = Number(rawId)
-    if (!id || id <= 0) {
-        notFound()
-    }
+        const id = Number(params.id)
+        if (!id || id <= 0) {
+            notFound()
+        }
 
-    const [results, mailOptions, allGroupTypes] = await Promise.all([
-        readMailFlowAction({ params: { filter, id } }),
-        readMailOptions(),
-        readExpandedGroupsOfAllTypesAction(),
-    ])
+        const [results, mailOptions, allGroupTypes] = await Promise.all([
+            mailOperations.readMailTraversal({ params: { filter, id } }),
+            mailOperations.readMailOptions({}),
+            readExpandedOfAllTypes({}),
+        ])
 
-    if (!results.success && results.errorCode === 'NOT FOUND') {
-        notFound()
-    } else if (!results.success || !mailOptions.success) {
-        throw new Error('Kunne ikke hente e-postflyt')
-    }
+        const groups = flattenExpandedGroups(allGroupTypes)
+        const groupNames: Record<number, string> = Object.fromEntries(groups.map(group => [group.id, group.name]))
 
-    const groups = flattenExpandedGroups(unwrapActionReturn(allGroupTypes))
-    const groupNames = Object.fromEntries(groups.map(group => [group.id, group.name]))
+        return { filter, id, results, mailOptions, groups, groupNames }
+    },
+    metadata: ({ filter, id, results, groupNames }) => ({
+        title: focusedLabel(filter, id, results, groupNames) ?? typeDisplayNames[filter],
+    }),
+    render: ({ data }) => {
+        const { filter, id, results, mailOptions, groups, groupNames } = data
 
-    return <PageWrapper
-        title={focusedLabel(filter, id, results.data, groupNames) ?? typeDisplayNames[filter]}
-    >
-        <div className={styles.wrapper}>
-            <p className={styles.typeTag}>{typeDisplayNames[filter]}</p>
+        return <PageWrapper>
+            <div className={styles.wrapper}>
+                <p className={styles.typeTag}>{typeDisplayNames[filter]}</p>
 
-            <MailFlow filter={filter} id={id} data={results.data} groupNames={groupNames} />
+                <MailFlow filter={filter} id={id} data={results} groupNames={groupNames} />
 
-            <div className={styles.editContainer}>
-                {filter === 'mailingList' && <UserSelectionProvider>
-                    <UserPagingProvider
-                        startPage={{ page: 0, pageSize: 50 }}
-                        serverRenderedData={[]}
-                        details={{ partOfName: '', groups: [] }}
-                    >
-                        <EditMailingList
-                            id={id}
-                            data={results.data}
-                            mailaliases={mailOptions.data.alias}
-                            mailAddressExternal={mailOptions.data.mailaddressExternal}
-                            groups={groups}
-                        />
-                    </UserPagingProvider>
-                </UserSelectionProvider>}
-                {filter === 'alias' && <EditMailAlias
-                    id={id}
-                    data={results.data}
-                    mailingLists={mailOptions.data.mailingList}
-                />}
-                {filter === 'mailaddressExternal' && <EditMailAddressExternal
-                    id={id}
-                    data={results.data}
-                    mailingLists={mailOptions.data.mailingList}
-                />}
-                {filter === 'user' && <EditUser
-                    id={id}
-                    data={results.data}
-                    mailingLists={mailOptions.data.mailingList}
-                />}
-                {filter === 'group' && <EditGroup
-                    id={id}
-                    data={results.data}
-                    mailingLists={mailOptions.data.mailingList}
-                />}
+                <div className={styles.editContainer}>
+                    {filter === 'mailingList' && <UserSelectionProvider>
+                        <UserPagingProvider
+                            startPage={{ page: 0, pageSize: 50 }}
+                            serverRenderedData={[]}
+                            details={{ partOfName: '', groups: [] }}
+                        >
+                            <EditMailingList
+                                id={id}
+                                data={results}
+                                mailaliases={mailOptions.alias}
+                                mailAddressExternal={mailOptions.mailaddressExternal}
+                                groups={groups}
+                            />
+                        </UserPagingProvider>
+                    </UserSelectionProvider>}
+                    {filter === 'alias' && <EditMailAlias
+                        id={id}
+                        data={results}
+                        mailingLists={mailOptions.mailingList}
+                    />}
+                    {filter === 'mailaddressExternal' && <EditMailAddressExternal
+                        id={id}
+                        data={results}
+                        mailingLists={mailOptions.mailingList}
+                    />}
+                    {filter === 'user' && <EditUser
+                        id={id}
+                        data={results}
+                        mailingLists={mailOptions.mailingList}
+                    />}
+                    {filter === 'group' && <EditGroup
+                        id={id}
+                        data={results}
+                        mailingLists={mailOptions.mailingList}
+                    />}
+                </div>
             </div>
-        </div>
-    </PageWrapper>
-}
+        </PageWrapper>
+    },
+})
+
+export default page
+export { generateMetadata }

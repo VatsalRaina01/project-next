@@ -1,6 +1,5 @@
 'use client'
 import styles from './Select.module.scss'
-import { v4 as uuid } from 'uuid'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { type SelectHTMLAttributes } from 'react'
@@ -60,7 +59,7 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                     {
                         options.map(option =>
                             <option
-                                key={option.key ?? uuid()}
+                                key={option.key ?? option.value}
                                 value={option.value}
                             >
                                 {option.label ?? option.value}

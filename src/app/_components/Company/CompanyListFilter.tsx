@@ -7,8 +7,7 @@ import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch } from '@fortawesome/free-solid-svg-icons'
 import { useRouter } from 'next/navigation'
-import { v4 as uuid } from 'uuid'
-import { useContext } from 'react'
+import { useContext, useId } from 'react'
 
 type PropTypes = {
     currentName: string
@@ -16,6 +15,7 @@ type PropTypes = {
 
 export default function CompanyListFilter({ currentName }: PropTypes) {
     const { replace } = useRouter()
+    const domId = useId()
     const { setDetails } = useContext(CompanyPagingContext) || {
         setDetails: () => { /**/ }
     }
@@ -26,7 +26,7 @@ export default function CompanyListFilter({ currentName }: PropTypes) {
     return (
         <span className={styles.CompanyListFilter}>
             <FontAwesomeIcon icon={faSearch} />
-            <TextInput id={uuid()} onChange={(e) => setNameFilter(e.target.value)} defaultValue={currentName} label="Navn" />
+            <TextInput id={domId} onChange={(e) => setNameFilter(e.target.value)} defaultValue={currentName} label="Navn" />
         </span>
     )
 }

@@ -14,13 +14,14 @@ import { notificationSubscriptionOperations } from '@/services/notifications/sub
 import { classOperations } from '@/services/groups/classes/operations'
 import { NTNUEmailDomain } from '@/services/mail/constants'
 import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
+import { sendEmailChangedMail } from '@/lib/email/systemMail/emailChanged'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { sendUserInvitationEmail } from '@/lib/email/systemMail/userInvitivation'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { getMembershipFilter } from '@/auth/getMembershipFilter'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
-import { hashAndEncryptPassword } from '@/auth/passwordHash'
+import { decryptAndComparePassword, hashAndEncryptPassword } from '@/auth/passwordHash'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
@@ -77,7 +78,7 @@ export const userOperations = {
         paramsSchema: z.object({
             username: z.string().optional(),
             id: z.coerce.number().optional(),
-            email: z.string().optional(),
+            email: z.string().trim().toLowerCase().optional(),
             studentCard: z.string().optional(),
         }),
         authorizer: ({ params }) => userAuth.read.data({ userField: params }),
@@ -94,7 +95,7 @@ export const userOperations = {
         paramsSchema: z.object({
             username: z.string().optional(),
             id: z.coerce.number().optional(),
-            email: z.string().optional(),
+            email: z.string().trim().toLowerCase().optional(),
             studentCard: z.string().optional(),
         }),
         authorizer: ({ params }) => userAuth.read.data({ userField: params }),
@@ -218,7 +219,7 @@ export const userOperations = {
             ]
 
             if (details.groups.length > maxNumberOfGroupsInFilter) {
-                throw new ServerError('BAD PARAMETERS', 'Too many groups in filter')
+                throw new ServiceError('BAD PARAMETERS', 'Too many groups in filter')
             }
             const groupSelection = details.selectedGroup ? [
                 getMembershipFilter(details.selectedGroup.groupOrder, details.selectedGroup.groupId)
@@ -364,7 +365,7 @@ export const userOperations = {
         }),
         operation: async ({ prisma, params, session }) => {
             if (!session.user) {
-                throw new ServerError('DISSALLOWED', 'This endpoint requires a user conencted to the session.')
+                throw new ServiceError('DISSALLOWED', 'This endpoint requires a user conencted to the session.')
             }
 
             await prisma.user.update({
@@ -464,16 +465,30 @@ export const userOperations = {
                 }
             }
 
+            // Password resets go to the email, so once the user has a password, changing the email
+            // takes it. A user without one is still signing up through the Feide login they just made.
+            const credentials = await prisma.credentials.findUnique({
+                where: { userId: params.id },
+                select: { passwordHash: true },
+            })
+            if (credentials && !(
+                data.currentPassword && await decryptAndComparePassword(data.currentPassword, credentials.passwordHash)
+            )) {
+                throw new ServiceError('BAD PARAMETERS', 'Feil passord.')
+            }
+
             if (data.email === storedUser.feideAccount?.email) {
-                await prisma.user.update({
+                const updatedUser = await prisma.user.update({
                     where: {
                         id: params.id,
                     },
                     data: {
                         email: data.email,
                         emailVerified: (new Date()).toISOString()
-                    }
+                    },
+                    select: userFilterSelection,
                 })
+                await sendEmailChangedMail(updatedUser, storedUser.email)
 
                 return {
                     verified: true,
@@ -482,7 +497,7 @@ export const userOperations = {
             }
 
             if (data.email.endsWith(`@${NTNUEmailDomain}`)) {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD PARAMETERS',
                     `Den nye e-posten må være din ${NTNUEmailDomain}-e-post, eller en personlig e-post.`
                 )
@@ -515,7 +530,7 @@ export const userOperations = {
         operation: async ({ prisma, data, params }) => {
             const { sex, password, mobile, allergies, imageConsent } = data
 
-            if (!password) throw new ServerError('BAD PARAMETERS', 'Passord er obligatorisk.')
+            if (!password) throw new ServiceError('BAD PARAMETERS', 'Passord er obligatorisk.')
 
             const storedUser = await prisma.user.findUnique({
                 where: {
@@ -533,9 +548,9 @@ export const userOperations = {
                 },
             })
 
-            if (!storedUser) throw new ServerError('NOT FOUND', 'Could not find the user with the specified id.')
+            if (!storedUser) throw new ServiceError('NOT FOUND', 'Could not find the user with the specified id.')
 
-            if (storedUser.acceptedTerms) throw new ServerError('DUPLICATE', 'Brukeren er allerede registrert.')
+            if (storedUser.acceptedTerms) throw new ServiceError('DUPLICATE', 'Brukeren er allerede registrert.')
 
             const passwordHash = await hashAndEncryptPassword(password)
 
@@ -578,7 +593,7 @@ export const userOperations = {
                     },
                 })
             } catch (error) {
-                if (!(error instanceof ServerError) || error.errorCode !== 'DUPLICATE') {
+                if (!(error instanceof ServiceError) || error.errorCode !== 'DUPLICATE') {
                     // Duplicate subscriptions doen't do anything, and it will make development easier.
                     // In addition will this tolerate if we invalidate a users accepted terms,
                     // without deleting the user's subscriptions
@@ -616,7 +631,7 @@ export const userOperations = {
         paramsSchema: z.object({
             username: z.string().optional(),
             id: z.number().optional(),
-            email: z.string().optional(),
+            email: z.string().trim().toLowerCase().optional(),
             studentCard: z.string().optional(),
         }),
         operation: async ({ prisma: prisma_, params }) => {

@@ -10,7 +10,7 @@ import {
 } from './constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
-import { ServerError, Smorekopp } from '@/services/error'
+import { ServiceError, Smorekopp } from '@/services/error'
 import { implementStore } from '@/lib/store/implementStore'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import logger from '@/lib/logger'
@@ -41,7 +41,7 @@ export const imageOperations = {
                     }
                 }
             })
-            if (!collection) throw new ServerError('NOT FOUND', 'Collection ikke funnet')
+            if (!collection) throw new ServiceError('NOT FOUND', 'Collection ikke funnet')
 
             // Extract all file locations before deleting from DB
             const fileLocationsToDelete = collection.images.flatMap(storedFileLocationsOfImage)
@@ -75,7 +75,7 @@ export const imageOperations = {
                 })
 
                 if (!image) {
-                    throw new ServerError('NOT FOUND', 'Bilde ikke funnet')
+                    throw new ServiceError('NOT FOUND', 'Bilde ikke funnet')
                 }
 
                 const collectionId = 'collectionId' in params
@@ -195,7 +195,7 @@ export const imageOperations = {
             const buffer = Buffer.from(await imageFile.arrayBuffer())
             const storedOriginal = await imageStore.readStoredFile(image.fsLocationOriginal).catch(error => {
                 // A missing original is exactly what replacing it repairs.
-                if (error instanceof ServerError && error.errorCode === 'NOT FOUND') return null
+                if (error instanceof ServiceError && error.errorCode === 'NOT FOUND') return null
                 throw error
             })
             if (storedOriginal?.equals(buffer)) return { replaced: false }
@@ -240,7 +240,7 @@ export const imageOperations = {
         operation: () => async ({ prisma, params }) => {
             const image = await prisma.image.findUniqueOrThrow({ where: { id: params.imageId } })
             if (image.type !== 'RASTER') {
-                throw new ServerError('BAD PARAMETERS', `Image ${image.id} is an svg and has no variants to process`)
+                throw new ServiceError('BAD PARAMETERS', `Image ${image.id} is an svg and has no variants to process`)
             }
             try {
                 const buffer = await imageStore.readStoredFile(image.fsLocationOriginal)

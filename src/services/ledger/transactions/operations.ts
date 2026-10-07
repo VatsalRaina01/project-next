@@ -7,7 +7,7 @@ import { paymentOperations } from '@/services/ledger/payments/operations'
 import { resolveAccountOwnership, resolveAccountsOwnership } from '@/services/ledger/accounts/ownership'
 import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
-import { Smorekopp, ServerError } from '@/services/error'
+import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
 import { LedgerTransactionPurpose } from '@/prisma-generated-pn-types'
@@ -368,7 +368,7 @@ export const ledgerTransactionOperations = {
                 entry => (balances[entry.ledgerAccountId]?.amount ?? 0) + entry.funds < 0
             )
             if (hasInsufficientBalance) {
-                throw new ServerError('BAD PARAMETERS', 'Konto har for lav balanse for å utføre transaksjonen.')
+                throw new ServiceError('BAD PARAMETERS', 'Konto har for lav balanse for å utføre transaksjonen.')
             }
 
             // Calculate and set fees for the debit entries
@@ -405,7 +405,7 @@ export const ledgerTransactionOperations = {
 
             if (transaction.state === 'FAILED') {
                 // TODO: Better error message.
-                throw new ServerError('BAD PARAMETERS', transaction.reason ?? 'Transaksjonen feilet av ukjent årsak.')
+                throw new ServiceError('BAD PARAMETERS', transaction.reason ?? 'Transaksjonen feilet av ukjent årsak.')
             }
 
             return transaction
