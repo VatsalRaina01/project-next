@@ -116,30 +116,37 @@ export default async function Event({ params }: PropTypes) {
 
     const formatICSDate = (date: Date) => {
         try {
-            const d = new Date(date);
-            return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            const d = new Date(date)
+            return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
         } catch {
-            return '';
+            return ''
         }
-    };
+    }
 
-    const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${formatICSDate(event.eventStart)}/${formatICSDate(event.eventEnd)}&details=${encodeURIComponent(`Arrangement: ${event.name}`)}&location=${encodeURIComponent(event.location || '')}`;
+    const escapeICSText = (value: string) => value
+        .replace(/\\/g, '\\\\')
+        .replace(/\r\n|\r|\n/g, '\\n')
+        .replace(/[,;]/g, character => `\\${character}`)
+
+    const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${formatICSDate(event.eventStart)}/${formatICSDate(event.eventEnd)}&details=${encodeURIComponent(`Arrangement: ${event.name}`)}&location=${encodeURIComponent(event.location || '')}`
 
     const icsContent = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
         'PRODID:-//Veven//NONSGML Event Calendar//EN',
         'BEGIN:VEVENT',
-        `SUMMARY:${event.name}`,
+        `UID:event-${event.id}@veven`,
+        `DTSTAMP:${formatICSDate(new Date())}`,
+        `SUMMARY:${escapeICSText(event.name)}`,
         `DTSTART:${formatICSDate(event.eventStart)}`,
         `DTEND:${formatICSDate(event.eventEnd)}`,
-        `DESCRIPTION:Arrangement: ${event.name}`,
-        `LOCATION:${event.location || ''}`,
+        `DESCRIPTION:Arrangement: ${escapeICSText(event.name)}`,
+        `LOCATION:${escapeICSText(event.location || '')}`,
         'END:VEVENT',
-        'END:VCALENDAR'
-    ].join('\r\n');
+        'END:VCALENDAR',
+    ].join('\r\n')
 
-    const icsHref = `data:text/calendar;charset=utf-8,${encodeURIComponent(icsContent)}`;
+    const icsHref = `data:text/calendar;charset=utf-8,${encodeURIComponent(icsContent)}`
 
     return (
         <div className={styles.wrapper}>
