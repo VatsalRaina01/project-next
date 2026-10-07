@@ -128,10 +128,10 @@ const { page, generateMetadata } = serverPage({
             doubleLevelMatrix,
         }).auth(session).authorized : false
 
-        const formatICSDate = (date: Date) => {
+        const formatICSDate = (date: globalThis.Date) => {
             try {
-                const d = new Date(date)
-                return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+                const parsedDate = new globalThis.Date(date)
+                return `${parsedDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`
             } catch {
                 return ''
             }
@@ -150,7 +150,7 @@ const { page, generateMetadata } = serverPage({
             'PRODID:-//Veven//NONSGML Event Calendar//EN',
             'BEGIN:VEVENT',
             `UID:event-${event.id}@veven`,
-            `DTSTAMP:${formatICSDate(new Date())}`,
+            `DTSTAMP:${formatICSDate(new globalThis.Date())}`,
             `SUMMARY:${escapeICSText(event.name)}`,
             `DTSTART:${formatICSDate(event.eventStart)}`,
             `DTEND:${formatICSDate(event.eventEnd)}`,
